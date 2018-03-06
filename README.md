@@ -1,12 +1,18 @@
 # golem
 
-Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+Carries out menial tasks; is driven by words.
 
-## Installation
+## Setup
 
-	$ npm install
+Run yarn to download and install all dependencies.
 
-## Usage
+	$ yarn    
+
+Globally install the Command Line Utility for Gulp, if necessary. (eg. "gulp: command not found")
+
+    $ npm i -g gulp-cli 
+
+## During developent
 
 Run `$ gulp --watch` and load the `dist`-directory into chrome.
 
@@ -33,9 +39,7 @@ There are two kinds of entryfiles that create bundles.
 | `--sourcemaps` | Force the creation of sourcemaps. Default: !production                                                                                                |
 
 
-### pack
-
-Zips your `dist` directory and saves it in the `packages` directory.
+### Packing the extension for firefox
 
     $ gulp pack --vendor=firefox
 
