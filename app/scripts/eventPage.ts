@@ -9,12 +9,38 @@ chrome.runtime.onInstalled.addListener((details) => {
 browser.runtime.onMessage.addListener((m) => {
   console.log(m);
 
+
+
+  return 'coo.';
+});
+
+
+function notify(message: string) {
   browser.notifications.create('noty', {
     'type': 'basic',
     'iconUrl': browser.extension.getURL('images/icon-48.png'),
     'title': 'wheee!',
-    'message': 'you have been notified'
+    'message': message
   });
+}
 
-  return 'coo.';
+function injectCSS(tab: any) {
+  // notify('he meeps:' + tab.id);
+  console.log('he meeps:' + tab.id);
+  // browser.tabs.removeCSS(tab.id);
+  browser.tabs.insertCSS(tab.id, {code: `
+  @media print {
+    :not(.printable) {
+      display: none !important;
+    }
+    div.printable {
+      display: block !important;
+      background-color: hotpink !important;
+    }
+  }
+  `});
+}
+
+browser.tabs.onUpdated.addListener((id, changeInfo, tab) => {
+  injectCSS(tab);
 });

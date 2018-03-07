@@ -34,8 +34,7 @@
   "content_scripts": [
     {
       "matches": [
-        "http://*/*",
-        "https://*/*"
+        "*://*.alma.exlibrisgroup.com/*"
       ],
       "css": [
         "styles/contentscript.css"
