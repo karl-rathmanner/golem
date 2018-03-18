@@ -46,9 +46,15 @@
       "all_frames": false
     }
   ],
+  "commands": {
+    "go-go-golem" : {
+      "suggested_key": {
+        "default":"Alt+G"
+      },
+      "description": "Go-Go-Golem!"
+    }
+  },
   "permissions": [
-    "clipboardRead",
-    "clipboardWrite",
     "notifications",
     "tabs",
     "<all_urls>"

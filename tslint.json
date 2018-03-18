@@ -1,5 +1,8 @@
 {
   "rules": {
+      "exclude": [
+        "node_modules/**"
+      ],
       "class-name": true,
       "comment-format": [
           true,

@@ -1,6 +1,6 @@
 // Enable chromereload by uncommenting this line:
 import 'chromereload/devonly';
-import { browser } from 'webextension-polyfill-ts';
+import { browser, Browser } from 'webextension-polyfill-ts';
 
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('previousVersion', details.previousVersion);
@@ -8,12 +8,8 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 browser.runtime.onMessage.addListener((m) => {
   console.log(m);
-
-
-
   return 'coo.';
 });
-
 
 function notify(message: string) {
   browser.notifications.create('noty', {
@@ -43,4 +39,26 @@ function injectCSS(tab: any) {
 
 browser.tabs.onUpdated.addListener((id, changeInfo, tab) => {
   injectCSS(tab);
+});
+
+
+browser.commands.onCommand.addListener(function(command) {
+  if (command === 'go-go-golem') {
+    console.log('Doing stuff!');
+    browser.tabs.query({currentWindow: true}).then((tabs) => {
+      let tab;
+      for (tab of tabs) {
+        if (tab && tab.id && /alma/.test(tab.url!)) {
+          browser.windows.getCurrent().then((window) => {
+            if (window.id) browser.windows.update(window.id, {state: 'maximized', focused: true});
+          });
+          browser.tabs.sendMessage(tab.id, {msg: 'mo color?', color: '#' + Math.floor(Math.random() * 16777215).toString(16) })
+            .then((v) => console.log(v))
+            .catch((e) => {
+              console.log(e);
+            });
+        }
+      }
+    });
+  }
 });
