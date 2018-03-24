@@ -52,6 +52,12 @@
         "default":"Alt+G"
       },
       "description": "Go-Go-Golem!"
+    },
+    "open-schem-playground": {
+      "suggested_key": {
+        "default":"Alt+S"
+      },
+      "description": "Opens the Schem Playground"
     }
   },
   "permissions": [

@@ -17,6 +17,6 @@ document.body.appendChild(printme);
 
 browser.runtime.onMessage.addListener((m) => {
     console.log(m);
-    $('#ALMA_MENU_TOP_NAV_Search_Text').css('background-color', m.color);
+    $('.widgetContainer').css('background-color', m.color);
     return true;
 });
