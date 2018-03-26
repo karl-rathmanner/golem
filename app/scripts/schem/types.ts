@@ -14,17 +14,13 @@ export const enum Node {
 
 export type SchemType = SchemList | SchemNumber | SchemSymbol | SchemNil | SchemString;
 
-export class SchemNumber {
-  constructor(public value: Number) {
-
-  }
+export class SchemNumber extends Number {
 }
 
 export class SchemString extends String {
 }
 
 export class SchemSymbol {
-
   constructor(public name: string) {
     // return Symbol.for(name);
   }
@@ -40,14 +36,8 @@ export class SchemList extends Array {
   }
 }
 
-export class SchemFunction {
-  // static instanceOf(f: SchemType): f is SchemFunction {
-  //     return f instanceof MalFunction;
-  // }
-  constructor(public func: (...args: (SchemType | undefined)[]) => SchemType) {
-  }
+export class SchemFunction extends Function {
 }
-
 
 export class SchemNil extends null {
 }

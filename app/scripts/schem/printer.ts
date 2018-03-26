@@ -2,7 +2,7 @@ import { SchemType, SchemNumber, SchemNil, SchemSymbol, SchemList, SchemString }
 
 export function pr_str(obj: SchemType, escapeStrings: boolean = true): string {
   if (obj instanceof SchemNumber) {
-    return obj.value.toString();
+    return obj.toString();
   } else if (obj instanceof SchemNil) {
     return 'nil';
   } else if (obj instanceof SchemSymbol) {
