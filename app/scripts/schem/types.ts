@@ -21,8 +21,21 @@ export class SchemString extends String {
 }
 
 export class SchemSymbol {
-  constructor(public name: string) {
-    // return Symbol.for(name);
+  static registeredSymbols: Map<symbol, SchemSymbol> = new Map<symbol, SchemSymbol>();
+
+  static from(name: string): SchemSymbol {
+    const sym: symbol = Symbol.for(name);
+
+    if (this.registeredSymbols.has(sym)) {
+      return this.registeredSymbols.get(sym)!;
+    } else {
+      const newSchemSymbol = new SchemSymbol(name);
+      this.registeredSymbols.set(sym, newSchemSymbol);
+      return newSchemSymbol;
+    }
+  }
+
+  private constructor(public name: string) {
   }
 }
 
@@ -39,5 +52,5 @@ export class SchemList extends Array {
 export class SchemFunction extends Function {
 }
 
-export class SchemNil extends null {
+export class SchemNil {
 }

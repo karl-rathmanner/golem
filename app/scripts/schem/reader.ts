@@ -66,7 +66,7 @@ function readAtom(reader: Reader) {
 
     return new SchemString(value);
   } else {
-    return new SchemSymbol(token);
+    return SchemSymbol.from(token);
   }
 
 }

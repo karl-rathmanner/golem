@@ -1,24 +1,24 @@
 import { SchemType, SchemNumber, SchemNil, SchemSymbol, SchemList, SchemString } from './types';
 
-export function pr_str(obj: SchemType, escapeStrings: boolean = true): string {
-  if (obj instanceof SchemNumber) {
-    return obj.toString();
-  } else if (obj instanceof SchemNil) {
+export function pr_str(ast: SchemType, escapeStrings: boolean = true): string {
+  if (ast instanceof SchemNumber) {
+    return ast.toString();
+  } else if (ast instanceof SchemNil) {
     return 'nil';
-  } else if (obj instanceof SchemSymbol) {
-    return obj.name;
-  } else if (obj instanceof SchemList) {
-    return '(' + obj.map(e => pr_str(e)).join(' ') + ')';
-  } else if (obj instanceof SchemString) {
+  } else if (ast instanceof SchemSymbol) {
+    return ast.name;
+  } else if (ast instanceof SchemList) {
+    return '(' + ast.map(e => pr_str(e)).join(' ') + ')';
+  } else if (ast instanceof SchemString) {
     if (escapeStrings) {
-      return `"${obj.replace(/\\/g, '\\\\')
+      return `"${ast.replace(/\\/g, '\\\\')
                 .replace(/\n/g, '\\n')
                 .replace(/"/g, '\\"')}"`;
     } else {
-      return obj as string;
+      return ast as string;
     }
   } else {
-    console.warn(`pr_str doesn't know how to handle ${obj}`);
+    console.warn(`pr_str doesn't know how to handle ${ast}`);
     return '';
   }
 }
