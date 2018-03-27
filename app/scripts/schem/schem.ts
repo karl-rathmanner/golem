@@ -1,5 +1,5 @@
 import { readStr } from './reader';
-import { SchemType, SchemSymbol, SchemList, SchemFunction, SchemNil, SchemNumber } from './types';
+import { SchemType, SchemSymbol, SchemList, SchemFunction, SchemNil, SchemNumber, SchemBoolean } from './types';
 import { pr_str } from './printer';
 import { Env } from './env';
 
@@ -60,7 +60,13 @@ function evalSchem(ast: SchemType, env: Env): SchemType {
             }
           }
           case 'if': {
-            return new SchemNil();
+            const condition = evalSchem(ast[1], env);
+            if (condition instanceof SchemBoolean && condition.valueOf() === false ||
+                condition instanceof SchemNil) {
+                return evalSchem(ast[3], env);
+              } else {
+                return evalSchem(ast[2], env);
+              }
           }
           case 'fn*': {
             return new SchemNil();
