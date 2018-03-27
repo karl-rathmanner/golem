@@ -47,6 +47,24 @@ function evalSchem(ast: SchemType, env: Env): SchemType {
             }
             return evalSchem(ast[2], childEnv);
           }
+          case 'do': {
+            // evaluate all elements, starting from the second one, return only the last result
+            const rest  = ast.splice(1);
+
+            for (let i = 0; ; i++) {
+              if (i < rest.length - 1) {
+                evalSchem(rest[i], env);
+              } else {
+                 return evalSchem(rest[i], env);
+              }
+            }
+          }
+          case 'if': {
+            return new SchemNil();
+          }
+          case 'fn*': {
+            return new SchemNil();
+          }
           default: {
             const evaluatedAST: SchemList = evalAST(ast, env) as SchemList;
             const [f, ...rest] = evaluatedAST;
