@@ -1,4 +1,4 @@
-import {SchemType, SchemList, SchemNumber, SchemSymbol, SchemNil, SchemString} from './types';
+import {SchemType, SchemList, SchemNumber, SchemSymbol, SchemNil, SchemString, SchemBoolean} from './types';
 
 class Reader {
   private position = 0;
@@ -55,9 +55,16 @@ function readList(reader: Reader): SchemList {
 
 function readAtom(reader: Reader) {
   const token = reader.next();
-
-  if (/\d+/.test(token)) {
+  if (/^-?\d+$/.test(token)) {
+    return new SchemNumber(parseInt(token));
+  } else if (/^-?\d*\.\d+$/.test(token)) {
     return new SchemNumber(parseFloat(token));
+  } else if (token === 'true') {
+    return new SchemBoolean(true);
+  } else if (token === 'false') {
+    return new SchemBoolean(false);
+  } else if (token === 'nil') {
+    return new SchemNil();
   } else if (token[0] === '"') {
     const value = token.substr(1, token.length - 2)
       .replace(/\\"/g, '"')

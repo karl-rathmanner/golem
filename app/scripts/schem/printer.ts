@@ -1,7 +1,9 @@
-import { SchemType, SchemNumber, SchemNil, SchemSymbol, SchemList, SchemString } from './types';
+import { SchemType, SchemNumber, SchemNil, SchemSymbol, SchemList, SchemString, SchemBoolean } from './types';
 
 export function pr_str(ast: SchemType, escapeStrings: boolean = true): string {
-  if (ast instanceof SchemNumber) {
+  if (ast instanceof SchemBoolean) {
+    return (ast.valueOf()) ? 'true' : 'false';
+  } else if (ast instanceof SchemNumber) {
     return ast.toString();
   } else if (ast instanceof SchemNil) {
     return 'nil';

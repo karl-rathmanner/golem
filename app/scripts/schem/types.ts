@@ -54,3 +54,6 @@ export class SchemFunction extends Function {
 
 export class SchemNil {
 }
+
+export class SchemBoolean extends Boolean {
+}
