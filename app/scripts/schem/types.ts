@@ -12,7 +12,7 @@ export const enum Node {
   Atom,
 }
 
-export type SchemType = SchemList | SchemNumber | SchemSymbol | SchemNil | SchemString;
+export type SchemType = SchemList | SchemNumber | SchemSymbol | SchemNil | SchemString | SchemFunction;
 
 export class SchemNumber extends Number {
 }
@@ -39,7 +39,7 @@ export class SchemSymbol {
   }
 }
 
-export class SchemList extends Array {
+export class SchemList extends Array implements Iterator<SchemType> {
   // type: Node.List = Node.List;
   // meta?: SchemType;
 
@@ -47,9 +47,15 @@ export class SchemList extends Array {
   constructor(list: SchemType[] = []) {
     super();
   }
+
+  public next(): IteratorResult<SchemType> {
+    return this.next();
+  }
 }
 
-export class SchemFunction extends Function {
+export class SchemFunction {
+  constructor(public f: Function) {
+  }
 }
 
 export class SchemNil {

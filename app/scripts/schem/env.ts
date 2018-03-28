@@ -3,7 +3,10 @@ import { SchemFunction, SchemNumber, SchemSymbol, SchemType } from './types';
 export class Env {
   data: Map<SchemSymbol, SchemType> = new Map<SchemSymbol, SchemType>();
 
-  constructor(public outer?: Env) {
+  constructor(public outer?: Env, binds: SchemSymbol[] = [], exprs: SchemType[] = []) {
+    for (let i = 0; i < binds.length; i++) {
+      this.set(binds[i], exprs[i]);
+    }
   }
 
   set(key: SchemSymbol, value: SchemType): SchemType {

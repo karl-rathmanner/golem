@@ -50,7 +50,6 @@ function evalSchem(ast: SchemType, env: Env): SchemType {
           case 'do': {
             // evaluate all elements, starting from the second one, return only the last result
             const rest  = ast.splice(1);
-
             for (let i = 0; ; i++) {
               if (i < rest.length - 1) {
                 evalSchem(rest[i], env);
@@ -69,20 +68,34 @@ function evalSchem(ast: SchemType, env: Env): SchemType {
               }
           }
           case 'fn*': {
-            return new SchemNil();
+            const [, binds, exprs] = ast;
+
+            if (!(binds instanceof SchemList)) {
+              throw `expected list`;
+            }
+            binds.map((e) => {
+              if (!(e instanceof SchemSymbol)) throw `binds list must only contain symbols`;
+              return e;
+            });
+
+            return new SchemFunction((...args: SchemType[]) => {
+              return evalSchem(exprs, new Env(env, binds, args));
+            });
+
           }
           default: {
-            const evaluatedAST: SchemList = evalAST(ast, env) as SchemList;
-            const [f, ...rest] = evaluatedAST;
-            console.log(f);
-            console.log(typeof f);
-            if (f instanceof Function) {
-              return f(...rest);
-            } else {
-              throw `tried to invoke ${f} as a function, when it's type was ${f.type}`;
-            }
           }
         }
+      }
+
+      const evaluatedAST: SchemList = evalAST(ast, env) as SchemList;
+      const [f, ...rest] = evaluatedAST;
+      console.log(f);
+      console.log(typeof f);
+      if (f instanceof SchemFunction) {
+        return f.f(...rest);
+      } else {
+        throw `tried to invoke ${f} as a function, when it's type was ${f.type}`;
       }
     }
   }
@@ -92,12 +105,12 @@ function evalSchem(ast: SchemType, env: Env): SchemType {
 
 const replEnv: Env = new Env();
 
-replEnv.set(SchemSymbol.from('+'), (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue) => accumulator + currentValue.valueOf())));
+replEnv.set(SchemSymbol.from('+'), new SchemFunction((...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue) => accumulator + currentValue.valueOf()))));
 
 replEnv.addMap({
-  '-': (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue) => accumulator - currentValue.valueOf())),
-  '*': (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue) => accumulator * currentValue.valueOf())),
-  '/': (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue) => accumulator / currentValue.valueOf())),
+  '-': new SchemFunction((...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue) => accumulator - currentValue.valueOf()))),
+  '/': new SchemFunction((...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue) => accumulator / currentValue.valueOf()))),
+  '*': new SchemFunction((...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue) => accumulator * currentValue.valueOf()))),
 });
 
 

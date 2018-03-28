@@ -1,4 +1,4 @@
-import { SchemType, SchemNumber, SchemNil, SchemSymbol, SchemList, SchemString, SchemBoolean } from './types';
+import { SchemType, SchemNumber, SchemNil, SchemSymbol, SchemList, SchemString, SchemBoolean, SchemFunction } from './types';
 
 export function pr_str(ast: SchemType, escapeStrings: boolean = true): string {
   if (ast instanceof SchemBoolean) {
@@ -19,6 +19,8 @@ export function pr_str(ast: SchemType, escapeStrings: boolean = true): string {
     } else {
       return ast as string;
     }
+  } else if (ast instanceof SchemFunction) {
+    return '#function';
   } else {
     console.warn(`pr_str doesn't know how to handle ${ast}`);
     return '';
