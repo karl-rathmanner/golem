@@ -6,9 +6,19 @@ chrome.runtime.onInstalled.addListener((details) => {
   console.log('previousVersion', details.previousVersion);
 });
 
-browser.runtime.onMessage.addListener((m) => {
-  console.log(m);
-  return 'coo.';
+browser.runtime.onMessage.addListener((m: {action: string, message: string}) => {
+  switch (m.action) {
+    case 'notify': {
+      notify(m.message);
+      return true;
+    }
+
+    default: {
+      console.warn(`unknown message received`);
+      console.warn(m);
+      return 'idk';
+    }
+  }
 });
 
 function notify(message: string) {

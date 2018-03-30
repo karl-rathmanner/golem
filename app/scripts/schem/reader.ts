@@ -17,7 +17,7 @@ class Reader {
 export function readStr(input: string): SchemType {
   const tokens = tokenizer(input);
 
-  if (tokens === []) return new SchemNil(); // read a comment
+  if (tokens === []) return SchemNil; // read a comment
 
   const reader = new Reader(tokens);
   return readForm(reader);
@@ -64,7 +64,7 @@ function readAtom(reader: Reader) {
   } else if (token === 'false') {
     return new SchemBoolean(false);
   } else if (token === 'nil') {
-    return new SchemNil();
+    return SchemNil.instance;
   } else if (token[0] === '"') {
     const value = token.substr(1, token.length - 2)
       .replace(/\\"/g, '"')
@@ -88,7 +88,5 @@ function tokenizer(input: string): string[] {
     if (match === '') break;
     tokens.push(match);
   }
-
-  console.log(tokens);
   return tokens;
 }

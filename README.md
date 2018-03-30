@@ -1,20 +1,34 @@
 # golem
 
-Carries out menial tasks; is driven by words.
 
-## Setup
+Golem is a webextension that's supposed to automate tasks in Ex Libris' Web-based ILS Alma.
+It carries out menial tasks and is driven by words.
 
-Run yarn to download and install all dependencies.
+# schem
+[ʃɛm], from Hebrew שם‎ (Šēm).
+
+When it grows up, Schem is going to be a clojure-y lisp dialect that's going to tell the golem how to behave.
+
+
+------------
+------------
+# Development Setup
+
+Run yarn to download and install all dependencies. (Feel free to use npm instead of yarn, if that works for you.)
 
 	$ yarn    
 
-Globally install the Command Line Utility for Gulp, if necessary. (eg. "gulp: command not found")
+If necessary, globally install the Command Line Utility for Gulp.
 
     $ npm i -g gulp-cli 
 
-## During developent
+## During active developent
 
-Run `$ gulp --watch` and load the `dist`-directory into chrome.
+Start automatic compilation and live reload, whenever files are saved
+
+    $ gulp --watch
+    
+Load the `dist/chrome`-directory as an unpacked extension into chrome.
 
 ## Entryfiles (bundles)
 

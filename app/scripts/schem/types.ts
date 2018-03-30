@@ -1,16 +1,4 @@
-export const enum Node {
-  List = 1,
-  Number,
-  String,
-  Nil,
-  Boolean,
-  Symbol,
-  Keyword,
-  Vector,
-  HashMap,
-  Function,
-  Atom,
-}
+import { Env } from './env';
 
 export type SchemType = SchemList | SchemNumber | SchemSymbol | SchemNil | SchemString | SchemFunction;
 
@@ -24,6 +12,7 @@ export class SchemSymbol {
   static registeredSymbols: Map<symbol, SchemSymbol> = new Map<symbol, SchemSymbol>();
 
   static from(name: string): SchemSymbol {
+    // Creates symbols using the global symbol registry, so the same name maps to the same symbol
     const sym: symbol = Symbol.for(name);
 
     if (this.registeredSymbols.has(sym)) {
@@ -39,27 +28,27 @@ export class SchemSymbol {
   }
 }
 
-export class SchemList extends Array implements Iterator<SchemType> {
-  // type: Node.List = Node.List;
-  // meta?: SchemType;
 
-  public list: SchemType[];
-  constructor(list: SchemType[] = []) {
-    super();
-  }
-
-  public next(): IteratorResult<SchemType> {
-    return this.next();
+export class SchemList extends Array<SchemType> {
+  /** Makes sure that all elements of the list are SchemSymbols and returns them in an array.*/
+  public asArrayOfSymbols(): SchemSymbol[] {
+    return this.map((e) => {
+      if (!(e instanceof SchemSymbol)) throw `List contained an element of type ${e} where only symbols where expected`;
+      return e;
+    });
   }
 }
 
 export class SchemFunction {
-  constructor(public f: Function) {
+  constructor(public f: Function, public fnContext?: {ast: SchemType, params: SchemList, env: Env}) {
   }
 }
 
 export class SchemNil {
+  static instance = new SchemNil();
+  private constructor() {}
 }
+
 
 export class SchemBoolean extends Boolean {
 }
