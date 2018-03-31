@@ -75,28 +75,77 @@ export class SchemVector extends Array<SchemType> {
 export type SchemMapKey = SchemSymbol | SchemKeyword | SchemString | SchemNumber;
 
 
-// broken, lookup not working as intended - but I should really commit now
-export class SchemMap extends Map<SchemMapKey, SchemType> {
+export class SchemMap {
+  private map: Map<string, SchemType> = new Map<string, SchemType>();
+
   /** Returns an array of alternating key value pairs
    * @returns
    * [key: SchemSymbol, value:  SchemType, ...] */
   public flatten(): SchemType[] {
-    let a = Array.from(this.keys());
-    return Array.from(this.keys()).reduce((acc: SchemType[], currentKey: SchemMapKey) => {
-      return acc.concat(currentKey, this.get(currentKey)!);
+    return Array.from(this.map.keys()).reduce((acc: SchemType[], currentKey: string) => {
+
+      return acc.concat(this.createSchemTypeForKeyString(currentKey), this.map.get(currentKey)!);
     }, []);
   }
 
+  private turnIntoKeyString(key: SchemMapKey): string {
+    let keyString: string;
+    if (key instanceof SchemString) {
+      keyString = 's'  + key.valueOf();
+    } else if (key instanceof SchemNumber) {
+      keyString = 'n'  + key.valueOf();
+    } else if (key instanceof SchemKeyword) {
+      keyString = 'k' + key.name;
+    } else if (key instanceof SchemSymbol) {
+      keyString = 'y' + key.name;
+    } else {
+      throw `invalid key type ${key}`;
+    }
+    return keyString;
+  }
+
+  private createSchemTypeForKeyString(keyString: string): SchemMapKey {
+    switch (keyString[0]) {
+      case 's': return new SchemString(keyString.slice(1));
+      case 'n': return new SchemNumber(parseFloat(keyString.slice(1)));
+      case 'k': return SchemKeyword.from(keyString.slice(1));
+      case 'y': return SchemSymbol.from(keyString.slice(1));
+    }
+    throw `unexpected keyString "${keyString}" appeared in Map ${this}`;
+  }
+  // private getOriginalKeyObject
+
+  set(key: SchemMapKey, value: SchemType ): void {
+    this.map.set(this.turnIntoKeyString(key), value);
+  }
+
   get(key: SchemMapKey): SchemType {
-    // let that = this;
-    let objectKey = Array.from(this.keys()).find((k) => (k.valueOf() === key.valueOf && k.constructor === key.constructor));
-    if (objectKey) return this.get(objectKey);
+    let v = this.map.get(this.turnIntoKeyString(key));
+    if (v) return v;
     else return SchemNil.instance;
   }
+
 }
 
+
+// export class SchemMap {
+//   map: Map<SchemMapKey, SchemType> = new Map<SchemMapKey, SchemType>();
+
+//   /** Returns an array of alternating key value pairs
+//    * @returns
+//    * [key: SchemSymbol, value:  SchemType, ...] */
+//   public flatten(): SchemType[] {
+//     return Array.from(this.map.keys()).reduce((acc: SchemType[], currentKey: SchemMapKey) => {
+//       return acc.concat(currentKey, this.map.get(currentKey)!);
+//     }, []);
+//   }
+// }
+
+
 export class SchemFunction {
-  constructor(public f: Function, public fnContext?: {ast: SchemType, params: SchemList, env: Env}) {
+  constructor(public f: Function,
+    public metadata: {name: string} = {name: 'anonymous'},
+    public fnContext?: {ast: SchemType, params: SchemList, env: Env}) {
   }
 }
 

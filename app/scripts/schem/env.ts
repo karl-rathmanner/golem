@@ -42,7 +42,7 @@ export class Env {
 
       }
       if (typeof map[symbol] === 'function') {
-        this.set(SchemSymbol.from(symbol), new SchemFunction(map[symbol] as Function));
+        this.set(SchemSymbol.from(symbol), new SchemFunction(map[symbol] as Function, {name: symbol}));
       } else { // hope for the best that it's a SchemType
         // TODO: add a way of checking the union type Schemtype at runtime
         this.set(SchemSymbol.from(symbol), map[symbol]);

@@ -1,5 +1,5 @@
 import { readStr } from './reader';
-import { SchemType, SchemSymbol, SchemList, SchemFunction, SchemNil, SchemNumber, SchemBoolean, SchemVector, SchemMap, SchemKeyword } from './types';
+import { SchemType, SchemSymbol, SchemList, SchemFunction, SchemNil, SchemNumber, SchemBoolean, SchemVector, SchemMap, SchemKeyword, SchemMapKey } from './types';
 import { pr_str } from './printer';
 import { Env, EnvSetupMap } from './env';
 import { coreFunctions } from './core';
@@ -15,9 +15,15 @@ export function evalAST(ast: SchemType, env: Env): SchemType {
     return ast.map((elemnt) => evalSchem(elemnt, env));
   } else if (ast instanceof SchemMap) {
     let m = new SchemMap();
-    ast.forEach((value, key) => {
-      m.set(key, evalSchem(value, env));
-    });
+
+    let flatAst = ast.flatten();
+
+    for (let i = 0; i < flatAst.length; i += 2) {
+      if ((flatAst[i] as SchemMapKey).isValidKeyType) {
+        m.set(flatAst[i] as SchemMapKey, evalSchem(flatAst[i + 1], env));
+      }
+    }
+
     return m;
   } else {
     return ast;
@@ -114,7 +120,7 @@ export function evalSchem(ast: SchemType, env: Env): SchemType {
 
               return new SchemFunction((...args: SchemType[]) => {
                 return evalSchem(exprs, new Env(env, binds, args));
-              }, {ast: exprs, params: params, env: env});
+              }, {name: 'anonymous'} , {ast: exprs, params: params, env: env});
             }
           }
         }

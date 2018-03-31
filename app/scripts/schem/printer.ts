@@ -26,7 +26,7 @@ export function pr_str(ast: SchemType, escapeStrings: boolean = true): string {
       return `${ast}`;
     }
   } else if (ast instanceof SchemFunction) {
-    return '#function';
+    return `[#function ${JSON.stringify(ast.metadata)}]`;
   } else {
     console.warn(`pr_str doesn't know how to handle ${ast}`);
     return '';
