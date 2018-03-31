@@ -1,4 +1,4 @@
-import { SchemType, SchemNumber, SchemNil, SchemSymbol, SchemList, SchemString, SchemBoolean, SchemFunction } from './types';
+import { SchemType, SchemNumber, SchemNil, SchemSymbol, SchemList, SchemString, SchemBoolean, SchemFunction, SchemVector, SchemMap, SchemKeyword } from './types';
 
 export function pr_str(ast: SchemType, escapeStrings: boolean = true): string {
   if (ast instanceof SchemBoolean) {
@@ -9,8 +9,14 @@ export function pr_str(ast: SchemType, escapeStrings: boolean = true): string {
     return 'nil';
   } else if (ast instanceof SchemSymbol) {
     return ast.name;
+  } else if (ast instanceof SchemKeyword) {
+    return ':' + ast.name;
   } else if (ast instanceof SchemList) {
     return '(' + ast.map(e => pr_str(e, escapeStrings)).join(' ') + ')';
+  } else if (ast instanceof SchemVector) {
+    return '[' + ast.map(e => pr_str(e, escapeStrings)).join(' ') + ']';
+  } else if (ast instanceof SchemMap) {
+    return '{' + ast.flatten().map(e => pr_str(e, escapeStrings)).join(' ') + '}';
   } else if (ast instanceof SchemString) {
     if (escapeStrings) {
       return `"${ast.replace(/\\/g, '\\\\')
