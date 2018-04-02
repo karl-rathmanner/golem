@@ -1,4 +1,4 @@
-import {SchemType, SchemList, SchemNumber, SchemSymbol, SchemNil, SchemString, SchemBoolean} from './types';
+import {SchemType, SchemList, SchemNumber, SchemSymbol, SchemNil, SchemString, SchemBoolean, SchemVector, SchemMap, SchemKeyword} from './types';
 
 class Reader {
   private position = 0;
@@ -26,10 +26,22 @@ export function readStr(input: string): SchemType {
 function readForm(reader: Reader): SchemType {
   switch (reader.peek()) {
     case '(': {
-      return readList(reader);
+      return readParen(reader, '(');
     }
     case ')': {
       throw `unexpected ')'`;
+    }
+    case '[': {
+      return readParen(reader, '[');
+    }
+    case ']': {
+      throw `unexpected ']'`;
+    }
+    case '{': {
+      return readParen(reader, '{');
+    }
+    case '}': {
+      throw `unexpected '}'`;
     }
     default: {
       return readAtom(reader);
@@ -37,20 +49,57 @@ function readForm(reader: Reader): SchemType {
   }
 }
 
-function readList(reader: Reader): SchemList {
-  const list: SchemList = new SchemList();
-  reader.next(); // drop open paren
+function readParen(reader: Reader, openParen: string): SchemType {
+  let closeParen: string, collection;
 
-  while (reader.peek() !== ')') {
+  switch (openParen) {
+    case '(': {
+      closeParen = ')';
+      collection = new SchemList();
+      break;
+    }
+    case '[': {
+      closeParen = ']';
+      collection = new SchemVector();
+      break;
+    }
+    case '{': {
+      closeParen = '}';
+      collection = new SchemMap();
+      break;
+    }
+    default: {
+      return SchemNil.instance;
+    }
+  }
+
+  const token = reader.next();
+  if (token !== openParen ) {
+    throw `expected ${openParen}, got ${token} instead`;
+  }
+
+  while (reader.peek() !== closeParen) {
     if (typeof reader.peek() === 'undefined') {
       throw 'unexpected EOF';
     }
 
-    list.push(readForm(reader));
+    // note: readForm calls readParen or readAtom which advances the reader's position
+    if (collection instanceof SchemMap) {
+      const possibleKey = readForm(reader);
+      const value = readForm(reader);
+
+      if (possibleKey instanceof SchemSymbol || possibleKey instanceof SchemKeyword || possibleKey instanceof SchemString || possibleKey instanceof SchemNumber) {
+        collection.set(possibleKey, value);
+      } else {
+        throw `Map keys must be of type Symbol, String or Number`;
+      }
+    } else {
+      collection.push(readForm(reader));
+    }
   }
 
   reader.next(); // drop close paren
-  return list;
+  return collection;
 }
 
 function readAtom(reader: Reader) {
@@ -59,23 +108,20 @@ function readAtom(reader: Reader) {
     return new SchemNumber(parseInt(token));
   } else if (/^-?\d*\.\d+$/.test(token)) {
     return new SchemNumber(parseFloat(token));
-  } else if (token === 'true') {
-    return new SchemBoolean(true);
-  } else if (token === 'false') {
-    return new SchemBoolean(false);
-  } else if (token === 'nil') {
-    return SchemNil.instance;
   } else if (token[0] === '"') {
     const value = token.substr(1, token.length - 2)
       .replace(/\\"/g, '"')
       .replace(/\\n/g, '\n')
       .replace(/\\\\/g, '\\');
-
     return new SchemString(value);
-  } else {
-    return SchemSymbol.from(token);
+  } else if (token[0] === ':') {
+    return SchemKeyword.from(token.slice(1));
+  } else switch (token) {
+    case 'true': return new SchemBoolean(true);
+    case 'false': return new SchemBoolean(false);
+    case 'nil': return SchemNil.instance;
   }
-
+  return SchemSymbol.from(token);
 }
 
 function tokenizer(input: string): string[] {

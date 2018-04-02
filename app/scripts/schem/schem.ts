@@ -1,5 +1,5 @@
 import { readStr } from './reader';
-import { SchemType, SchemSymbol, SchemList, SchemFunction, SchemNil, SchemNumber, SchemBoolean } from './types';
+import { SchemType, SchemSymbol, SchemList, SchemFunction, SchemNil, SchemNumber, SchemBoolean, SchemVector, SchemMap, SchemKeyword, SchemMapKey } from './types';
 import { pr_str } from './printer';
 import { Env, EnvSetupMap } from './env';
 import { coreFunctions } from './core';
@@ -11,9 +11,20 @@ export function evalAST(ast: SchemType, env: Env): SchemType {
     } else {
       return env.get(ast);
     }
-  } else if (ast instanceof SchemList) {
-    // const evaluatedAST: SchemList = new SchemList();
+  } else if (ast instanceof SchemList || ast instanceof SchemVector) {
     return ast.map((elemnt) => evalSchem(elemnt, env));
+  } else if (ast instanceof SchemMap) {
+    let m = new SchemMap();
+
+    let flatAst = ast.flatten();
+
+    for (let i = 0; i < flatAst.length; i += 2) {
+      if ((flatAst[i] as SchemMapKey).isValidKeyType) {
+        m.set(flatAst[i] as SchemMapKey, evalSchem(flatAst[i + 1], env));
+      }
+    }
+
+    return m;
   } else {
     return ast;
   }
@@ -36,6 +47,7 @@ export function evalSchem(ast: SchemType, env: Env): SchemType {
       } else {
         const first: SchemType = ast[0];
 
+        // SchemSymbols can be special forms
         if (first instanceof SchemSymbol) {
           switch (first.name) {
             case 'def!': {
@@ -96,10 +108,9 @@ export function evalSchem(ast: SchemType, env: Env): SchemType {
             case 'fn*': {
               const [, params, exprs] = ast;
 
-              if (!(params instanceof SchemList)) {
-                throw `expected list`;
+              if (!(params instanceof SchemList || params instanceof SchemVector)) {
+                throw `expected list or vector`;
               }
-
 
               const binds = params.asArrayOfSymbols();
               try {
@@ -109,11 +120,17 @@ export function evalSchem(ast: SchemType, env: Env): SchemType {
 
               return new SchemFunction((...args: SchemType[]) => {
                 return evalSchem(exprs, new Env(env, binds, args));
-              }, {ast: exprs, params: params, env: env});
+              }, {name: 'anonymous'} , {ast: exprs, params: params, env: env});
             }
           }
         }
 
+        // Keywords evaluate to themselves
+        if (first instanceof SchemKeyword) {
+          return first;
+        }
+
+        // If first didn't match any of the above, evaluate all list elements and call the first element as a function using the others as arguments
         const evaluatedAST: SchemList = evalAST(ast, env) as SchemList;
         const [f, ...rest] = evaluatedAST;
 
