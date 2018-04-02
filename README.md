@@ -1,10 +1,9 @@
-# golem
-
+# Golem
 
 Golem is a webextension that's supposed to automate tasks in Ex Libris' Web-based ILS Alma.
 It carries out menial tasks and is driven by words.
 
-# schem
+# Schem
 [ʃɛm], from Hebrew שם‎ (Šēm).
 
 When it grows up, Schem is going to be a clojure-y lisp dialect that's going to tell the golem how to behave.
@@ -18,9 +17,14 @@ Run yarn to download and install all dependencies. (Feel free to use npm instead
 
 	$ yarn    
 
-If necessary, globally install the Command Line Utility for Gulp.
+If necessary, globally install the command line utility for Gulp.
 
     $ npm i -g gulp-cli 
+
+If you're using vscode, you might want to add the following to your settings.json, to stop tslint from nagging about "problems" in node modules:
+
+    "tslint.exclude": "**/node_modules/**/*.ts"
+
 
 ## During active developent
 
