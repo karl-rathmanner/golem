@@ -52,6 +52,12 @@ There are two kinds of entryfiles that create bundles.
 | `--vendor`     | Compile the extension for different vendors (chrome, firefox, opera, edge)  Default: chrome                                                                 |
 | `--sourcemaps` | Force the creation of sourcemaps. Default: !production                                                                                                |
 
+### Test
+
+    $ gulp test
+
+Runs the karma testrunner on a headless chrome (chromium) with tests using mocha/chai.
+Files are located in the `test/` folder, conventions is `<dir>/<file-to-test>.spec.ts`.
 
 ### Packing the extension for firefox
 

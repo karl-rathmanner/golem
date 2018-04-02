@@ -10,7 +10,7 @@ import args from './lib/args'
 
 const ENV = args.production ? 'production' : 'development'
 
-gulp.task('scripts', (cb) => {  
+gulp.task('scripts', (cb) => {
   return gulp.src(['app/scripts/*.js', 'app/scripts/*.ts'])
     .pipe(plumber({
       // Webpack will log the errors
@@ -26,7 +26,7 @@ gulp.task('scripts', (cb) => {
           'process.env.VENDOR': JSON.stringify(args.vendor)
         })
       ].concat(args.production ? [
-        //new webpack.optimize.UglifyJsPlugin(),  <- TODO: reenable later. (doesn't like es6?)
+        // new webpack.optimize.UglifyJsPlugin(),  <- TODO: reenable later. (doesn't like es6?)
         new webpack.optimize.ModuleConcatenationPlugin()
       ] : []),
       module: {
@@ -34,7 +34,10 @@ gulp.task('scripts', (cb) => {
           {
             test: /\.ts$/,
             loader: 'ts-loader',
-            exclude: /node_modules/
+            exclude: /node_modules/,
+            options: {
+              configFile: 'tsconfig.app.json'
+            }
           }
         ]
       },
