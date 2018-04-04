@@ -117,8 +117,8 @@ function readAtom(reader: Reader) {
   } else if (token[0] === ':') {
     return SchemKeyword.from(token.slice(1));
   } else switch (token) {
-    case 'true': return new SchemBoolean(true);
-    case 'false': return new SchemBoolean(false);
+    case 'true': return SchemBoolean.true;
+    case 'false': return SchemBoolean.false;
     case 'nil': return SchemNil.instance;
   }
   return SchemSymbol.from(token);

@@ -156,4 +156,14 @@ export class SchemNil {
 
 
 export class SchemBoolean extends Boolean {
+  static false = new SchemBoolean(false);
+  static true = new SchemBoolean(true);
+
+  static fromBoolean(v: boolean) {
+    return v ? SchemBoolean.true : SchemBoolean.false;
+  }
+
+  private constructor(v: boolean) {
+    super(v);
+  }
 }

@@ -4,6 +4,20 @@ import { readStr } from './reader';
 import { Env } from './env';
 import { pr_str } from './printer';
 
+function throwErrorIfArityIsInalid(argsLength: number, min: number = 1, max: number = Infinity, even: boolean = false) {
+  if (argsLength < min) {
+    throw `Unexpected number of argunents (${argsLength}), minimum number of arguments is ${min}.`;
+  } else if (argsLength > max) {
+    throw `Unexpected number of argunents (${argsLength}), maximum number of arguments is ${max}.`;
+  } else if (even && argsLength % 2 > 0) {
+    throw `Unexpected number of argunents (${argsLength}), should be even.`;
+  }
+}
+
+function hasSameConstructorAndValue(a: SchemType, b: SchemType): boolean {
+  return (a.constructor === b.constructor && a.valueOf() === b.valueOf());
+}
+
 export const coreFunctions: {[symbol: string]: SchemType} = {
   '+': (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue: SchemNumber, currentIndex: number) => {
     if (currentIndex === 0) return currentValue.valueOf();
@@ -23,39 +37,54 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     else return accumulator / currentValue.valueOf();
   }, 0)),
   'sqr': (d: SchemNumber) => new SchemNumber(d.valueOf() * d.valueOf()),
-  // TODO: implement proper equality checks for all types
+  // TODO: ignore type differences for collections - https://clojuredocs.org/clojure.core/=
   '=': (...args: SchemType[]) => {
-    if (args[0].constructor === args[1].constructor &&
-        args[0].valueOf() === args[1].valueOf()) {
-      return new SchemBoolean(true);
-    } else {
-      return new SchemBoolean(false);
+    throwErrorIfArityIsInalid(args.length, 1);
+    // clojure-like: If passed a single value (= x) the result is always true.
+    if (args.length === 1) return SchemBoolean.true;
+
+    for (let i = 0; i < args.length - 1; i++) {
+      let a = args[i], b = args[i+1];
+
+      if ((a instanceof SchemList && b instanceof SchemList || 
+        a instanceof SchemVector && b instanceof SchemVector) &&
+        a.length === b.length) {
+        
+        for (let j = 0; j < a.length; j++) {
+          if (! hasSameConstructorAndValue(a[j], b[j])) {
+            return SchemBoolean.false;
+          }
+        }
+      } else {
+        if (!hasSameConstructorAndValue(a, b)) return SchemBoolean.false;
+      }
     }
+    return SchemBoolean.true;
   },
   '>': (...args: SchemNumber[]) => {
     args.map((e) => {
       if (!(e instanceof SchemNumber)) throw `trying to do numeric comparison on non numeric types`;
     });
-    return new SchemBoolean(args[0].valueOf() > args[1].valueOf());
+    return SchemBoolean.fromBoolean(args[0].valueOf() > args[1].valueOf());
   },
   '<': (...args: SchemNumber[]) => {
-    return new SchemBoolean(args[0] < args[1]);
+    return SchemBoolean.fromBoolean(args[0] < args[1]);
   },
   'empty?': (arg: SchemType) => {
-    return new SchemBoolean(arg instanceof SchemList && arg.length === 0);
+    return SchemBoolean.fromBoolean(arg instanceof SchemList && arg.length === 0);
   },
   // returns arguments as a list
   'list': (...args: SchemType[]) => {
     return new SchemList().concat(args);
   },
   'list?': (arg: SchemType) => {
-    return new SchemBoolean(arg instanceof SchemList);
+    return SchemBoolean.fromBoolean(arg instanceof SchemList);
   },
   'vector': (...args: SchemType[]) => {
     return new SchemVector().concat(args);
   },
   'vector?': (arg: SchemType) => {
-    return new SchemBoolean(arg instanceof SchemVector);
+    return SchemBoolean.fromBoolean(arg instanceof SchemVector);
   },
   'count': (arg: SchemType) => {
     if (arg instanceof SchemList || arg instanceof SchemVector) {
