@@ -37,29 +37,32 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     else return accumulator / currentValue.valueOf();
   }, 0)),
   'sqr': (d: SchemNumber) => new SchemNumber(d.valueOf() * d.valueOf()),
-  // TODO: ignore type differences for collections - https://clojuredocs.org/clojure.core/=
   '=': (...args: SchemType[]) => {
     throwErrorIfArityIsInalid(args.length, 1);
-    // clojure-like: If passed a single value (= x) the result is always true.
+    // If passed a single value (= x) the result is always true.
     if (args.length === 1) return SchemBoolean.true;
 
+    // Compare every consecutive pair of arguments
     for (let i = 0; i < args.length - 1; i++) {
-      let a = args[i], b = args[i+1];
+      let a = args[i], b = args[i + 1];
 
-      if ((a instanceof SchemList && b instanceof SchemList || 
-        a instanceof SchemVector && b instanceof SchemVector) &&
-        a.length === b.length) {
-        
+      // Collections are considered to be equal if their contents are the same - regardless of their type.
+      if ((a instanceof SchemList || a instanceof SchemVector) &&
+          (b instanceof SchemList || b instanceof SchemVector) &&
+          (a.length === b.length)) {
+
+        // Compare contents
         for (let j = 0; j < a.length; j++) {
           if (! hasSameConstructorAndValue(a[j], b[j])) {
             return SchemBoolean.false;
           }
         }
-      } else {
+
+      } else { // a & b are non-collection types
         if (!hasSameConstructorAndValue(a, b)) return SchemBoolean.false;
       }
     }
-    return SchemBoolean.true;
+    return SchemBoolean.true; // none of the checks above resulted in inequality, so all arguments must be equal
   },
   '>': (...args: SchemNumber[]) => {
     args.map((e) => {
@@ -120,6 +123,9 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
       return pr_str(element, false);
     }).join(' '));
     return SchemNil.instance;
+  },
+  'read-string': (str: SchemString) => {
+    return readStr(str.valueOf());
   },
   'get': (map: SchemMap, key: SchemMapKey) => {
 
