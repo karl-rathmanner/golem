@@ -12,8 +12,12 @@ async function evalAST(ast: SchemType, env: Env): Promise<SchemType> {
       return await env.get(ast);
     }
   } else if (ast instanceof SchemList || ast instanceof SchemVector) {
-    const p = Promise.all(ast.map((element) => evalSchem(element, env)));
-    return await p;
+
+    for (let i = 0; i < ast.length; i++) {
+      ast[i] = await evalSchem(ast[i], env);
+    }
+
+    return ast;
     // return ast.map((elemnt) => evalSchem(elemnt, env));
   } else if (ast instanceof SchemMap) {
     let m = new SchemMap();
@@ -22,11 +26,11 @@ async function evalAST(ast: SchemType, env: Env): Promise<SchemType> {
 
     for (let i = 0; i < flatAst.length; i += 2) {
       if ((flatAst[i] as SchemMapKey).isValidKeyType) {
-        m.set(flatAst[i] as SchemMapKey, evalSchem(flatAst[i + 1], env));
+        m.set(flatAst[i] as SchemMapKey, await evalSchem(flatAst[i + 1], env));
       }
     }
 
-    return await m;
+    return m;
   } else {
     return await ast;
   }
@@ -96,14 +100,11 @@ export async function evalSchem(ast: SchemType, env: Env): Promise<SchemType> {
 
 
             case 'if':
-              const condition = evalSchem(ast[1], env);
-              if (condition instanceof SchemBoolean && condition.valueOf() === false ||
-              condition instanceof SchemNil) {
-                // return evalSchem(ast[3], env);
+              const condition = await evalSchem(ast[1], env);
+              if ((condition instanceof SchemBoolean && condition === SchemBoolean.false) || condition instanceof SchemNil) {
                 ast = ast[3];
                 continue;
               } else {
-                // return evalSchem(ast[2], env);
                 ast = ast[2];
                 continue fromTheTop;
               }
@@ -164,13 +165,6 @@ export async function evalSchem(ast: SchemType, env: Env): Promise<SchemType> {
 const replEnv: Env = new Env();
 replEnv.addMap(coreFunctions);
 replEnv.def('load-url', '(fn* (f) (eval (read-string (str "(do " (slurp f) ")"))))');
-/** Read, evaluate, print a Schem expression */
-/* export function rep(expression: string, overwrites?: EnvSetupMap): string {
-  if (overwrites) {
-    replEnv.addMap(overwrites, true);
-  }
-  return pr_str(evalSchem(readStr(expression), replEnv));
-} */
 
 export async function arep(expression: string, overwrites?: EnvSetupMap): Promise<string> {
   if (overwrites) {

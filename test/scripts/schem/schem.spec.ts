@@ -13,37 +13,36 @@ import { pr_str } from '../../../app/scripts/schem/printer';
 * @param {string} description
 */
 let expectRep = (input: string | string[], expected: string | string[], description: string = '') => {
-  let inputs = (typeof input === 'string') ? [input] : input;
-  if (typeof expected !== 'string' && inputs.length !== expected.length) {
-    throw Error(`length of the inputs (${inputs.length}) should math the expected one (${expected.length})`);
+  let inputArray = (typeof input === 'string') ? [input] : input;
+  if (typeof expected !== 'string' && inputArray.length !== expected.length) {
+    throw Error(`length of the inputs (${inputArray.length}) should math the expected one (${expected.length})`);
   }
 
   if (description === '') {
     if (expected instanceof Array) {
       let multilineDescription: string[] = [];
       expected.forEach((e, index: number) => {
-        multilineDescription.push(`${input[index]} => ${expected[index]}`);
+        multilineDescription.push(`${inputArray[index]} => ${expected[index]}`);
       });
       description = multilineDescription.join('; ');
     } else if (input instanceof Array) {
-      description = `${input.join('; ')}; should finally evaluate to => ${expected}`;
+      description = `${inputArray.join('; ')}; should finally evaluate to => ${expected}`;
     } else {
       description = `${input} => ${expected}`;
     }
   }
 
-  it(description!, function () {
-    inputs.forEach((it, index) => {
-        arep(it).then((result) => {
-          // Expect every input to lead to the expected result
-          if (expected instanceof Array) {
-            expect(result).to.be.equal(expected[index]);
-          // If expected was passed as a string, only check the last result
-          } else if (index === inputs.length - 1) {
-            expect(result).to.be.equal(expected);
-          }
-        });
-    });
+  it(description!, async function () {
+    for (let i = 0; i < inputArray.length; i++) {
+      let result = await arep(inputArray[i]);
+      // Expect every input to lead to the expected result
+      if (expected instanceof Array) {
+        expect(result).to.be.equal(expected[i]);
+      // If expected was passed as a string, only check the last result
+      } else if (i === inputArray.length - 1) {
+        expect(result).to.be.equal(expected);
+      }
+    }
   });
 };
 
@@ -63,7 +62,9 @@ describe('blackbox tests', function() {
 
 
   it('"true" should evaluate to "true"', function() {
-    arep('true').then((result) => expect(result).to.be.equal('true'));
+    return arep('true').then((result) => {
+      expect(result).to.be.equal('true');
+    });
   });
 
   expectRep('(+ 1 2)', '3');
@@ -94,6 +95,8 @@ describe('blackbox tests', function() {
   expectRep('(read-string "(1 2 (+ 3 4) nil)")', '(1 2 (+ 3 4) nil)');
 
   expectRep('(eval (read-string "(* 7 6)"))', '42');
+
+  expectRep('(load-url "/chaiTest.schem")', "MEEP!");
 
 // add more tests here :)
 
