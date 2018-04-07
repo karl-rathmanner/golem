@@ -130,9 +130,8 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     return readStr(str.valueOf());
   },
   'slurp': async (url: SchemString) => {
-    const chrome = {}; // { extension: { getUrl: () => {}}};
     // get full URL for files packaged with the browser extension, when url begins with a slash
-    const actualUrl = (url[1] === '/') ? `/schemScripts/${browser.extension.getURL(url.valueOf())}` : url.valueOf();
+    const actualUrl = (url[0] === '/') ? browser.extension.getURL('/schemScripts' + url.valueOf()) : url.valueOf();
     const response = await $.get(actualUrl);
     console.log(response);
     return new SchemString(response);

@@ -1,5 +1,5 @@
 import { readStr } from './reader';
-import { SchemType, SchemSymbol, SchemList, SchemFunction, SchemNil, SchemNumber, SchemBoolean, SchemVector, SchemMap, SchemKeyword, SchemMapKey } from './types';
+import { SchemType, SchemSymbol, SchemList, SchemFunction, SchemNil, SchemNumber, SchemBoolean, SchemVector, SchemMap, SchemKeyword, SchemMapKey, SchemString } from './types';
 import { pr_str } from './printer';
 import { Env, EnvSetupMap } from './env';
 import { coreFunctions } from './core';
@@ -36,7 +36,6 @@ async function evalAST(ast: SchemType, env: Env): Promise<SchemType> {
  * @description
  * TCO hint: recursive Schem functions should call themselves from tail position. Consult stackoverflow.com in case of stack overflows.
 */
-
 export async function evalSchem(ast: SchemType, env: Env): Promise<SchemType> {
   fromTheTop: while (true) {
     if (!(ast instanceof SchemList)) {
@@ -164,7 +163,7 @@ export async function evalSchem(ast: SchemType, env: Env): Promise<SchemType> {
 
 const replEnv: Env = new Env();
 replEnv.addMap(coreFunctions);
-
+replEnv.def('load-url', '(fn* (f) (eval (read-string (str "(do " (slurp f) ")"))))');
 /** Read, evaluate, print a Schem expression */
 /* export function rep(expression: string, overwrites?: EnvSetupMap): string {
   if (overwrites) {
@@ -177,6 +176,5 @@ export async function arep(expression: string, overwrites?: EnvSetupMap): Promis
   if (overwrites) {
     replEnv.addMap(overwrites, true);
   }
-  let evald = await evalSchem(readStr(expression), replEnv);
-  return pr_str(evald);
+  return pr_str(await evalSchem(readStr(expression), replEnv));
 }

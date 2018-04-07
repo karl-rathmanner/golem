@@ -1,4 +1,6 @@
 import { SchemFunction, SchemNumber, SchemSymbol, SchemType } from './types';
+import { evalSchem } from './schem';
+import { readStr } from './reader';
 
 /** This allows concevient initialization of environments when using Env.addMap()
  *
@@ -48,6 +50,11 @@ export class Env {
         this.set(SchemSymbol.from(symbol), map[symbol]);
       }
     }
+  }
+
+  /** Binds the value of an expression to a symbol (using itself as the environment for evaluation)*/
+  async def(symbol: string, expression: string) {
+    this.set(SchemSymbol.from(symbol), await evalSchem(readStr(expression), this));
   }
 
   /** Returns the environment cotaining a symbol or undefined if the symbol can't be found */
