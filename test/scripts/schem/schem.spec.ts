@@ -1,4 +1,4 @@
-import { rep } from '../../../app/scripts/schem/schem';
+import { arep } from '../../../app/scripts/schem/schem';
 import { expect } from 'chai';
 import { EnvSetupMap } from '../../../app/scripts/schem/env';
 import { SchemNil, SchemType } from '../../../app/scripts/schem/types';
@@ -33,16 +33,17 @@ let expectRep = (input: string | string[], expected: string | string[], descript
   }
 
   it(description!, function () {
-    let output;
     inputs.forEach((it, index) => {
-      output = rep(it);
-      if (typeof expected !== 'string') {
-        expect(output).to.be.equal(expected[index]);
-      }
+        arep(it).then((result) => {
+          // Expect every input to lead to the expected result
+          if (expected instanceof Array) {
+            expect(result).to.be.equal(expected[index]);
+          // If expected was passed as a string, only check the last result
+          } else if (index === inputs.length - 1) {
+            expect(result).to.be.equal(expected);
+          }
+        });
     });
-    if (typeof expected === 'string') {
-      expect(output).to.be.equal(expected);
-    }
   });
 };
 
@@ -62,7 +63,7 @@ describe('blackbox tests', function() {
 
 
   it('"true" should evaluate to "true"', function() {
-    expect(rep('true')).to.be.equal('true');
+    arep('true').then((result) => expect(result).to.be.equal('true'));
   });
 
   expectRep('(+ 1 2)', '3');
@@ -86,7 +87,13 @@ describe('blackbox tests', function() {
 
   expectRep('(read-string "((fn* [x] (* x x)) 4)")', '((fn* [x] (* x x)) 4)');
 
+  expectRep('(eval (read-string "((fn* [x] (* x x)) 4)"))', '16');
+
   expectRep(['(def! a 42)', '[a]'], '[42]');
+
+  expectRep('(read-string "(1 2 (+ 3 4) nil)")', '(1 2 (+ 3 4) nil)');
+
+  expectRep('(eval (read-string "(* 7 6)"))', '42');
 
 // add more tests here :)
 

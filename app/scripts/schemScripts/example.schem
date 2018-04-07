@@ -1,0 +1,3 @@
+(do
+  (def! beaker {:msg "meep!"}) 
+  (prn (get beaker :msg)))

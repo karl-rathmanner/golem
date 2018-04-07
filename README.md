@@ -6,12 +6,12 @@ It carries out menial tasks and is driven by words.
 # Schem
 [ʃɛm], from Hebrew שם‎ (Šēm).
 
-When it grows up, Schem is going to be a clojure-y lisp dialect that's going to tell the golem how to behave.
+When it grows up, Schem is going to be a clojure-ish lisp dialect that's going to tell the golem how to behave.
+
 
 
 ------------
-------------
-# Development Setup
+## Development Setup
 
 Run yarn to download and install all dependencies. (Feel free to use npm instead of yarn, if that works for you.)
 
@@ -21,18 +21,26 @@ If necessary, globally install the command line utility for Gulp.
 
     $ npm i -g gulp-cli 
 
-If you're using vscode, you might want to add the following to your settings.json, to stop tslint from nagging about "problems" in node modules:
+### Editor setup:  
+If you're using Visual Studio Code, your user settings will be overruled by setings.json in this workspace.
+If not, consider associating *.schem-files with clojure.
+Either way, installing a parinfer or paredit plugin is highly recommended for editing schem scripts.
 
-    "tslint.exclude": "**/node_modules/**/*.ts"
+## During Developent
 
-
-## During active developent
-
-Start automatic compilation and live reload, whenever files are saved
+Start automatic compilation and live reload.
 
     $ gulp --watch
     
-Load the `dist/chrome`-directory as an unpacked extension into chrome.
+Load the `dist/chrome`-directory as an unpacked extension into chrome. Whenever files are saved, the extension is automatically reloaded. You could also run `gulp --watch --vendor=firefox` if you prefer Firefox.
+
+Tests can be left running in parallel to `gulp --watch` if you open multiple terminals. The tests run in chrome, but different browsers can be defined in `karma.conf.js`. You might have to install additional [browser launchers](http://karma-runner.github.io/2.0/config/browsers.html).
+
+    gulp test
+
+Files matching `/app/scripts/schemScripts/*.schem` can be edited in your IDE and will be instantly available at runtime if `gulp --watch` is active. Use slurp to load local file contents and return them as a SchemString.
+
+    (slurp "/myScript.schem")
 
 ## Entryfiles (bundles)
 
@@ -55,6 +63,7 @@ There are two kinds of entryfiles that create bundles.
 | `--verbose`    | Log additional data to the console.                                                                                                                   |
 | `--vendor`     | Compile the extension for different vendors (chrome, firefox, opera, edge)  Default: chrome                                                                 |
 | `--sourcemaps` | Force the creation of sourcemaps. Default: !production                                                                                                |
+| `test`      | Starts the testrunner |
 
 ### Test
 

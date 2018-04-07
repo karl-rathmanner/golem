@@ -3,6 +3,8 @@ import { evalSchem } from './schem';
 import { readStr } from './reader';
 import { Env } from './env';
 import { pr_str } from './printer';
+import * as $ from 'jquery';
+import { browser } from 'webextension-polyfill-ts';
 
 function throwErrorIfArityIsInalid(argsLength: number, min: number = 1, max: number = Infinity, even: boolean = false) {
   if (argsLength < min) {
@@ -126,6 +128,14 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
   },
   'read-string': (str: SchemString) => {
     return readStr(str.valueOf());
+  },
+  'slurp': async (url: SchemString) => {
+    const chrome = {}; // { extension: { getUrl: () => {}}};
+    // get full URL for files packaged with the browser extension, when url begins with a slash
+    const actualUrl = (url[1] === '/') ? `/schemScripts/${browser.extension.getURL(url.valueOf())}` : url.valueOf();
+    const response = await $.get(actualUrl);
+    console.log(response);
+    return new SchemString(response);
   },
   'get': (map: SchemMap, key: SchemMapKey) => {
 

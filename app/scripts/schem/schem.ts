@@ -4,15 +4,17 @@ import { pr_str } from './printer';
 import { Env, EnvSetupMap } from './env';
 import { coreFunctions } from './core';
 
-export function evalAST(ast: SchemType, env: Env): SchemType {
+async function evalAST(ast: SchemType, env: Env): Promise<SchemType> {
   if (ast instanceof SchemSymbol) {
     if (typeof env.find(ast) === 'undefined') {
       throw `Symbol ${ast.name} is undefined`;
     } else {
-      return env.get(ast);
+      return await env.get(ast);
     }
   } else if (ast instanceof SchemList || ast instanceof SchemVector) {
-    return ast.map((elemnt) => evalSchem(elemnt, env));
+    const p = Promise.all(ast.map((element) => evalSchem(element, env)));
+    return await p;
+    // return ast.map((elemnt) => evalSchem(elemnt, env));
   } else if (ast instanceof SchemMap) {
     let m = new SchemMap();
 
@@ -24,9 +26,9 @@ export function evalAST(ast: SchemType, env: Env): SchemType {
       }
     }
 
-    return m;
+    return await m;
   } else {
-    return ast;
+    return await ast;
   }
 }
 
@@ -35,10 +37,11 @@ export function evalAST(ast: SchemType, env: Env): SchemType {
  * TCO hint: recursive Schem functions should call themselves from tail position. Consult stackoverflow.com in case of stack overflows.
 */
 
-export function evalSchem(ast: SchemType, env: Env): SchemType {
+export async function evalSchem(ast: SchemType, env: Env): Promise<SchemType> {
   fromTheTop: while (true) {
     if (!(ast instanceof SchemList)) {
-      return evalAST(ast, env);
+      let evald = await evalAST(ast, env);
+      return evald;
     }
 
     if (ast instanceof SchemList) {
@@ -49,15 +52,17 @@ export function evalSchem(ast: SchemType, env: Env): SchemType {
 
         // SchemSymbols can be special forms
         if (first instanceof SchemSymbol) {
+
           switch (first.name) {
-            case 'def!': {
+
+            case 'def!':
               if (ast[1] instanceof SchemSymbol) {
                 return env.set(ast[1] as SchemSymbol, evalSchem(ast[2], env));
               } else {
                 throw `first argument of 'def!' must be a symbol`;
               }
-            }
-            case 'let*': {
+
+            case 'let*':
               const childEnv = new Env(env);
               const bindingList = ast[1];
 
@@ -79,10 +84,9 @@ export function evalSchem(ast: SchemType, env: Env): SchemType {
               env = childEnv;
               ast = ast[2];
               continue fromTheTop;
-            }
-            case 'do': {
-              // evaluate all elements, starting from the second one, return only the last result
 
+            case 'do':
+              // evaluate all elements, starting from the second one, return only the last result
               ast.map((element, index) => {
                 if (index === 0 || index === (ast as SchemType[]).length - 1) return; // skip first (was 'do') and last element (will be evaluated during next loop iteration)
                 return evalAST(new SchemList(element), env);
@@ -91,8 +95,8 @@ export function evalSchem(ast: SchemType, env: Env): SchemType {
               ast = ast[ast.length - 1];
               continue fromTheTop;
 
-            }
-            case 'if': {
+
+            case 'if':
               const condition = evalSchem(ast[1], env);
               if (condition instanceof SchemBoolean && condition.valueOf() === false ||
               condition instanceof SchemNil) {
@@ -104,8 +108,8 @@ export function evalSchem(ast: SchemType, env: Env): SchemType {
                 ast = ast[2];
                 continue fromTheTop;
               }
-            }
-            case 'fn*': {
+
+            case 'fn*':
               const [, params, exprs] = ast;
 
               if (!(params instanceof SchemList || params instanceof SchemVector)) {
@@ -121,7 +125,11 @@ export function evalSchem(ast: SchemType, env: Env): SchemType {
               return new SchemFunction((...args: SchemType[]) => {
                 return evalSchem(exprs, new Env(env, binds, args));
               }, {name: 'anonymous'} , {ast: exprs, params: params, env: env});
-            }
+
+            case 'eval':
+              // (eval form) - evaluates the argument twice - effectively executing the form
+              return await evalSchem(await evalSchem(ast[1], env), env);
+
           }
         }
 
@@ -131,8 +139,9 @@ export function evalSchem(ast: SchemType, env: Env): SchemType {
         }
 
         // If first didn't match any of the above, evaluate all list elements and call the first element as a function using the others as arguments
-        const evaluatedAST: SchemList = evalAST(ast, env) as SchemList;
-        const [f, ...rest] = evaluatedAST;
+        // const evaluatedAST: SchemList = evalAST(ast, env) as SchemList;
+        let evaluatedAST = await evalAST(ast, env);
+        const [f, ...rest] = evaluatedAST as SchemList;
 
         if (f instanceof SchemFunction) {
           if (f.fnContext) {
@@ -141,7 +150,7 @@ export function evalSchem(ast: SchemType, env: Env): SchemType {
             env = new Env(f.fnContext.env, f.fnContext.params.asArrayOfSymbols(), rest);
             continue fromTheTop;
           } else {
-            return f.f(...rest);
+            return await f.f(...rest);
           }
         } else {
           throw `tried to invoke ${f} as a function, when it's type was ${typeof f}`;
@@ -157,9 +166,17 @@ const replEnv: Env = new Env();
 replEnv.addMap(coreFunctions);
 
 /** Read, evaluate, print a Schem expression */
-export function rep(expression: string, overwrites?: EnvSetupMap): string {
+/* export function rep(expression: string, overwrites?: EnvSetupMap): string {
   if (overwrites) {
     replEnv.addMap(overwrites, true);
   }
   return pr_str(evalSchem(readStr(expression), replEnv));
+} */
+
+export async function arep(expression: string, overwrites?: EnvSetupMap): Promise<string> {
+  if (overwrites) {
+    replEnv.addMap(overwrites, true);
+  }
+  let evald = await evalSchem(readStr(expression), replEnv);
+  return pr_str(evald);
 }

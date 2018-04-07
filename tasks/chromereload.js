@@ -39,4 +39,5 @@ gulp.task('chromereload', (cb) => {
   gulp.watch('app/_locales/**/*', ['locales'])
   gulp.watch('app/images/**/*', ['images'])
   gulp.watch('app/fonts/**/*.{woff,ttf,eot,svg}', ['fonts'])
+  gulp.watch('app/scripts/schemScripts/**/*', ['schemScripts'])
 })
