@@ -55,7 +55,6 @@ There are two kinds of entryfiles that create bundles.
 
     $ gulp
 
-
 | Option         | Description                                                                                                                                           |
 |----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `--watch`      | Starts a livereload server and watches all assets. <br>To reload the extension on change include `livereload.js` in your bundle.                      |
@@ -65,6 +64,7 @@ There are two kinds of entryfiles that create bundles.
 | `--sourcemaps` | Force the creation of sourcemaps. Default: !production                                                                                                |
 | `test`      | Starts the testrunner |
 
+You can safely ignore the message: `Failed to load external module @babel/register`.
 ### Test
 
     $ gulp test

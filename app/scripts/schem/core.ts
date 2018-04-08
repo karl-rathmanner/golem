@@ -1,5 +1,5 @@
 import { SchemFunction, SchemNumber, SchemSymbol, SchemType, SchemBoolean, SchemNil, SchemList, SchemString, SchemVector, SchemMap, SchemMapKey, SchemKeyword } from './types';
-import { evalSchem } from './schem';
+import { Schem } from './schem';
 import { readStr } from './reader';
 import { Env } from './env';
 import { pr_str } from './printer';

@@ -145,7 +145,21 @@ export class SchemMap {
 export class SchemFunction {
   constructor(public f: Function,
     public metadata: {name: string} = {name: 'anonymous'},
-    public fnContext?: {ast: SchemType, params: SchemList, env: Env}) {
+    public fnContext?: {ast: SchemType, params: SchemSymbol[], env: Env}) {
+  }
+
+  static fromSchem(evalSchem: (ast: SchemType, env: Env) => Promise<SchemType>, env: Env, params: SchemSymbol[], functionBody: SchemType): SchemFunction {
+    return new SchemFunction(async (...args: SchemType[]) => {
+      return await evalSchem(functionBody, new Env(env, params, args));
+    }, {name: 'anonymous, async'} , {ast: functionBody, params: params, env: env});
+  }
+
+  newEnv(args: SchemType[]): Env {
+    if (this.fnContext) {
+      return new Env(this.fnContext.env, this.fnContext.params, args);
+    } else {
+      return new Env(void 0, void 0, args);
+    }
   }
 }
 

@@ -1,5 +1,5 @@
 import { SchemFunction, SchemNumber, SchemSymbol, SchemType } from './types';
-import { evalSchem } from './schem';
+import { Schem } from './schem';
 import { readStr } from './reader';
 
 /** This allows concevient initialization of environments when using Env.addMap()
@@ -24,6 +24,7 @@ export class Env {
 
   constructor(public outer?: Env, binds: SchemSymbol[] = [], exprs: SchemType[] = []) {
     for (let i = 0; i < binds.length; i++) {
+      console.log(`bound ${binds[i].name} to ${exprs[i]}`);
       this.set(binds[i], exprs[i]);
     }
   }
@@ -53,8 +54,8 @@ export class Env {
   }
 
   /** Binds the value of an expression to a symbol (using itself as the environment for evaluation)*/
-  async def(symbol: string, expression: string) {
-    this.set(SchemSymbol.from(symbol), await evalSchem(readStr(expression), this));
+  async def(symbol: string, expression: string, interpreter: Schem) {
+    interpreter.evalSchem(readStr(expression), this).then((ewald) => this.set(SchemSymbol.from(symbol), ewald));
   }
 
   /** Returns the environment cotaining a symbol or undefined if the symbol can't be found */

@@ -1,6 +1,6 @@
 import * as $ from 'jquery';
 import { Key } from './Key.enum';
-import { arep } from './schem/schem';
+import { Schem } from './schem/schem';
 import { SchemBoolean, SchemType, SchemNil } from './schem/types';
 import { EnvSetupMap } from './schem/env';
 import { pr_str } from './schem/printer';
@@ -75,7 +75,9 @@ $.when($.ready).then(() => {
         commandHistory.addCommandToHistory(input);
 
         // const repOutput = rep(input, envOverwrites);
-        arep(input, envOverwrites).then((result) => $('#output').text($('#output').text() + result + '\n'));
+        let interpreter = new Schem();
+
+        interpreter.arep(input, envOverwrites).then((result) => $('#output').text($('#output').text() + result + '\n'));
         // $('#output').text($('#output').text() + repOutput + '\n');
         $('input[name=input]').val('');
         break;

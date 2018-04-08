@@ -73,9 +73,11 @@ browser.commands.onCommand.addListener(function(command) {
       });
       break;
     }
-    case 'open-schem-playground': {
+    case 'open-schem-playground':
       browser.tabs.create({url: './pages/schemTest.html'});
-    }
-  }
+      break;
 
+    case 'advanceSchemInterpreter':
+      browser.runtime.sendMessage({action: 'advanceSchemInterpreter'});
+  }
 });

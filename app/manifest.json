@@ -58,6 +58,12 @@
         "default":"Alt+S"
       },
       "description": "Opens the Schem Playground"
+    },
+    "advanceSchemInterpreter" : {
+      "suggested_key": {
+        "default":"Alt+R"
+      },
+      "description": "Go-On-Golem!"
     }
   },
   "permissions": [

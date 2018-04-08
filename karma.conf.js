@@ -2,7 +2,7 @@ module.exports = function (config) {
   config.set({
     basePath: './',
     // frameworks (https://www.npmjs.com/search?q=keywords:karma-adapter)
-    frameworks: ['mocha', 'chai'],
+    frameworks: ['mocha', 'sinon-chrome', 'chai'],
     // list of files to load
     files: [
       'test/**/*.spec.ts'
