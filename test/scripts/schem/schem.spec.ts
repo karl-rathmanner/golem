@@ -2,15 +2,31 @@
 import { Schem } from '../../../app/scripts/schem/schem';
 import { expect } from 'chai';
 import { EnvSetupMap } from '../../../app/scripts/schem/env';
-import { SchemNil, SchemType } from '../../../app/scripts/schem/types';
+import { SchemNil, SchemType, SchemFunction } from '../../../app/scripts/schem/types';
 import { pr_str } from '../../../app/scripts/schem/printer';
-let interpreter = new Schem();
 
-// mock function, so evaluation is never delayed during testing
-interpreter.nextStep = async function() {
-  await true; // resolves immediately
-};
+/** These shouldn't be reused during unit test, unless you explicitly want to retain the interpreter's state between tests. (Calling expectRep with an array of inputs does that, for instance) */
+class TestInterpreter extends Schem {
+  println_buffer = '';
 
+  /** Creates a new Schem instance suitable for testing */
+  constructor() {
+    super();
+
+     // override (println x), exposes its output via println_buffer
+    this.replEnv.set('println', new SchemFunction((...args: SchemType[]) => {
+        this.println_buffer += (args.map((element) => {
+          return pr_str(element, false);
+        }).join(' '));
+        return SchemNil.instance;
+      }));
+  }
+
+  // overwrite this method, so evaluation is never delayed during testing
+  async nextStep() {
+      await true; // resolves immediately
+  }
+}
 
 /**
 * Describe a test case using a Schem expression and its expected output. If expected is an array, it has to
@@ -40,9 +56,10 @@ let expectRep = (input: string | string[], expected: string | string[], descript
     }
   }
 
+  const ti = new TestInterpreter();
   it(description!, async function () {
     for (let i = 0; i < inputArray.length; i++) {
-      let result = await interpreter.arep(inputArray[i]);
+      let result = await ti.arep(inputArray[i]);
       // Expect every input to lead to the expected result
       if (expected instanceof Array) {
         expect(result).to.be.equal(expected[i]);
@@ -55,22 +72,9 @@ let expectRep = (input: string | string[], expected: string | string[], descript
 };
 
 describe('blackbox tests', function() {
-  // prn override, exposes values in prn_buffer instead of printing it to the browser console
-  before(function () {
-    let prn_buffer = '';
-    const envOverwrites: EnvSetupMap = {
-      'prn': (...args: SchemType[]) => {
-        prn_buffer += (args.map((element) => {
-          return pr_str(element, true);
-        }).join(' '));
-        return SchemNil.instance;
-      },
-    };
-  });
 
-
-  it('"true" should evaluate to "true"', function() {
-    return interpreter.arep('true').then((result) => {
+  it('"true" should evaluate to "true"', async function() {
+    return new TestInterpreter().arep('true').then((result) => {
       expect(result).to.be.equal('true');
     });
   });
@@ -81,9 +85,31 @@ describe('blackbox tests', function() {
 
   expectRep('(vector 1 2 3 4 5)', '[1 2 3 4 5]');
 
-  expectRep(['(def! x 2)', '(+ x 1)'] , ['2', '3'], 'define a variable and use it in a following function');
+  expectRep(['(def! x 2)', '(+ 1 x)'] , ['2', '3'], 'define a variable and use it in a following function');
 
-  /*
+  // Here, the first expression returns a SchemNumber, the second returns a SchemString.
+  // Notice, that the typescript string itself has to be escaped. Schem actually "sees" (read-string "\"42\"") in example nr. 2
+  expectRep(['(read-string "42")', '(read-string "\\"42\\"")'], ['42', '"42"'], `read-string should be able to handle escaped strings`);
+
+  expectRep('(eval (read-string "((fn* [x] (* x x)) 4)"))', '16', `(eval) should be able to execute an abstract syntax tree returned by (read-string)`);
+
+  expectRep('(let* (a 24) (do (def! a 42) [a]))', '[42]', `the elements of a vectors should be evaluated in the current context`);
+
+  expectRep('(read-string "(1 2 (+ 3 4) nil)")', '(1 2 (+ 3 4) nil)');
+
+  expectRep('(eval (read-string "(* 7 6)"))', '42');
+
+  expectRep(['[(def! isZero (fn* (n) (= n 0)))]', '(isZero 0)', '(isZero 1)'], 'false', `functions shouldn't have their environment polluted by previously bound values` );
+
+  // contrived println_buffer example
+  it(`it's possible to define and call a cube function`, async function () {
+    const ti = new TestInterpreter();
+    return ti.arep('(let* (qube (fn* (x) (+ x x x))) (println (str (qube 1) " " (qube 2) " " (qube 3))))').then((result) => {
+      expect(result).to.be.equal('nil');
+      expect(ti.println_buffer).to.equal('3 6 9');
+    });
+  });
+
   expectRep([`
     (def! sum (fn* (n acc)
       (if (= n 0)
@@ -92,22 +118,9 @@ describe('blackbox tests', function() {
       )
     )))
   `, '(sum 4242 0)'] , '8999403', 'recursive function calls in tail position should not cause stack overflow');
-*/
-  expectRep(['(read-string "42")', '(read-string "\\"42\\"")'], ['42', '"42"']);
 
-  expectRep('(read-string "((fn* [x] (* x x)) 4)")', '((fn* [x] (* x x)) 4)');
-
-  expectRep('(eval (read-string "((fn* [x] (* x x)) 4)"))', '16');
-
-  expectRep(['(def! a 42)', '[a]'], '[42]');
-
-  expectRep('(read-string "(1 2 (+ 3 4) nil)")', '(1 2 (+ 3 4) nil)');
-
-  expectRep('(eval (read-string "(* 7 6)"))', '42');
-
-  expectRep(['[(def! isZero (fn* (n) (= n 0)))], (isZero 0), (isZero 1)'], 'false');
-
-  // expectRep('(load-url "/chaiTest.schem")', "MEEP!");
+  // MAYDO: mock $.get so this is possible?
+  // expectRep('(load-url "/chaiTest.schem")', 'MEEP!');
 
 // add more tests here :)
 

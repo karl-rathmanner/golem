@@ -15,12 +15,13 @@ export class Schem {
         return env.get(ast);
       }
     } else if (ast instanceof SchemList || ast instanceof SchemVector) {
-
+      // console.log('began list eval in evalAST in env ' + env.name);
+      const evaluatedAST = (ast instanceof SchemList) ? new SchemList() : new SchemVector();
       for (let i = 0; i < ast.length; i++) {
-        ast[i] = await this.evalSchem(ast[i], env);
+        evaluatedAST[i] = await this.evalSchem(ast[i], env);
       }
-
-      return ast;
+      // console.log('finished list eval in evalAST in env ' + env.name);
+      return evaluatedAST;
       // return ast.map((elemnt) => evalSchem(elemnt, env));
     } else if (ast instanceof SchemMap) {
       let m = new SchemMap();
@@ -35,7 +36,7 @@ export class Schem {
 
       return m;
     } else {
-      return await ast;
+      return ast;
     }
   }
 
@@ -44,10 +45,16 @@ export class Schem {
    * TCO hint: recursive Schem functions should call themselves from tail position. Consult stackoverflow.com in case of stack overflows.
   */
   async evalSchem(ast: SchemType, env: Env): Promise<SchemType> {
-    await this.nextStep();
-    let tcoCounter = 0;
+
+    // let tcoCounter = 0;
     fromTheTop: while (true) {
-      if (tcoCounter++ > 0) console.log(`tco: ${tcoCounter}`);
+      // if (tcoCounter++ > 0) console.log(`tco: ${tcoCounter}`);
+      // console.log('ast: ' + pr_str(ast));
+      // console.log(ast);
+      // console.log('env: ' + env.name);
+      // console.log(env);
+      // console.log('--------');
+      await this.nextStep();
       if (!(ast instanceof SchemList)) {
         return await this.evalAST(ast, env);
       }
@@ -70,6 +77,8 @@ export class Schem {
                   throw `first argument of 'def!' must be a symbol`;
                 }
 
+              // (let* (symbol1 value1 symbol2 value2) expression)
+              // Let creates a new child environment and binds a list of symbols and values, the following expression is evaluated in that environment
               case 'let*':
                 const childEnv = new Env(env);
                 const bindingList = ast[1];
@@ -84,27 +93,26 @@ export class Schem {
                   if (bindingList[i] instanceof SchemSymbol) {
                     childEnv.set(bindingList[i] as SchemSymbol, await this.evalSchem(bindingList[i + 1], childEnv));
                   } else {
-                    throw `first argument of 'def!' must be a symbol`;
+                    throw `every uneven argument of 'let*' must be a symbol`;
                   }
                 }
 
-                // return evalSchem(ast[2], childEnv);
+                // TCO: switch to the new environment
                 env = childEnv;
+                // TCO: evaluate the expression
                 ast = ast[2];
                 continue fromTheTop;
 
               case 'do':
-                // evaluate all elements, starting from the second one, return only the last result
-
-                // TODO: turn into for loop, add await
-                ast.map((element, index) => {
-                  if (index === 0 || index === (ast as SchemType[]).length - 1) return; // skip first (was 'do') and last element (will be evaluated during next loop iteration)
-                  return this.evalAST(new SchemList(element), env);
-                });
+                // evaluate elements, starting from the second one, but return the last one as is
+                const evaluatedAST = new SchemList();
+                // skip the ast's first (which was 'do') and last element (which will be evaluated during next loop iteration)
+                for (let i = 1; i < ast.length - 1; i++) {
+                  evaluatedAST.push(await this.evalSchem(ast[i], env));
+                }
 
                 ast = ast[ast.length - 1];
                 continue fromTheTop;
-
 
               case 'if':
                 const condition = await this.evalSchem(ast[1], env);
@@ -117,7 +125,7 @@ export class Schem {
                 }
 
               case 'fn*':
-                const [, params, exprs] = ast;
+                const [, params, fnBody] = ast;
 
                 if (!(params instanceof SchemList || params instanceof SchemVector)) {
                   throw `expected list or vector`;
@@ -125,13 +133,7 @@ export class Schem {
 
                 try {
                   let binds = params.asArrayOfSymbols();
-                  console.log(binds);
-                  // let functionBody = await evalSchem(exprs, new Env(env, binds, args));
-                  /* let fn = await new SchemFunction(async (...args: SchemType[]) => {
-                    return evalSchem(exprs, new Env(env, binds, args));
-                  }, {name: 'anonymous, async'} , {ast: exprs, params: binds, env: env});
-                  */
-                  return SchemFunction.fromSchem(this.evalSchem, env, params.asArrayOfSymbols(), exprs);
+                  return SchemFunction.fromSchem(this.evalSchem, env, params.asArrayOfSymbols(), fnBody);
 
                 } catch (error) {
                   throw `binds list for new environments must only contain symbols`;
@@ -154,26 +156,22 @@ export class Schem {
           const [f, ...args] = await this.evalAST(ast, env) as SchemList;
 
           if (f instanceof SchemFunction) {
-            console.log(f.metadata.name);
-            console.log('ast: ' + pr_str(ast));
-            console.log(ast);
-            console.log('args:');
-            console.log(args);
-            console.log('env:');
-            console.log(env);
+            // console.log('calling function');
+            // console.log(f.metadata.name);
+            // console.log('args:');
+            // console.log(args);
 
             if (f.fnContext) {
-              console.log('context:');
-              console.log(f.fnContext);
-              console.log(f.fnContext!.params);
-
+              // console.log('context:');
+              // console.log(f.fnContext);
+              // console.log(f.fnContext!.params);
               ast = f.fnContext.ast;
               env = new Env(f.fnContext.env, f.fnContext.params, args);
               // env = f.newEnv(args); // new Env(f.fnContext.env, f.fnContext.params, args);
               continue fromTheTop;
             } else {
-              console.log('no context');
-              return f.f(...args);
+              // console.log('no context');
+              return await f.f(...args);
             }
           } else {
             throw `tried to invoke ${f} as a function, when it's type was ${typeof f}`;
@@ -211,10 +209,13 @@ export class Schem {
             resolve();
         }
       });
-
-
     });
     */
-    await this.delay(100);
+
+    /* turbo mode
+      await this.delay(100);
+    */
+
+    await true;
   }
 }

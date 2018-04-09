@@ -54,7 +54,9 @@ class CommandHistory {
 $.when($.ready).then(() => {
   const inputElement = $('input[name=input]');
   const commandHistory = new CommandHistory();
+  const interpreter = new Schem();
 
+  /* example for an envOverwrite
   const envOverwrites: EnvSetupMap = {
     'prn': (...args: SchemType[]) => {
       const msg: string = (args.map((element) => {
@@ -63,7 +65,7 @@ $.when($.ready).then(() => {
       browser.runtime.sendMessage({action: 'notify', message: msg});
       return SchemNil.instance;
     },
-  };
+  };*/
 
 
   inputElement.focus();
@@ -75,9 +77,7 @@ $.when($.ready).then(() => {
         commandHistory.addCommandToHistory(input);
 
         // const repOutput = rep(input, envOverwrites);
-        let interpreter = new Schem();
-
-        interpreter.arep(input, envOverwrites).then((result) => $('#output').text($('#output').text() + result + '\n'));
+        interpreter.arep(input).then((result) => $('#output').text($('#output').text() + result + '\n'));
         // $('#output').text($('#output').text() + repOutput + '\n');
         $('input[name=input]').val('');
         break;

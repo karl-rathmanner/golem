@@ -21,16 +21,21 @@ export abstract class EnvSetupMap {
  */
 export class Env {
   data: Map<SchemSymbol, SchemType> = new Map<SchemSymbol, SchemType>();
+  name: string;
 
   constructor(public outer?: Env, binds: SchemSymbol[] = [], exprs: SchemType[] = []) {
+    this.name = String.fromCharCode(65 + Math.random() * 24) + String.fromCharCode(65 + Math.random() * 24) + String.fromCharCode(65 + Math.random() * 24);
+    // console.log('new env named ' + this.name);
+    // console.log('it binds: ' + binds.reduce((acc, current) => acc += (current as SchemSymbol).name + ' ', ''));
     for (let i = 0; i < binds.length; i++) {
-      console.log(`bound ${binds[i].name} to ${exprs[i]}`);
+      // console.log(`bound ${binds[i].name} to ${exprs[i]}`);
       this.set(binds[i], exprs[i]);
     }
   }
 
   /** Binds a symbol to a value */
-  set(key: SchemSymbol, value: SchemType): SchemType {
+  set(key: SchemSymbol | string, value: SchemType): SchemType {
+    if (typeof key === 'string') key = SchemSymbol.from(key);
     this.data.set(key, value);
     return value;
   }
