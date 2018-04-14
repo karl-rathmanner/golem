@@ -3,26 +3,44 @@ import { SchemType, SchemSymbol, SchemList, SchemFunction, SchemNil, SchemNumber
 import { pr_str } from './printer';
 import { Env, EnvSetupMap } from './env';
 import { coreFunctions } from './core';
+// import  content from '../schemScripts/core.schem';
 import { browser } from 'webextension-polyfill-ts';
 
 export class Schem {
 
+  private coreLoaded: boolean;
+  public replEnv: Env = new Env();
+  public debug = {
+    logArepInput : false,
+    logEvalSchemCalls : false,
+    logSchemFunctionInvocation : false,
+    logEnvironmentInfo : false,
+    pauseEvaluation: false
+  };
+
+  constructor() {
+    this.replEnv.addMap(coreFunctions);
+    this.coreLoaded = false;
+  }
+
   async evalAST(ast: SchemType, env: Env): Promise<SchemType> {
     if (ast instanceof SchemSymbol) {
+
       if (typeof env.find(ast) === 'undefined') {
         throw `Symbol ${ast.name} is undefined`;
       } else {
         return env.get(ast);
       }
+
     } else if (ast instanceof SchemList || ast instanceof SchemVector) {
-      // console.log('began list eval in evalAST in env ' + env.name);
+
       const evaluatedAST = (ast instanceof SchemList) ? new SchemList() : new SchemVector();
       for (let i = 0; i < ast.length; i++) {
         evaluatedAST[i] = await this.evalSchem(ast[i], env);
       }
-      // console.log('finished list eval in evalAST in env ' + env.name);
+
       return evaluatedAST;
-      // return ast.map((elemnt) => evalSchem(elemnt, env));
+
     } else if (ast instanceof SchemMap) {
       let m = new SchemMap();
 
@@ -45,15 +63,24 @@ export class Schem {
    * TCO hint: recursive Schem functions should call themselves from tail position. Consult stackoverflow.com in case of stack overflows.
   */
   async evalSchem(ast: SchemType, env: Env): Promise<SchemType> {
+  let tcoCounter = 0;
 
-    // let tcoCounter = 0;
-    fromTheTop: while (true) {
-      // if (tcoCounter++ > 0) console.log(`tco: ${tcoCounter}`);
-      // console.log('ast: ' + pr_str(ast));
-      // console.log(ast);
-      // console.log('env: ' + env.name);
-      // console.log(env);
-      // console.log('--------');
+  fromTheTop: while (true) {
+
+      if (this.debug.logEvalSchemCalls) {
+        if (tcoCounter++ === 0) {
+          console.log('evalSchem was called.');
+        } else {
+          console.log(`evalSchem looped. Number of recursions skipped due to TCO: ${tcoCounter}`);
+        }
+        console.group();
+        console.log('ast: ' + pr_str(ast));
+        console.log(ast);
+        console.log('env: ' + env.name);
+        console.log(env);
+        console.groupEnd();
+      }
+
       await this.nextStep();
       if (!(ast instanceof SchemList)) {
         return await this.evalAST(ast, env);
@@ -70,6 +97,8 @@ export class Schem {
 
             switch (first.name) {
 
+              // (def! symbol value)
+              // Binds a symbol to a value in the current environment
               case 'def!':
                 if (ast[1] instanceof SchemSymbol) {
                   return env.set(ast[1] as SchemSymbol, await this.evalSchem(ast[2], env));
@@ -78,7 +107,7 @@ export class Schem {
                 }
 
               // (let* (symbol1 value1 symbol2 value2) expression)
-              // Let creates a new child environment and binds a list of symbols and values, the following expression is evaluated in that environment
+              // Creates a new child environment and binds a list of symbols and values, the following expression is evaluated in that environment
               case 'let*':
                 const childEnv = new Env(env);
                 const bindingList = ast[1];
@@ -103,6 +132,10 @@ export class Schem {
                 ast = ast[2];
                 continue fromTheTop;
 
+              /** (do x y & more)
+               *  Evaluates all elements in sequence, but only returns the last one.
+              */
+
               case 'do':
                 // evaluate elements, starting from the second one, but return the last one as is
                 const evaluatedAST = new SchemList();
@@ -114,6 +147,9 @@ export class Schem {
                 ast = ast[ast.length - 1];
                 continue fromTheTop;
 
+              /** (if condition x y)
+               *  returns x if condition is true; otherwise returns y
+              */
               case 'if':
                 const condition = await this.evalSchem(ast[1], env);
                 if ((condition instanceof SchemBoolean && condition === SchemBoolean.false) || condition instanceof SchemNil) {
@@ -124,6 +160,10 @@ export class Schem {
                   continue fromTheTop;
                 }
 
+              /** (fn parameters functionBody)
+               *  Defines a new function in the current environment. When it's colled, the function body gets executed in a new child environmet.
+               *  In this child environmet, the symbols provided in parameters are bound to he values provided as arguments by the caller.
+              */
               case 'fn*':
                 const [, params, fnBody] = ast;
 
@@ -139,9 +179,23 @@ export class Schem {
                   throw `binds list for new environments must only contain symbols`;
                 }
 
+              // (eval form) - evaluates the argument twice - effectively executing the form
               case 'eval':
-                // (eval form) - evaluates the argument twice - effectively executing the form
                 return await this.evalSchem(await this.evalSchem(ast[1], env), env);
+
+              /** (setInterpreterOptions map) changes interpreter settings
+               *  e.g.: (setInterpreterOptions {"logArepInput" true "pauseEvaluation" false}) */
+              case 'setInterpreterOptions':
+                const options = await this.evalAST(ast[1], env);
+                if (!(options instanceof SchemMap)) throw `(setInterpreterOptions options) options must be a map`;
+
+                options.map((value, key) => {
+                  if (key instanceof SchemString && value instanceof SchemBoolean && key.valueOf() in this.debug) {
+                    (this.debug as any)[key.valueOf()] = value.valueOf();  // typecost is necessary, because the debug options literal lacks a string indexer – but we allready checked if the object has that key, so it's all good
+                  }
+                  return void 0;
+                });
+                return SchemNil.instance;
 
             }
           }
@@ -156,21 +210,30 @@ export class Schem {
           const [f, ...args] = await this.evalAST(ast, env) as SchemList;
 
           if (f instanceof SchemFunction) {
-            // console.log('calling function');
-            // console.log(f.metadata.name);
-            // console.log('args:');
-            // console.log(args);
-
+            if (this.debug.logSchemFunctionInvocation) {
+              console.log('invoking a Schem function');
+              console.group();
+              console.log(f.metadata.name);
+              console.log('args:');
+              console.log(args);
+            }
             if (f.fnContext) {
-              // console.log('context:');
-              // console.log(f.fnContext);
-              // console.log(f.fnContext!.params);
+
+              if (this.debug.logSchemFunctionInvocation) {
+                console.log('Function was defined in Schem and has a context object:');
+                console.log(f.fnContext);
+              }
+
               ast = f.fnContext.ast;
               env = new Env(f.fnContext.env, f.fnContext.params, args);
-              // env = f.newEnv(args); // new Env(f.fnContext.env, f.fnContext.params, args);
+              console.groupEnd();
               continue fromTheTop;
+
             } else {
-              // console.log('no context');
+              if (this.debug.logSchemFunctionInvocation) {
+                console.log('Function has no context.');
+                console.groupEnd();
+              }
               return await f.f(...args);
             }
           } else {
@@ -183,16 +246,16 @@ export class Schem {
     }
   }
 
-  replEnv: Env = new Env();
-  constructor() {
-    this.replEnv.addMap(coreFunctions);
-    this.replEnv.def('load-url', '(fn* (f) (eval (read-string (str "(do " (slurp f) ")"))))', this);
-  }
-
   async arep(expression: string, overwrites?: EnvSetupMap): Promise<string> {
+    if (!this.coreLoaded) {
+      this.coreLoaded = true; // technically, this isn't quite true, as the bindings from core.schem are not loaded yet, but the flag has to be set, so the next call to arep may return
+      await this.arep('(def! load-url (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))');
+    }
     if (overwrites) {
       this.replEnv.addMap(overwrites, true);
     }
+
+    if (this.debug.logArepInput) console.log('evaluating: ' + expression);
     return pr_str(await this.evalSchem(readStr(expression), this.replEnv));
   }
 
@@ -201,16 +264,16 @@ export class Schem {
   }
 
   async nextStep(): Promise<void> {
-    /* test for stepping through the execution
-    return new Promise<void>(resolve => {
-      browser.commands.onCommand.addListener((command) => {
-        /// 'advanceSchemInterpreter' //'.addListener((m: {action: string, message: string}) => {
-        if (command === 'advanceSchemInterpreter') {
-            resolve();
-        }
+    if (this.debug.pauseEvaluation) {
+      return new Promise<void>(resolve => {
+        browser.commands.onCommand.addListener((command) => {
+          /// 'advanceSchemInterpreter' //'.addListener((m: {action: string, message: string}) => {
+          if (command === 'advanceSchemInterpreter') {
+              resolve();
+          }
+        });
       });
-    });
-    */
+    }
 
     /* turbo mode
       await this.delay(100);

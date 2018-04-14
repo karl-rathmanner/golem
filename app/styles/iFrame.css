@@ -1,0 +1,42 @@
+html, body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: rgba(0,0,0,.1);
+}
+
+#golemInputBox {
+  height: 2.5em;
+  width: 42em;
+  position: absolute;
+  top:50%;
+  left:50%;
+  -webkit-transform: translate(-50%, -50%);
+  -moz-transform: translate(-50%, -50%);
+  -ms-transform: translate(-50%, -50%);
+  -o-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+
+  background-color: white;
+  border: 1px solid black;
+  border-radius: 5px;
+  box-shadow: 0 0 3px grey;
+
+  padding: .5em;
+}
+
+#golemInputField {
+  width: 100%;
+  height: 100%;
+  padding: 0px;
+  border-width: 0px;
+  font-size: 1.42em;
+}
+
+#golemInputField:focus {
+  outline: none;
+}

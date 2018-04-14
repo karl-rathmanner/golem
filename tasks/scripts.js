@@ -11,7 +11,7 @@ import args from './lib/args'
 const ENV = args.production ? 'production' : 'development'
 
 gulp.task('scripts', (cb) => {
-  return gulp.src(['app/scripts/*.js', 'app/scripts/*.ts'])
+  return gulp.src(['app/scripts/*.js', 'app/scripts/*.ts', 'app/scripts/*.schem', 'app/styles/*.css'])
     .pipe(plumber({
       // Webpack will log the errors
       errorHandler () {}
@@ -38,14 +38,19 @@ gulp.task('scripts', (cb) => {
             options: {
               configFile: 'tsconfig.app.json'
             }
+          },
+          {
+            test: /\.(css|schem)$/,
+            loader: 'raw-loader'
           }
         ]
       },
       resolve: {
-        extensions: ['.ts', '.js'],
+        extensions: ['.ts', '.js', '.css'],
         modules: [
           'node_modules/',
-          'app/scripts/'
+          'app/scripts/',
+          'app/styles/'
         ]
       }
     },

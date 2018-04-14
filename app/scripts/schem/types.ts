@@ -76,15 +76,14 @@ export type SchemMapKey = SchemSymbol | SchemKeyword | SchemString | SchemNumber
 
 
 export class SchemMap {
-  private map: Map<string, SchemType> = new Map<string, SchemType>();
+  private nativeMap: Map<string, SchemType> = new Map<string, SchemType>();
 
   /** Returns an array of alternating key value pairs
    * @returns
    * [key: SchemSymbol, value:  SchemType, ...] */
   public flatten(): SchemType[] {
-    return Array.from(this.map.keys()).reduce((acc: SchemType[], currentKey: string) => {
-
-      return acc.concat(this.createSchemTypeForKeyString(currentKey), this.map.get(currentKey)!);
+    return Array.from(this.nativeMap.keys()).reduce((acc: SchemType[], currentKey: string) => {
+      return acc.concat(this.createSchemTypeForKeyString(currentKey), this.nativeMap.get(currentKey)!);
     }, []);
   }
 
@@ -116,13 +115,31 @@ export class SchemMap {
   // private getOriginalKeyObject
 
   set(key: SchemMapKey, value: SchemType ): void {
-    this.map.set(this.turnIntoKeyString(key), value);
+    this.nativeMap.set(this.turnIntoKeyString(key), value);
   }
 
   get(key: SchemMapKey): SchemType {
-    let v = this.map.get(this.turnIntoKeyString(key));
+    let v = this.nativeMap.get(this.turnIntoKeyString(key));
     if (v) return v;
     else return SchemNil.instance;
+  }
+
+  /** Changes each value in a SchemMap to the result of Applies the result the provided collback function.
+   * If the callback returns undefined, the Map's value is left as is.
+   */
+  map(callbackFn: (value: SchemType , key?: SchemMapKey) => SchemType | undefined) {
+    const stringKeyArray = Array.from(this.nativeMap.keys());
+
+    for (const stringKey of stringKeyArray) {
+      const schemKey = this.createSchemTypeForKeyString(stringKey);
+
+      if (!this.nativeMap.has(stringKey)) {
+        throw `key '${stringKey} could not be found in map, even though a corresponding SchemKey existed`;
+      }
+
+      const newValue = callbackFn(this.nativeMap.get(stringKey)!, schemKey); // Since we checked for the key to exist in the map, the non-null assertion should be safe
+      if (newValue) this.nativeMap.set(stringKey, newValue);                 // Don't change anything if the callback returned undefined
+    }
   }
 
 }

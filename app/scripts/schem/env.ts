@@ -23,12 +23,16 @@ export class Env {
   data: Map<SchemSymbol, SchemType> = new Map<SchemSymbol, SchemType>();
   name: string;
 
-  constructor(public outer?: Env, binds: SchemSymbol[] = [], exprs: SchemType[] = []) {
+  constructor(public outer?: Env, binds: SchemSymbol[] = [], exprs: SchemType[] = [], logDebugMessages = false) {
+    // Generate a human readable name to make debugging easier
     this.name = String.fromCharCode(65 + Math.random() * 24) + String.fromCharCode(65 + Math.random() * 24) + String.fromCharCode(65 + Math.random() * 24);
-    // console.log('new env named ' + this.name);
-    // console.log('it binds: ' + binds.reduce((acc, current) => acc += (current as SchemSymbol).name + ' ', ''));
+
+    if (logDebugMessages) {
+      console.log(`A new env named ${this.name} was instantiated.`);
+      console.log('It binds the following symbols: ' + binds.reduce((acc, current) => acc += (current as SchemSymbol).name + ' ', ''));
+    }
     for (let i = 0; i < binds.length; i++) {
-      // console.log(`bound ${binds[i].name} to ${exprs[i]}`);
+      if (logDebugMessages) console.log(`${binds[i].name} = ${exprs[i]}`);
       this.set(binds[i], exprs[i]);
     }
   }

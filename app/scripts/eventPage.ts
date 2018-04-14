@@ -55,19 +55,22 @@ browser.tabs.onUpdated.addListener((id, changeInfo, tab) => {
 browser.commands.onCommand.addListener(function(command) {
   switch (command) {
     case 'go-go-golem': {
-      console.log('Doing stuff!');
+
       browser.tabs.query({currentWindow: true}).then((tabs) => {
-        let tab;
-        for (tab of tabs) {
+        browser.windows.getCurrent().then((window) => {
+          if (window.id) browser.windows.update(window.id, {state: 'maximized', focused: true});
+        });
+
+        for (let tab of tabs) {
           if (tab && tab.id && /alma/.test(tab.url!)) {
-            browser.windows.getCurrent().then((window) => {
-              if (window.id) browser.windows.update(window.id, {state: 'maximized', focused: true});
-            });
+            browser.tabs.sendMessage(tab.id, {action: 'showGolemInput'});
+
+            /* random example
             browser.tabs.sendMessage(tab.id, {msg: 'mo color?', color: '#' + Math.floor(Math.random() * 16777215).toString(16) })
             .then((v) => console.log(v))
             .catch((e) => {
               console.log(e);
-            });
+            }); */
           }
         }
       });
