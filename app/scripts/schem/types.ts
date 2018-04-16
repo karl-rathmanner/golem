@@ -144,21 +144,6 @@ export class SchemMap {
 
 }
 
-
-// export class SchemMap {
-//   map: Map<SchemMapKey, SchemType> = new Map<SchemMapKey, SchemType>();
-
-//   /** Returns an array of alternating key value pairs
-//    * @returns
-//    * [key: SchemSymbol, value:  SchemType, ...] */
-//   public flatten(): SchemType[] {
-//     return Array.from(this.map.keys()).reduce((acc: SchemType[], currentKey: SchemMapKey) => {
-//       return acc.concat(currentKey, this.map.get(currentKey)!);
-//     }, []);
-//   }
-// }
-
-
 export class SchemFunction {
   constructor(public f: Function,
     public metadata: {name: string} = {name: 'anonymous'},

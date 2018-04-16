@@ -249,7 +249,7 @@ export class Schem {
   async arep(expression: string, overwrites?: EnvSetupMap): Promise<string> {
     if (!this.coreLoaded) {
       this.coreLoaded = true; // technically, this isn't quite true, as the bindings from core.schem are not loaded yet, but the flag has to be set, so the next call to arep may return
-      await this.arep('(def! load-url (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))');
+      // await this.arep('(def! load-url (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))');
     }
     if (overwrites) {
       this.replEnv.addMap(overwrites, true);

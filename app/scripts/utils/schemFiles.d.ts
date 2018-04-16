@@ -1,4 +1,4 @@
 declare module '*.schem' {
-  var _: any;
-  export default _;
+  const content: string;
+  export default content;
 }

@@ -10,8 +10,6 @@ body {
 }
 
 #golemInputBox {
-  height: 2.5em;
-  width: 42em;
   position: absolute;
   top:50%;
   left:50%;
@@ -29,14 +27,14 @@ body {
   padding: .5em;
 }
 
-#golemInputField {
-  width: 100%;
-  height: 100%;
+#golemInputTextArea {
   padding: 0px;
   border-width: 0px;
   font-size: 1.42em;
+  vertical-align: middle;
+  resize:none;
 }
 
-#golemInputField:focus {
+#golemInputTextArea:focus {
   outline: none;
 }

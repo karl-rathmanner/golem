@@ -147,5 +147,4 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     }
     return SchemNil.instance;
   },
-
 };

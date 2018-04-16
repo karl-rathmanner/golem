@@ -1,0 +1,3 @@
+(do
+ (def! searchBox "#ALMA_MENU_TOP_NAV_Search_Text")
+ (def! submitSearch "#simpleSearchBtn"))
