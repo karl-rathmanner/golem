@@ -147,4 +147,7 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     }
     return SchemNil.instance;
   },
+  'parse-xml': (xmlString: SchemString) => {
+    return SchemNil.instance;
+  }
 };

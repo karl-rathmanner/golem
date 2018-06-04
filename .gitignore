@@ -1,4 +1,3 @@
-
 .DS_Store
 
 node_modules
@@ -8,3 +7,6 @@ dist/
 packages/
 
 .idea/
+
+# Use the "local" folder for files containing API keys or other things you wouldn't want to accidentally commit
+app/scripts/local

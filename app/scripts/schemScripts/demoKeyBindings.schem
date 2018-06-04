@@ -1,0 +1,4 @@
+(do
+  (bindKey "1" "(setVal searchBox \"Hellö world!\")")
+  (bindKey "2" "(click submitSearch)")
+  (bindKey "3" "(setCSS \"MDE..exl-TextAreaWithScroll\" \"font-family\" \"monospace\")"))

@@ -14,6 +14,8 @@ export class Golem {
   public stopEventPropagation: boolean = false;
   private port: Runtime.Port;
 
+  private schemHotKeys = new Map<string, string>();
+
   private constructor() {
   }
 
@@ -27,34 +29,51 @@ export class Golem {
     console.log('connecting to event page');
     this.port = browser.runtime.connect(void 0, {name: `golem`});
 
-    // this.port.onMessage.addListener(this.onMessageFromEventPage);
+    // currently using arrow notation instead of putting handler in its own function b/c 'this' needs to be bound to golem
+    // TODO: an instance function would do the same I guess
     this.port.onMessage.addListener((message: {action: string, data: any}, port: Runtime.Port) => {
-      console.log('golem got a message', message);
+      const golemClosure = this;
       switch (message.action) {
         case 'setVal':
-        $(message.data.selector).val(message.data.value);
-        break;
+          $(message.data.selector).val(message.data.value);
+          break;
+        case 'setCSS':
+          const selector = message.data.selector as string;
+          const element = (/^MDE\./.test(selector)) ? this.selectMDEDomElement(selector.substr(4)) : this.selectDomElement(selector);
+          element.css(message.data.property, message.data.value);
+          break;
         case 'click':
-        $(message.data.selector).click();
-        break;
+          $(message.data.selector).click();
+          break;
+        case 'bindKey':
+          this.schemHotKeys.set(message.data.key, message.data.schemExpression);
+          break;
       }
       return true;
     });
 
-    console.log(this.port);
+    // console.log(this.port);
   }
 
-  private onMessageFromEventPage(message: {action: string, data: any}, port: Runtime.Port) {
-    console.log('golem got a message', message);
-    switch (message.action) {
-      case 'setVal':
-        $(message.data.selector).val(message.data.value);
-        break;
-      case 'click':
-        $(message.data.selector).click();
-        break;
-    }
-    return true;
+  private selectDomElement(selector: string): JQuery<HTMLElement> {
+    return $(selector);
+  }
+
+  private selectMDEDomElement(selector: string): JQuery<HTMLElement> {
+    return $('iframe[title="MDEditor"]').contents().find(selector) as JQuery<HTMLElement>;
+  }
+
+  private attachKeyEventListener() {
+    // Note: can't use jQuery here, because I want events to be captured/prevent bubbling
+    const golemClosure = this;
+    window.addEventListener('keydown', function(event) {
+      console.log(golemClosure);
+      if (event.altKey && golemClosure.schemHotKeys.has(event.key)) {
+          golemClosure.arepSchemExpressionByEventPage(golemClosure.schemHotKeys.get(event.key)!);
+          console.log('hotkey');
+          event.stopImmediatePropagation();
+      }
+    }, true);
   }
 
   private async createGolemIFrame() {
@@ -148,6 +167,9 @@ export class Golem {
   }
 
   addEventListeners() {
+    console.log(this.schemHotKeys);
+    this.attachKeyEventListener();
+    /*
     const golemInstance = this;
     window.addEventListener('keydown', function(event) {
       console.log(event.keyCode);
@@ -155,6 +177,6 @@ export class Golem {
       if (golemInstance.stopEventPropagation) {
           event.stopImmediatePropagation();
       }
-    }, true);
+    }, true);*/
   }
 }

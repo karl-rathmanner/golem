@@ -12,3 +12,16 @@ function sayHello() {
         console.log(r);
     });
 }
+
+class Settings {
+  public static async getSettings(): Promise<any> {
+    const values = await browser.storage.local.get({settings: {}}).then(results => {
+      let settings = results.settings;
+      /*if (!(settings instanceof Array)) {
+        console.warn('command History empty or corrupted');
+      }*/
+      return true;
+    });
+    return values;
+  }
+}

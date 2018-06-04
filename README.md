@@ -60,9 +60,9 @@ There are two kinds of entryfiles that create bundles.
 | `--watch`      | Starts a livereload server and watches all assets. <br>To reload the extension on change include `livereload.js` in your bundle.                      |
 | `--production` | Minifies all assets                                                                                                                                   |
 | `--verbose`    | Log additional data to the console.                                                                                                                   |
-| `--vendor`     | Compile the extension for different vendors (chrome, firefox, opera, edge)  Default: chrome                                                                 |
+| `--vendor`     | Compile the extension for different vendors (chrome, firefox, opera, edge)  Default: chrome                                                           |
 | `--sourcemaps` | Force the creation of sourcemaps. Default: !production                                                                                                |
-| `test`      | Starts the testrunner |
+| `test`         | Starts the testrunner                                                                                                                                 |
 
 You can safely ignore the message: `Failed to load external module @babel/register`.
 ### Test

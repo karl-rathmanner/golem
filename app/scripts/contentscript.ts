@@ -24,6 +24,7 @@ let golem: Golem;
 })();
 
 function startListening() {
+  golem.addEventListeners();
   browser.runtime.onMessage.addListener((m: {action: string, data: any}) => {
     switch (m.action) {
       case 'showGolemInput':
