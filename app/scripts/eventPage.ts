@@ -4,7 +4,7 @@ import { browser, Browser, Runtime, Tabs } from 'webextension-polyfill-ts';
 import { Golem } from './golem';
 import { Schem } from './schem/schem';
 import { SchemType, SchemString, SchemBoolean, SchemNil, SchemNumber } from './schem/types';
-import { bibApiKey } from './local/apiKeys';
+//import { bibApiKey } from './local/apiKeys';
 import * as $ from 'jquery';
 
 // import almaKeywords from '!raw-loader!./schemScripts/almaKeywords.schem';
@@ -127,7 +127,7 @@ browser.runtime.onConnect.addListener((port: Runtime.Port) => {
       return SchemBoolean.true;
     },
     'getBib': async (mmsId: SchemString) => {
-      $.get(`https://api-na.hosted.exlibrisgroup.com/almaws/v1/bibs/${mmsId.valueOf()}?apikey=${bibApiKey}`).then(result => console.log(result));
+      //$.get(`https://api-na.hosted.exlibrisgroup.com/almaws/v1/bibs/${mmsId.valueOf()}?apikey=${bibApiKey}`).then(result => console.log(result));
       return SchemNil.instance;
     },
     'bindKey': (key: SchemString, schemExpression: SchemString) => {

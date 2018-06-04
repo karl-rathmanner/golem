@@ -3,7 +3,7 @@
 Golem is a webextension that's supposed to automate tasks in Ex Libris' Web-based ILS Alma.
 It carries out menial tasks and is driven by words.
 
-# Schem
+## Schem
 [ʃɛm], from Hebrew שם‎ (Šēm).
 
 When it grows up, Schem is going to be a clojure-ish lisp dialect that's going to tell the golem how to behave.
@@ -11,36 +11,50 @@ When it grows up, Schem is going to be a clojure-ish lisp dialect that's going t
 
 
 ------------
-## Development Setup
+# Development Setup
 
-Run yarn to download and install all dependencies. (Feel free to use npm instead of yarn, if that works for you.)
+Install [node.js](https://nodejs.org/en/) and [yarn](https://yarnpkg.com/en/docs/install), check if you're on the correct branch.
+
+Run yarn to download and install all of golem's dependencies. (Feel free to use npm instead of yarn, if that works for you.)
 
 	$ yarn    
 
-If necessary, globally install the command line utility for Gulp.
+If you don't have gulp installed already, install its command line utility.
 
-    $ npm i -g gulp-cli 
+    $ npm i -g gulp-cli
 
-### Editor setup:  
-If you're using Visual Studio Code, your user settings will be overruled by setings.json in this workspace.
-If not, consider associating *.schem-files with clojure.
-Either way, installing a parinfer or paredit plugin is highly recommended for editing schem scripts.
+Run `gulp --watch`. 
+
+Refer to the [Tasks](#Tasks)-section, if you want to build golem for other browsers.
 
 ## During Developent
 
-Start automatic compilation and live reload.
+Start automatic compilation and live reload with:
 
     $ gulp --watch
     
-Load the `dist/chrome`-directory as an unpacked extension into chrome. Whenever files are saved, the extension is automatically reloaded. You could also run `gulp --watch --vendor=firefox` if you prefer Firefox.
+You can safely ignore the warning about `@babel/register`. 
 
-Tests can be left running in parallel to `gulp --watch` if you open multiple terminals. The tests run in chrome, but different browsers can be defined in `karma.conf.js`. You might have to install additional [browser launchers](http://karma-runner.github.io/2.0/config/browsers.html).
+Load the `dist/chrome`-directory as an unpacked extension into chrome. Whenever files are saved, the extension is automatically reloaded and should reflect your changes. Though, if in doubt: manually reload the extension.
 
-    gulp test
+Run `gulp --watch --vendor=firefox` if you prefer Firefox.
 
-Files matching `/app/scripts/schemScripts/*.schem` can be edited in your IDE and will be instantly available at runtime if `gulp --watch` is active. Use slurp to load local file contents and return them as a SchemString.
+### Editing Schem programs in your IDE
 
-    (slurp "/myScript.schem")
+Files matching `/app/scripts/schemScripts/*.schem` can be edited in your IDE and will be instantly available at runtime if `gulp --watch` is active. Use slurp to load local file contents and return them as a SchemString. e.g.:
+
+```clojure
+(slurp "/myScript.schem")
+```
+If you're using Visual Studio Code, your user settings will be overruled by setings.json in this workspace.
+If not, consider somehow associating *.schem-files with clojure, to get syntax highlighting. In any case, installing a parinfer or paredit plugin is highly recommended for editing Schem scripts.
+
+### Testing
+
+Tests can be left running in parallel to `gulp --watch` if you open multiple terminals. By default, karma is configured to use chrome, but different browsers can be defined in `karma.conf.js`. You might have to install additional [browser launchers](http://karma-runner.github.io/2.0/config/browsers.html). 
+
+     $ gulp test
+
 
 ## Entryfiles (bundles)
 
@@ -105,9 +119,3 @@ if(process.env.NODE_ENV === 'development'){
   console.log('We are in development mode!');
 }
 ```
-
-
-
-
-
-
