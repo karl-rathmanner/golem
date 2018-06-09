@@ -1,6 +1,6 @@
 import { Env } from './env';
 
-export type SchemType = SchemList | SchemVector| SchemNumber | SchemSymbol | SchemKeyword | SchemNil | SchemString | SchemFunction | SchemBoolean;
+export type SchemType = SchemList | SchemVector| SchemNumber | SchemSymbol | SchemKeyword | SchemNil | SchemString | SchemFunction | SchemBoolean | SchemAtom;
 
 export class SchemNumber extends Number {
   isValidKeyType = true;
@@ -9,7 +9,6 @@ export class SchemNumber extends Number {
 export class SchemString extends String {
   isValidKeyType = true;
 }
-
 
 export class SchemSymbol {
   isValidKeyType = true;
@@ -73,7 +72,6 @@ export class SchemVector extends Array<SchemType> {
 }
 
 export type SchemMapKey = SchemSymbol | SchemKeyword | SchemString | SchemNumber;
-
 
 export class SchemMap {
   private nativeMap: Map<string, SchemType> = new Map<string, SchemType>();
@@ -170,7 +168,6 @@ export class SchemNil {
   private constructor() {}
 }
 
-
 export class SchemBoolean extends Boolean {
   static false = new SchemBoolean(false);
   static true = new SchemBoolean(true);
@@ -181,5 +178,10 @@ export class SchemBoolean extends Boolean {
 
   private constructor(v: boolean) {
     super(v);
+  }
+}
+
+export class SchemAtom {
+  constructor(public value: SchemType) {
   }
 }

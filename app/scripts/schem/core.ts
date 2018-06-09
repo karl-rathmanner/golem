@@ -1,4 +1,4 @@
-import { SchemFunction, SchemNumber, SchemSymbol, SchemType, SchemBoolean, SchemNil, SchemList, SchemString, SchemVector, SchemMap, SchemMapKey, SchemKeyword } from './types';
+import { SchemFunction, SchemNumber, SchemSymbol, SchemType, SchemBoolean, SchemNil, SchemList, SchemString, SchemVector, SchemMap, SchemMapKey, SchemKeyword, SchemAtom } from './types';
 import { Schem } from './schem';
 import { readStr } from './reader';
 import { Env } from './env';
@@ -149,5 +149,17 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
   },
   'parse-xml': (xmlString: SchemString) => {
     return SchemNil.instance;
+  },
+  'atom': (value: SchemType) => {
+    return new SchemAtom(value);
+  },
+  'atom?': (value: SchemType) => {
+    return value.constructor === SchemAtom;
+  },
+  'deref': (atom: SchemAtom) => {
+    return atom.value;
+  },
+  'reset!': (atom: SchemAtom, value: SchemType) => {
+    return atom.value = value;
   }
 };
