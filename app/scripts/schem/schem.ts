@@ -98,23 +98,23 @@ export class Schem {
 
             switch (first.name) {
 
-              // (def! symbol value)
+              // (def symbol value)
               // Binds a symbol to a value in the current environment
-              case 'def!':
+              case 'def':
                 if (ast[1] instanceof SchemSymbol) {
                   return env.set(ast[1] as SchemSymbol, await this.evalSchem(ast[2], env));
                 } else {
-                  throw `first argument of 'def!' must be a symbol`;
+                  throw `first argument of 'def' must be a symbol`;
                 }
 
-              // (let* (symbol1 value1 symbol2 value2) expression)
+              // (let (symbol1 value1 symbol2 value2) expression)
               // Creates a new child environment and binds a list of symbols and values, the following expression is evaluated in that environment
-              case 'let*':
+              case 'let':
                 const childEnv = new Env(env);
                 const bindingList = ast[1];
 
                 if (!(bindingList instanceof SchemList)) {
-                  throw `first argument of let* has to be a list`;
+                  throw `first argument of let has to be a list`;
                 } else if (bindingList.length % 2 > 0) {
                   throw `binding list contains uneven number of elements`;
                 }
@@ -123,7 +123,7 @@ export class Schem {
                   if (bindingList[i] instanceof SchemSymbol) {
                     childEnv.set(bindingList[i] as SchemSymbol, await this.evalSchem(bindingList[i + 1], childEnv));
                   } else {
-                    throw `every uneven argument of 'let*' must be a symbol`;
+                    throw `every uneven argument of 'let' must be a symbol`;
                   }
                 }
 
@@ -165,7 +165,7 @@ export class Schem {
                *  Defines a new function in the current environment. When it's colled, the function body gets executed in a new child environmet.
                *  In this child environmet, the symbols provided in parameters are bound to he values provided as arguments by the caller.
               */
-              case 'fn*':
+              case 'fn':
                 const [, params, fnBody] = ast;
 
                 if (!(params instanceof SchemList || params instanceof SchemVector)) {

@@ -81,37 +81,34 @@ describe('blackbox tests', function() {
 
   expectSchem('(+ 1 2)', '3');
 
-  expectSchem(['(def! x 2)', '(+ 1 x)'] , ['2', '3'], 'define a variable and use it in a following function');
+  expectSchem(['(def x 2)', '(+ 1 x)'] , ['2', '3'], 'define a variable and use it in a following function');
 
   expectSchem('(eval (list * 7 6))', '42', `(eval) should be able to execute an abstract syntax tree`);
-
-  expectSchem('(eval (read-string "((fn* [x] (* x x)) 4)"))', '16', `(eval) should be able to execute an abstract syntax tree returned by (read-string)`);
 
 
   // Here, the first expression returns a SchemNumber, the second returns a SchemString.
   // Notice, that the typescript string itself has to be escaped. Schem actually "sees" (read-string "\"42\"") in example nr. 2
   expectSchem(['(read-string "42")', '(read-string "\\"42\\"")'], ['42', '"42"'], `read-string should be able to handle escaped strings`);
 
+  expectSchem('(eval (read-string "((fn [x] (* x x)) 4)"))', '16', `(read-string) should return an eval'able abstract syntax tree`);
 
-  expectSchem('(let* (a 24) (do (def! a 42) [a]))', '[42]', `the elements of a vectors should be evaluated in the current context`);
+  expectSchem('(let (a 24) (do (def a 42) [a]))', '[42]', `the elements of a vectors should be evaluated in the current context`);
 
   expectSchem('(read-string "(1 2 (+ 3 4) nil)")', '(1 2 (+ 3 4) nil)');
 
-  expectSchem('(eval (read-string "(* 7 6)"))', '42');
-
-  expectSchem(['[(def! isZero (fn* (n) (= n 0)))]', '(isZero 0)', '(isZero 1)'], 'false', `functions shouldn't have their environment polluted by previously bound values` );
+  expectSchem(['[(def isZero (fn (n) (= n 0)))]', '(isZero 0)', '(isZero 1)'], 'false', `functions shouldn't have their environment polluted by values previously supplied as arguments` );
 
   // contrived println_buffer example
   it(`it's possible to define and call a cube function`, async function () {
     const ti = new TestInterpreter();
-    return ti.arep('(let* (qube (fn* (x) (+ x x x))) (println (str (qube 1) " " (qube 2) " " (qube 3))))').then((result) => {
+    return ti.arep('(let (qube (fn (x) (+ x x x))) (println (str (qube 1) " " (qube 2) " " (qube 3))))').then((result) => {
       expect(result).to.be.equal('nil');
       expect(ti.println_buffer).to.equal('3 6 9');
     });
   });
 
   expectSchem([`
-    (def! sum (fn* (n acc)
+    (def sum (fn (n acc)
       (if (= n 0)
         acc
         (sum (- n 1) (+ n acc)
@@ -121,7 +118,5 @@ describe('blackbox tests', function() {
 
   // MAYDO: mock $.get so this is possible?
   // expectRep('(load-url "/chaiTest.schem")', 'MEEP!');
-
-// add more tests here :)
 
 });

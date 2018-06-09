@@ -16,7 +16,7 @@ export abstract class EnvSetupMap {
 
 /**  Environments map symbols to values
  * @description
- * Environments can be initialized in TS (e.g. set('a', new SchemNumber(42)) or modified at runtime (e.g. "(def! a 42)")
+ * Environments can be initialized in TS (e.g. set('a', new SchemNumber(42)) or modified at runtime (e.g. "(def a 42)")
  * When a symbol can't be found in an Env, its outer Envs are searched recursively. This means, 'lokal' symbols can hide outer symbols.
  */
 export class Env {
