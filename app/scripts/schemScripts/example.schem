@@ -1,6 +1,9 @@
 (def
-  sum (fn (n acc) 
-       (if (= n 0) 
-         acc   
-         (sum (- n 1) (+ n acc)))))
-
+  sum (fn (n) 
+        (
+          (def inner 
+            (fn (n acc) 
+              (if (= n 0) 
+                acc   
+                (inner (- n 1) (+ n acc)))))
+          n 0)))
