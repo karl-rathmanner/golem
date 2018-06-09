@@ -55,6 +55,31 @@ Tests can be left running in parallel to `gulp --watch` if you open multiple ter
 
      $ gulp test
 
+## Conventions
+
+### Commit messages
+
+Please adhere to [Jeremy Mack's](https://seesparkbox.com/foundry/semantic_commit_messages) / [Karma's style](http://karma-runner.github.io/2.0/dev/git-commit-msg.html) of commit messages, at least when it comes to subject lines. Message bodies and footers are separated by a newline, both are optional. I switched during development, so older commits will look different. ¯\\\_(ツ)_/¯
+
+Example:
+```
+docs: change commit msg style on a whim
+
+I should have just picked a style and stuck to it, but this one looks
+so neat! Btw, I'm already writing a diary entry instead of a proper
+message body, but at least the lines aren't longer than 72 characters.
+```
+
+Anatomy of a subject line:
+```
+feat(schem): add lambada function
+├──┘├─────┘ ├────────────────────┘
+│   │       └> Summary, lower case, in present tense
+│   │
+│   └> Scope: golem, schem
+│
+└> Type: chore, docs, feat, fix, refactor, style, or test.
+```
 
 ## Entryfiles (bundles)
 
