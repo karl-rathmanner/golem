@@ -36,7 +36,7 @@ class TestInterpreter extends Schem {
 * @param {string | string[]} expected
 * @param {string} description
 */
-let expectRep = (input: string | string[], expected: string | string[], description: string = '') => {
+let expectSchem = (input: string | string[], expected: string | string[], description: string = '') => {
   let inputArray = (typeof input === 'string') ? [input] : input;
   if (typeof expected !== 'string' && inputArray.length !== expected.length) {
     throw Error(`length of the inputs (${inputArray.length}) should math the expected one (${expected.length})`);
@@ -73,33 +73,33 @@ let expectRep = (input: string | string[], expected: string | string[], descript
 
 describe('blackbox tests', function() {
 
-  it('"true" should evaluate to "true"', async function() {
-    return new TestInterpreter().arep('true').then((result) => {
-      expect(result).to.be.equal('true');
-    });
-  });
+  expectSchem('true', 'true');
 
-  expectRep('(+ 1 2)', '3');
+  expectSchem('(list 1 2 3 4 5)', '(1 2 3 4 5)');
 
-  expectRep('(list 1 2 3 4 5)', '(1 2 3 4 5)');
+  expectSchem('(vector 1 2 3 4 5)', '[1 2 3 4 5]');
 
-  expectRep('(vector 1 2 3 4 5)', '[1 2 3 4 5]');
+  expectSchem('(+ 1 2)', '3');
 
-  expectRep(['(def! x 2)', '(+ 1 x)'] , ['2', '3'], 'define a variable and use it in a following function');
+  expectSchem(['(def! x 2)', '(+ 1 x)'] , ['2', '3'], 'define a variable and use it in a following function');
+
+  expectSchem('(eval (list * 7 6))', '42', `(eval) should be able to execute an abstract syntax tree`);
+
+  expectSchem('(eval (read-string "((fn* [x] (* x x)) 4)"))', '16', `(eval) should be able to execute an abstract syntax tree returned by (read-string)`);
+
 
   // Here, the first expression returns a SchemNumber, the second returns a SchemString.
   // Notice, that the typescript string itself has to be escaped. Schem actually "sees" (read-string "\"42\"") in example nr. 2
-  expectRep(['(read-string "42")', '(read-string "\\"42\\"")'], ['42', '"42"'], `read-string should be able to handle escaped strings`);
+  expectSchem(['(read-string "42")', '(read-string "\\"42\\"")'], ['42', '"42"'], `read-string should be able to handle escaped strings`);
 
-  expectRep('(eval (read-string "((fn* [x] (* x x)) 4)"))', '16', `(eval) should be able to execute an abstract syntax tree returned by (read-string)`);
 
-  expectRep('(let* (a 24) (do (def! a 42) [a]))', '[42]', `the elements of a vectors should be evaluated in the current context`);
+  expectSchem('(let* (a 24) (do (def! a 42) [a]))', '[42]', `the elements of a vectors should be evaluated in the current context`);
 
-  expectRep('(read-string "(1 2 (+ 3 4) nil)")', '(1 2 (+ 3 4) nil)');
+  expectSchem('(read-string "(1 2 (+ 3 4) nil)")', '(1 2 (+ 3 4) nil)');
 
-  expectRep('(eval (read-string "(* 7 6)"))', '42');
+  expectSchem('(eval (read-string "(* 7 6)"))', '42');
 
-  expectRep(['[(def! isZero (fn* (n) (= n 0)))]', '(isZero 0)', '(isZero 1)'], 'false', `functions shouldn't have their environment polluted by previously bound values` );
+  expectSchem(['[(def! isZero (fn* (n) (= n 0)))]', '(isZero 0)', '(isZero 1)'], 'false', `functions shouldn't have their environment polluted by previously bound values` );
 
   // contrived println_buffer example
   it(`it's possible to define and call a cube function`, async function () {
@@ -110,7 +110,7 @@ describe('blackbox tests', function() {
     });
   });
 
-  expectRep([`
+  expectSchem([`
     (def! sum (fn* (n acc)
       (if (= n 0)
         acc
