@@ -83,8 +83,9 @@ describe('blackbox tests', function() {
 
   expectSchem(['(def x 2)', '(+ 1 x)'] , ['2', '3'], 'define a variable and use it in a following function');
 
-  expectSchem('(eval (list * 7 6))', '42', `(eval) should be able to execute an abstract syntax tree`);
+  expectSchem('(not true)', 'false', 'core.schem is loaded correctly');
 
+  expectSchem('(eval (list * 7 6))', '42', `(eval) should be able to execute an abstract syntax tree`);
 
   // Here, the first expression returns a SchemNumber, the second returns a SchemString.
   // Notice, that the typescript string itself has to be escaped. Schem actually "sees" (read-string "\"42\"") in example nr. 2
@@ -115,6 +116,7 @@ describe('blackbox tests', function() {
       )
     )))
   `, '(sum 4242 0)'] , '8999403', 'recursive function calls in tail position should not cause stack overflow');
+
 
   // MAYDO: mock $.get so this is possible?
   // expectRep('(load-url "/chaiTest.schem")', 'MEEP!');
