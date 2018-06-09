@@ -21,7 +21,6 @@ export class Schem {
   constructor() {
     this.replEnv.addMap(coreFunctions);
     this.coreLoaded = false;
-
     this.replEnv.set('eval', (rand: SchemType) => this.evalSchem(rand, this.replEnv));
   }
 
@@ -246,8 +245,9 @@ export class Schem {
 
   async arep(expression: string, overwrites?: EnvSetupMap): Promise<string> {
     if (!this.coreLoaded) {
-      this.coreLoaded = true; // technically, this isn't quite true, as the bindings from core.schem are not loaded yet, but the flag has to be set, so the next call to arep may return
-      // await this.arep('(def! load-url (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))');
+      this.coreLoaded = true; // technically, this isn't quite true, as core.schem isn't actually loaded yet, but the flag has to be set so the call to arep below may return
+      const core = require('!raw-loader!../schemScripts/core.schem');
+      await this.arep(core);
     }
     if (overwrites) {
       this.replEnv.addMap(overwrites, true);

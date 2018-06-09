@@ -1,1 +1,3 @@
-not (fn* (a) (if a false true))
+(do 
+  (def! not (fn* (a) (if a false true)))
+  (def! theAnswer 42))
