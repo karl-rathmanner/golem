@@ -40,7 +40,13 @@ export class Env {
   /** Binds a symbol to a value */
   set(key: SchemSymbol | string, value: SchemType): SchemType {
     if (typeof key === 'string') key = SchemSymbol.from(key);
-    this.data.set(key, value);
+
+    if (value.constructor === SchemFunction) {
+      (value as SchemFunction).metadata.name = key.name;
+      this.data.set(key, value);
+    } else {
+      this.data.set(key, value);
+    }
     return value;
   }
 
