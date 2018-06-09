@@ -20,7 +20,7 @@ export abstract class EnvSetupMap {
  * When a symbol can't be found in an Env, its outer Envs are searched recursively. This means, 'lokal' symbols can hide outer symbols.
  */
 export class Env {
-  data: Map<SchemSymbol, SchemType> = new Map<SchemSymbol, SchemType>();
+  private symbolValueMap: Map<SchemSymbol, SchemType> = new Map<SchemSymbol, SchemType>();
   name: string;
 
   constructor(public outer?: Env, binds: SchemSymbol[] = [], exprs: SchemType[] = [], logDebugMessages = false) {
@@ -38,14 +38,19 @@ export class Env {
   }
 
   /** Binds a symbol to a value */
-  set(key: SchemSymbol | string, value: SchemType): SchemType {
+  set(key: SchemSymbol | string, value: SchemType, metadata?: SchemFunction['metadata']): SchemType {
     if (typeof key === 'string') key = SchemSymbol.from(key);
 
-    if (value.constructor === SchemFunction) {
-      (value as SchemFunction).metadata.name = key.name;
-      this.data.set(key, value);
+    if (typeof value === 'function') {
+      if (typeof metadata === 'undefined') {
+        metadata = {name: key.name};
+      } else {
+        metadata.name = key.name;
+      }
+
+      this.symbolValueMap.set(key, new SchemFunction(value, metadata));
     } else {
-      this.data.set(key, value);
+      this.symbolValueMap.set(key, value);
     }
     return value;
   }
@@ -55,12 +60,8 @@ export class Env {
    */
   addMap(map: EnvSetupMap, overwrite: boolean = false) {
     for (const symbol in map) {
-      if (!overwrite && this.data.has(SchemSymbol.from(symbol))) {
+      if (!overwrite && this.symbolValueMap.has(SchemSymbol.from(symbol))) {
         throw `Tried to modify existing symbol ${symbol} while overwrite flag is set to false.`;
-
-      }
-      if (typeof map[symbol] === 'function') {
-        this.set(SchemSymbol.from(symbol), new SchemFunction(map[symbol] as Function, {name: symbol}));
       } else { // hope for the best that it's a SchemType
         // TODO: add a way of checking the union type Schemtype at runtime
         this.set(SchemSymbol.from(symbol), map[symbol]);
@@ -75,7 +76,7 @@ export class Env {
 
   /** Returns the environment cotaining a symbol or undefined if the symbol can't be found */
   find(symbol: SchemSymbol): Env | undefined {
-    if (this.data.has(symbol)) {
+    if (this.symbolValueMap.has(symbol)) {
       return this;
     } else {
       if (this.outer) {
@@ -91,7 +92,7 @@ export class Env {
   get(key: SchemSymbol): SchemType {
     const env = this.find(key);
     if (!env) throw `${key.name} not found`;
-    return env.data.get(key)!;
+    return env.symbolValueMap.get(key)!;
   }
 }
 

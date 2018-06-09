@@ -22,7 +22,7 @@ export class Schem {
     this.replEnv.addMap(coreFunctions);
     this.coreLoaded = false;
 
-    this.replEnv.set('eval', new SchemFunction((rand: SchemType) => this.evalSchem(rand, this.replEnv)));
+    this.replEnv.set('eval', (rand: SchemType) => this.evalSchem(rand, this.replEnv));
   }
 
   async evalAST(ast: SchemType, env: Env): Promise<SchemType> {
@@ -181,12 +181,6 @@ export class Schem {
                   throw `binds list for new environments must only contain symbols`;
                 }
 
-              /*// (eval form) - evaluates the argument twice - effectively executing the form
-              // TODO: figure out if this makes any sense
-              case 'eval':
-                //return await this.evalSchem(await this.evalSchem(ast[1], env), env);
-                return await this.evalSchem(ast[1], env);
-              */
               /** (setInterpreterOptions map) changes interpreter settings
                *  e.g.: (setInterpreterOptions {"logArepInput" true "pauseEvaluation" false}) */
               case 'setInterpreterOptions':
