@@ -125,6 +125,11 @@ describe('blackbox tests', function() {
   expectSchem('(concat 1 2 3)', '(1 2 3)');
   expectSchem('(concat (list 1) (list 2 3) 4 5))', '(1 2 3 4 5)');
 
+  expectSchem(['(def x 1)', '(quote x)'], 'x');
+  expectSchem('(quote (+ 1 2))', '(+ 1 2)');
+  expectSchem('(quote (+ 1 (+ 2 3)))', '(+ 1 (+ 2 3))');
+  
+
 
   // MAYDO: mock $.get so this is possible?
   // expectRep('(load-url "/chaiTest.schem")', 'MEEP!');
