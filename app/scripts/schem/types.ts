@@ -2,6 +2,10 @@ import { Env } from './env';
 
 export type SchemType = SchemList | SchemVector| SchemNumber | SchemSymbol | SchemKeyword | SchemNil | SchemString | SchemFunction | SchemBoolean | SchemAtom;
 
+export function isSequential(object: SchemType): object is SchemList | SchemVector {
+  return (object instanceof SchemList || object instanceof SchemVector);
+}
+
 export class SchemNumber extends Number {
   isValidKeyType = true;
 }
