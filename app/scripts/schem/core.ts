@@ -161,5 +161,12 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
   },
   'reset!': (atom: SchemAtom, value: SchemType) => {
     return atom.value = value;
+  },
+  'cons': (item: SchemType, list: SchemList) => {
+    return new SchemList(item, ...list);
+  },
+  'concat': (...lists: SchemList[]) => {
+    const emptyList: SchemList[] = [];
+    return new SchemList(...emptyList.concat(...lists));
   }
 };
