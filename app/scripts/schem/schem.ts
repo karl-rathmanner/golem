@@ -112,7 +112,7 @@ export class Schem {
                   throw `first argument of 'def' must be a symbol`;
                 }
 
-              // (let (symbol1 value1 symbol2 value2) expression)
+              // (let (symbol1 value1 symbol2 value2 ...) expression)
               // Creates a new child environment and binds a list of symbols and values, the following expression is evaluated in that environment
               case 'let':
                 const childEnv = new Env(env);
@@ -193,7 +193,6 @@ export class Schem {
 
               /** (quasiquote list)
                * Acts like quote, unless a nested list starts with the symbols unquote or splice unquote.
-               * Unquoted lists will be evaluated and their 
               */
               case 'quasiquote':
                 ast = this.evalQuasiquote(ast[1]);
@@ -270,7 +269,6 @@ export class Schem {
       }
 
       const nonEmptyList = ast;
-
       if (nonEmptyList[0] instanceof SchemSymbol && (nonEmptyList[0] as SchemSymbol).name === 'unquote') {
         // ast looks like: (unquote x) -> return just x, so it's going to be evaluated
         return nonEmptyList[1];
