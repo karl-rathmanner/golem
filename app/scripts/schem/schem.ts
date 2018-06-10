@@ -185,11 +185,19 @@ export class Schem {
                   throw `binds list for new environments must only contain symbols`;
                 }
 
-              /** (quote x)
-               * Returns x without evaluating it
+              /** (quote list)
+               * Returns list without evaluating it
                */
               case 'quote':
                 return ast[1];
+
+              /** (quasiquote list)
+               * Acts like quote, unless a nested list starts with the symbols unquote or splice unquote.
+               * Unquoted lists will be evaluated and their 
+              */
+              case 'quasiquote':
+                ast = this.evalQuasiquote(ast[1]);
+                continue fromTheTop;
 
               /** (setInterpreterOptions map) changes interpreter settings
                *  e.g.: (setInterpreterOptions {"logArepInput" true "pauseEvaluation" false}) */
@@ -254,6 +262,39 @@ export class Schem {
     }
   }
 
+  evalQuasiquote(ast: SchemType): SchemType {
+    if (ast instanceof SchemList) {
+      if (ast.length === 0) {
+        // ast is an empty list -> quote it
+        return new SchemList(SchemSymbol.from('quote'), ast);
+      }
+
+      const nonEmptyList = ast;
+
+      if (nonEmptyList[0] instanceof SchemSymbol && (nonEmptyList[0] as SchemSymbol).name === 'unquote') {
+        // ast looks like: (unquote x) -> return just x, so it's going to be evaluated
+        return nonEmptyList[1];
+      }
+
+      const [, ...secondTroughLastElements] = nonEmptyList;
+
+      if (nonEmptyList[0] instanceof SchemList) {
+        const innerList = (nonEmptyList[0] as SchemList);
+        if (innerList[0] instanceof SchemSymbol && (innerList[0] as SchemSymbol).name === 'splice-unquote') {
+          // ast looks like: ((splice-unquote (a b c)) d e f) -> concatenate the result of evaluating (a b c) and whatever the result calling evalQuasiquote wit "d e f" is going to be
+          return new SchemList(SchemSymbol.from('concat'), innerList[1], this.evalQuasiquote(new SchemList(...secondTroughLastElements)));
+        }
+      }
+
+      // recursively call evalQuasiquote with the first element of the list and with the rest of the list, construct a new list with the results
+      return new SchemList(SchemSymbol.from('cons'), this.evalQuasiquote(nonEmptyList[0]), this.evalQuasiquote(new SchemList(...secondTroughLastElements)));
+
+    } else {
+      // ast is not a list -> quote it
+      return new SchemList(SchemSymbol.from('quote'), ast);
+    }
+  }
+
   async arep(expression: string, overwrites?: EnvSetupMap): Promise<string> {
     if (!this.coreLoaded) {
       this.coreLoaded = true; // technically, this isn't quite true, as core.schem isn't actually loaded yet, but the flag has to be set so the call to arep below may return
@@ -290,4 +331,5 @@ export class Schem {
 
     await true;
   }
+
 }
