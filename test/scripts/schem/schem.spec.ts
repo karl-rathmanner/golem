@@ -117,6 +117,14 @@ describe('blackbox tests', function() {
     )))
   `, '(sum 4242 0)'] , '8999403', 'recursive function calls in tail position should not cause stack overflow');
 
+  expectSchem('(cons 1 (list 2 3))', '(1 2 3)');
+  expectSchem('(cons 1 ())', '(1)');
+  expectSchem('(cons (list 1 2) (list 3 4))', '((1 2) 3 4)');
+  expectSchem('(cons 1 () (list 2))', '(1)');
+
+  expectSchem('(concat 1 2 3)', '(1 2 3)');
+  expectSchem('(concat (list 1) (list 2 3) 4 5))', '(1 2 3 4 5)');
+
 
   // MAYDO: mock $.get so this is possible?
   // expectRep('(load-url "/chaiTest.schem")', 'MEEP!');
