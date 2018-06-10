@@ -144,6 +144,11 @@ describe('blackbox tests', function() {
               '((fn [q] (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn [q] (quasiquote ((unquote q) (quote (unquote q)))))))',
               'A quine should return a quine should return a quine...');
 
+  // Quoting vectors
+  expectSchem('(let (a ":" b ")") (str `[a b]))', '"(a b)"');
+  expectSchem(`(let (a ":" b ")") (str '[a b]))`, '"[a b]"');
+  expectSchem('(let (a ":" b ")") (str [a b]))', '"[: )]"');
+
   // MAYDO: mock $.get so this is possible?
   // expectRep('(load-url "/chaiTest.schem")', 'MEEP!');
 
