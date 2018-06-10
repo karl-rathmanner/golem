@@ -85,7 +85,7 @@ describe('blackbox tests', function() {
 
   expectSchem('(not true)', 'false', 'core.schem is loaded correctly');
 
-  expectSchem('(eval (list * 7 6))', '42', `(eval) should be able to execute an abstract syntax tree`);
+  expectSchem('(eval (list * 7 1 (list + 2 4))))', '42', `(eval) should be able to execute an abstract syntax tree`);
 
   // Here, the first expression returns a SchemNumber, the second returns a SchemString.
   // Notice, that the typescript string itself has to be escaped. Schem actually "sees" (read-string "\"42\"") in example nr. 2
@@ -125,11 +125,21 @@ describe('blackbox tests', function() {
   expectSchem('(concat 1 2 3)', '(1 2 3)');
   expectSchem('(concat (list 1) (list 2 3) 4 5))', '(1 2 3 4 5)');
 
+  // quote
   expectSchem(['(def x 1)', '(quote x)'], 'x');
   expectSchem('(quote (+ 1 2))', '(+ 1 2)');
   expectSchem('(quote (+ 1 (+ 2 3)))', '(+ 1 (+ 2 3))');
-  
 
+  // quasiquote
+  expectSchem('(quasiquote 1)', '1');
+  expectSchem('(quasiquote (1))', '(1)');
+  expectSchem('(let (a 4 b 5) (quasiquote (1 2 (+ 3) a b)))', '(1 2 (+ 3) a b)', 'quasiquote acts like quote unless you unquote stuff.');
+  expectSchem('(let (a 4 b 5) (quasiquote (1 2 (unquote (+ 3)) (splice-unquote (list a b)) 6)))', '(1 2 3 4 5 6)', 'unquote and splice-unquote seem to work.');
+
+  // Quine taken from: https://github.com/kanaka/mal/blob/master/tests/step7_quote.mal
+  expectSchem('((fn [q] (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn [q] (quasiquote ((unquote q) (quote (unquote q)))))))',
+              '((fn [q] (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn [q] (quasiquote ((unquote q) (quote (unquote q)))))))',
+              'A quine should return a quine should return a quine...');
 
   // MAYDO: mock $.get so this is possible?
   // expectRep('(load-url "/chaiTest.schem")', 'MEEP!');
