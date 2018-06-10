@@ -185,6 +185,12 @@ export class Schem {
                   throw `binds list for new environments must only contain symbols`;
                 }
 
+              /** (quote x)
+               * Returns x without evaluating it
+               */
+              case 'quote':
+                return ast[1];
+
               /** (setInterpreterOptions map) changes interpreter settings
                *  e.g.: (setInterpreterOptions {"logArepInput" true "pauseEvaluation" false}) */
               case 'setInterpreterOptions':
