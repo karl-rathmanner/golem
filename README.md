@@ -76,10 +76,21 @@ feat(schem): add lambada function
 ├──┘├─────┘ ├────────────────────┘
 │   │       └> Summary, lower case, in present tense
 │   │
-│   └> Scope: golem, schem
+│   └> Scope, optional: golem, schem, ...
 │
-└> Type: chore, docs, feat, fix, refactor, style, or test.
+└> Type: feat, fix, docs, refactor, cosmetic, style, test or toolchain.
 ```
+
+Allowed types:
+* feat: Adds a new feature.
+* fix: Fixes an issue.
+* docs: Changes documentation or changes comments substantially.
+* refactor: Refactors production code, does not change behaviour.
+* cosmetic: Changes nothing of consequence but makes you feel better. Like grammaticular corrigations or whitespace changes. 
+* style: Fixes formatting. (Like cosmetic, but more passive aggressive.)
+* test: Adds or changes tests.
+* toolchain: Changes configs/tasks, adds dependencies and so on.
+
 
 ## Entryfiles (bundles)
 
