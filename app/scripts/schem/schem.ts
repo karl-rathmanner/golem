@@ -119,7 +119,7 @@ export class Schem {
                 const childEnv = new Env(env);
                 const bindingList = ast[1];
 
-                if (!(bindingList instanceof SchemList)) {
+                if (!(isSequential(bindingList))) {
                   throw `first argument of let has to be a list`;
                 } else if (bindingList.length % 2 > 0) {
                   throw `binding list contains uneven number of elements`;
