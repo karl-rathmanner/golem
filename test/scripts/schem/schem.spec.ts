@@ -135,6 +135,9 @@ describe('blackbox tests', function() {
   expectSchem('(quasiquote (1))', '(1)');
   expectSchem('(let (a 4 b 5) (quasiquote (1 2 (+ 3) a b)))', '(1 2 (+ 3) a b)', 'quasiquote acts like quote unless you unquote stuff.');
   expectSchem('(let (a 4 b 5) (quasiquote (1 2 (unquote (+ 3)) (splice-unquote (list a b)) 6)))', '(1 2 3 4 5 6)', 'unquote and splice-unquote seem to work.');
+  expectSchem('(let (a 4 b 5) `(1 2 ~(+ 3) ~@[a b] 6))', '(1 2 3 4 5 6)', 'reader macros for quasiquote, unquote and splice-unquote seem to work. (`,~,~@)');
+  expectSchem(`'(+ 1 (+ 2 3))`, '(+ 1 (+ 2 3))', `reader macro for quote works (')`);
+
 
   // Quine taken from: https://github.com/kanaka/mal/blob/master/tests/step7_quote.mal
   expectSchem('((fn [q] (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn [q] (quasiquote ((unquote q) (quote (unquote q)))))))',
