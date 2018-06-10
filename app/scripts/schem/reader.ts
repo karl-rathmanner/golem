@@ -43,6 +43,22 @@ function readForm(reader: Reader): SchemType {
     case '}': {
       throw `unexpected '}'`;
     }
+    case '\'': {
+      reader.next();
+      return new SchemList(SchemSymbol.from('quote'), readForm(reader));
+    }
+    case '`': {
+      reader.next();
+      return new SchemList(SchemSymbol.from('quasiquote'), readForm(reader));
+    }
+    case '~': {
+      reader.next();
+      return new SchemList(SchemSymbol.from('unquote'), readForm(reader));
+    }
+    case '~@': {
+      reader.next();
+      return new SchemList(SchemSymbol.from('splice-unquote'), readForm(reader));
+    }
     default: {
       return readAtom(reader);
     }
