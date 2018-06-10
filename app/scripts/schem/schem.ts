@@ -1,5 +1,6 @@
 import { readStr } from './reader';
 import { SchemType, SchemSymbol, SchemList, SchemFunction, SchemNil, SchemNumber, SchemBoolean, SchemVector, SchemMap, SchemKeyword, SchemMapKey, SchemString, SchemAtom } from './types';
+import { isSequential } from './types';
 import { pr_str } from './printer';
 import { Env, EnvSetupMap } from './env';
 import { coreFunctions } from './core';
@@ -262,7 +263,7 @@ export class Schem {
   }
 
   evalQuasiquote(ast: SchemType): SchemType {
-    if (ast instanceof SchemList) {
+    if (isSequential(ast)) {
       if (ast.length === 0) {
         // ast is an empty list -> quote it
         return new SchemList(SchemSymbol.from('quote'), ast);
@@ -276,7 +277,7 @@ export class Schem {
 
       const [, ...secondTroughLastElements] = nonEmptyList;
 
-      if (nonEmptyList[0] instanceof SchemList) {
+      if (isSequential(nonEmptyList[0])) {
         const innerList = (nonEmptyList[0] as SchemList);
         if (innerList[0] instanceof SchemSymbol && (innerList[0] as SchemSymbol).name === 'splice-unquote') {
           // ast looks like: ((splice-unquote (a b c)) d e f) -> concatenate the result of evaluating (a b c) and whatever the result calling evalQuasiquote wit "d e f" is going to be
