@@ -155,6 +155,22 @@ describe('blackbox tests', function() {
   expectSchem(['(defmacro unless (fn (pred a b) `(if ~pred ~b ~a)))', '(macroexpand (unless true 1 2))'], '(if true 2 1)');
   expectSchem(['(defmacro identity (fn (x) x))', '(let (a 123) (identity a))'], '123');
 
+  const testMacro = `(defmacro executePostfix (fn (l) (cons (last l) (butlast l))))`;
+
+  expectSchem([testMacro, '(executePostfix [1 2 +])'], '3');
+  expectSchem([testMacro, '(executePostfix (1 2 +))'], '3');
+
+  expectSchem([testMacro, '(executePostfix (1 2 3 +))'],
+              '6', 'Macros receive arguments as unevaluated data.');
+
+  expectSchem([testMacro, '(def five 5)',
+              '(executePostfix (7 (+ 1 five) *))'],
+              '42', 'Macros receive arguments as unevaluated data.');
+
+  expectSchem([testMacro, '(def five 5)',
+              '(macroexpand (executePostfix (7 (+ 1 five) *)))'],
+              '(* 7 (+ 1 five))', 'Macros receive arguments as unevaluated data and expanding them works as expected.');
+
   // MAYDO: mock $.get so this is possible?
   // expectRep('(load-url "/chaiTest.schem")', 'MEEP!');
 
