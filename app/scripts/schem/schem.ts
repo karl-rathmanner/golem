@@ -360,8 +360,10 @@ export class Schem {
 
   async macroExpand(ast: SchemType, env: Env) {
     while (this.isMacroCall(ast, env)) {
-      const [first, ...rest] = await this.evalAST(ast, env) as SchemList;
-      ast = await (first as SchemFunction).f(...rest); // typecast is safe because isMacroCall returned true
+      const [symbol, ...rest] = ast as SchemList;
+      // the following typecast are safe because isMacroCall returned true
+      const macroFunction = env.get(symbol as SchemSymbol) as SchemFunction;
+      ast = await macroFunction.f(...rest);
     }
     return ast;
   }
