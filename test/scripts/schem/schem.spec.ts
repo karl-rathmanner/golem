@@ -149,6 +149,12 @@ describe('blackbox tests', function() {
   expectSchem(`(let (a ":" b ")") (str '[a b]))`, '"[a b]"');
   expectSchem('(let (a ":" b ")") (str [a b]))', '"[: )]"');
 
+  // Macros
+  // from: https://github.com/kanaka/mal/blob/master/tests/step8_macros.mal
+  expectSchem(['(defmacro unless (fn (pred a b) `(if ~pred ~b ~a)))', '(unless true 1 2)'], '2');
+  expectSchem(['(defmacro unless (fn (pred a b) `(if ~pred ~b ~a)))', '(macroexpand (unless true 1 2))'], '(if true 2 1)');
+  expectSchem(['(defmacro identity (fn (x) x))', '(let (a 123) (identity a))'], '123');
+
   // MAYDO: mock $.get so this is possible?
   // expectRep('(load-url "/chaiTest.schem")', 'MEEP!');
 
