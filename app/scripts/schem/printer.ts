@@ -26,7 +26,11 @@ export function pr_str(ast: SchemType, escapeStrings: boolean = true): string {
       return `${ast}`;
     }
   } else if (ast instanceof SchemFunction) {
-    return `#object [function ${JSON.stringify(ast.metadata)}]`;
+    if (ast.isMacro) {
+      return `#object [macroFunction ${JSON.stringify(ast.metadata)}]`;
+    } else {
+      return `#object [function ${JSON.stringify(ast.metadata)}]`;
+    }
   } else if (ast instanceof SchemAtom) {
     return `#object [atom ${JSON.stringify(ast.value)}]`;
   } else {

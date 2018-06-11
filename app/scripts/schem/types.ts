@@ -1,4 +1,5 @@
 import { Env } from './env';
+import { Schem } from './schem';
 
 export type SchemType = SchemList | SchemVector| SchemNumber | SchemSymbol | SchemKeyword | SchemNil | SchemString | SchemFunction | SchemBoolean | SchemAtom;
 
@@ -147,15 +148,16 @@ export class SchemMap {
 }
 
 export class SchemFunction {
+  public isMacro = false;
   constructor(public f: Function,
     public metadata: {name: string} = {name: 'anonymous'},
     public fnContext?: {ast: SchemType, params: SchemSymbol[], env: Env}) {
   }
 
-  static fromSchem(evalSchem: (ast: SchemType, env: Env) => Promise<SchemType>, env: Env, params: SchemSymbol[], functionBody: SchemType): SchemFunction {
+  static fromSchemWithContext(that: Schem, env: Env, params: SchemSymbol[], functionBody: SchemType): SchemFunction {
     return new SchemFunction(async (...args: SchemType[]) => {
-      return await evalSchem(functionBody, new Env(env, params, args));
-    }, {name: 'anonymous, async'} , {ast: functionBody, params: params, env: env});
+      return await that.evalSchem(functionBody, new Env(env, params, args));
+    }, {name: 'anonymous, defined in Schem'} , {ast: functionBody, params: params, env: env});
   }
 
   newEnv(args: SchemType[]): Env {

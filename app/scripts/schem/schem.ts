@@ -93,6 +93,11 @@ export class Schem {
         return await this.evalAST(ast, env);
       }
 
+      ast = await this.macroExpand(ast, env);
+      if (!(ast instanceof SchemList)) {
+        return this.evalAST(ast, env);
+      }
+
       if (ast instanceof SchemList) {
         if (ast.length === 0) {
           return ast;
@@ -102,10 +107,11 @@ export class Schem {
           // SchemSymbols can be special forms
           if (first instanceof SchemSymbol) {
 
-            switch (first.name) {
 
-              // (def symbol value)
-              // Binds a symbol to a value in the current environment
+            switch (first.name) {
+              /** (def symbol value)
+               * Binds a value to a symbol in the current environment
+               */
               case 'def':
                 if (ast[1] instanceof SchemSymbol) {
                   return env.set(ast[1] as SchemSymbol, await this.evalSchem(ast[2], env));
@@ -113,8 +119,27 @@ export class Schem {
                   throw `first argument of 'def' must be a symbol`;
                 }
 
-              // (let (symbol1 value1 symbol2 value2 ...) expression)
-              // Creates a new child environment and binds a list of symbols and values, the following expression is evaluated in that environment
+              /** (defmacro name fn)
+               * Binds a function to a symbol and sets its isMacro flag.
+               */
+              case 'defmacro':
+                const [, sym, val] = ast;
+                if (sym instanceof SchemSymbol) {
+                  const macroFunction = await this.evalSchem(val, env);
+
+                  if (!(macroFunction instanceof SchemFunction)) {
+                    throw `only functions can be macros`;
+                  } else {
+                    macroFunction.isMacro = true;
+                    return env.set(sym, macroFunction);
+                  }
+
+                } else {
+                  throw `first argument of 'def' must be a symbol`;
+                }
+              /** (let (symbol1 value1 symbol2 value2 ...) expression) or (let [symbol1 value1 symbol2 value2 ...] expression)
+               * Creates a new child environment and binds a list of symbols and values, the following expression is evaluated in that environment
+               */
               case 'let':
                 const childEnv = new Env(env);
                 const bindingList = ast[1];
@@ -140,9 +165,8 @@ export class Schem {
                 continue fromTheTop;
 
               /** (do x y & more)
-               *  Evaluates all elements in sequence, but only returns the last one.
-              */
-
+               * Evaluates all elements in sequence, but only returns the last one.
+               */
               case 'do':
                 // evaluate elements, starting from the second one, but return the last one as is
                 const evaluatedAST = new SchemList();
@@ -155,8 +179,8 @@ export class Schem {
                 continue fromTheTop;
 
               /** (if condition x y)
-               *  returns x if condition is true; otherwise returns y
-              */
+               * returns x if condition is true; otherwise returns y
+               */
               case 'if':
                 const condition = await this.evalSchem(ast[1], env);
                 if ((condition instanceof SchemBoolean && condition === SchemBoolean.false) || condition instanceof SchemNil) {
@@ -180,7 +204,7 @@ export class Schem {
 
                 try {
                   let binds = params.asArrayOfSymbols();
-                  return SchemFunction.fromSchem(this.evalSchem, env, params.asArrayOfSymbols(), fnBody);
+                  return SchemFunction.fromSchemWithContext(this, env, params.asArrayOfSymbols(), fnBody);
 
                 } catch (error) {
                   throw `binds list for new environments must only contain symbols`;
@@ -198,6 +222,9 @@ export class Schem {
               case 'quasiquote':
                 ast = this.evalQuasiquote(ast[1]);
                 continue fromTheTop;
+
+              case 'macroexpand':
+                return await this.macroExpand(ast[1], env);
 
               /** (setInterpreterOptions map) changes interpreter settings
                *  e.g.: (setInterpreterOptions {"logArepInput" true "pauseEvaluation" false}) */
@@ -221,8 +248,7 @@ export class Schem {
             return first;
           }
 
-          // If first didn't match any of the above, evaluate all list elements and call the first element as a function using the others as arguments
-          // const evaluatedAST: SchemList = evalAST(ast, env) as SchemList;
+          // If first didn't match any of the above, treat it as a function: evaluate all list elements and call the first element using the others as arguments
           const [f, ...args] = await this.evalAST(ast, env) as SchemList;
 
           if (f instanceof SchemFunction) {
@@ -310,6 +336,34 @@ export class Schem {
 
   delay(milliSeconds: number) {
     return new Promise(resolve => setTimeout(resolve, milliSeconds));
+  }
+
+  /**
+   * Returns the isMacro flag of the ast's first element
+   * @param ast Abstract Syntax Tree
+   * @param env The Environment the call will be evaluated in
+   */
+  isMacroCall(ast: SchemType, env: Env) {
+    if (ast instanceof SchemList && ast[0] instanceof SchemSymbol) {
+      try {
+        const val = env.get(ast[0] as SchemSymbol);
+        return (val instanceof SchemFunction && val.isMacro);
+      } catch {
+        // the symbol could not be found
+        return false;
+      }
+    } else {
+      // ast is not a list starting with a symbol
+      return false;
+    }
+  }
+
+  async macroExpand(ast: SchemType, env: Env) {
+    while (this.isMacroCall(ast, env)) {
+      const [first, ...rest] = await this.evalAST(ast, env) as SchemList;
+      ast = await (first as SchemFunction).f(...rest); // typecast is safe because isMacroCall returned true
+    }
+    return ast;
   }
 
   async nextStep(): Promise<void> {
