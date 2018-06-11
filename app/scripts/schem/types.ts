@@ -7,6 +7,19 @@ export function isSequential(object: SchemType): object is SchemList | SchemVect
   return (object instanceof SchemList || object instanceof SchemVector);
 }
 
+export function isSchemType(object: any): object is SchemType {
+  return (object instanceof SchemList ||
+          object instanceof SchemVector ||
+          object instanceof SchemNumber ||
+          object instanceof SchemSymbol ||
+          object instanceof SchemKeyword ||
+          object instanceof SchemNil ||
+          object instanceof SchemString ||
+          object instanceof SchemFunction ||
+          object instanceof SchemBoolean ||
+          object instanceof SchemAtom);
+}
+
 export class SchemNumber extends Number {
   isValidKeyType = true;
 }
