@@ -1,4 +1,4 @@
-import { SchemFunction, SchemNumber, SchemSymbol, SchemType, SchemBoolean, SchemNil, SchemList, SchemString, SchemVector, SchemMap, SchemMapKey, SchemKeyword, SchemAtom } from './types';
+import { SchemFunction, SchemNumber, SchemSymbol, SchemType, SchemBoolean, SchemNil, SchemList, SchemString, SchemVector, SchemMap, SchemMapKey, SchemKeyword, SchemAtom, isSequential } from './types';
 import { Schem } from './schem';
 import { readStr } from './reader';
 import { Env } from './env';
@@ -14,6 +14,14 @@ function throwErrorIfArityIsInalid(argsLength: number, min: number = 1, max: num
   } else if (even && argsLength % 2 > 0) {
     throw `Unexpected number of argunents (${argsLength}), should be even.`;
   }
+}
+
+function throwErrorForNonSequentialArguments(...args: SchemType[]) {
+  args.forEach(arg => {
+    if (!isSequential(arg)) {
+      throw `Expected argument to be sequential. Got this instead: ${arg}`;
+    }
+  });
 }
 
 function hasSameConstructorAndValue(a: SchemType, b: SchemType): boolean {
@@ -98,6 +106,34 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
       return new SchemNumber(0);
     }
   },
+  'first': (sequential: SchemList | SchemVector) => {
+    throwErrorForNonSequentialArguments(sequential);
+    if (sequential.length === 0) return SchemNil.instance;
+    return sequential[0];
+  },
+  'rest': (sequential: SchemList | SchemVector) => {
+    throwErrorForNonSequentialArguments(sequential);
+    if (sequential.length === 0) return SchemNil.instance;
+    return new SchemList(sequential.slice(1));
+  },
+  'last': (sequential: SchemList | SchemVector) => {
+    throwErrorForNonSequentialArguments(sequential);
+    if (sequential.length === 0) return SchemNil.instance;
+    return sequential[sequential.length - 1];
+  },
+  'butlast': (sequential: SchemList | SchemVector) => {
+    throwErrorForNonSequentialArguments(sequential);
+    if (sequential.length === 0) return SchemNil.instance;
+    return new SchemList(...sequential.slice(0, sequential.length - 1));
+  },
+  'nth': (sequential: SchemList | SchemVector, index: SchemNumber) => {
+    throwErrorForNonSequentialArguments(sequential);
+    const i = index.valueOf();
+    if (i < 0) throw `index value must be positive`;
+    if (i >= sequential.length) throw `index out of bounds: ${i} >= ${sequential.length}`;
+    return sequential[index.valueOf()];
+  },
+
   /** calls pr_str (escaped) on each argument, joins the results, seperated by ' ' */
   'pr-str': (...args: SchemType[]) => {
     return new SchemString(
