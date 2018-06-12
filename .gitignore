@@ -10,3 +10,5 @@ packages/
 
 # Use the "local" folder for files containing API keys or other things you wouldn't want to accidentally commit
 app/scripts/local
+# ...or put ".secret." in their name.
+*.secret.*
