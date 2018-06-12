@@ -165,10 +165,28 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
   'read-string': (str: SchemString) => {
     return readStr(str.valueOf());
   },
-  'slurp': async (url: SchemString) => {
+  'slurp': async (url: SchemString, opts?: SchemMap) => {
     // get full URL for files packaged with the browser extension, when url begins with a slash
     const actualUrl = (url[0] === '/') ? browser.extension.getURL('/schemScripts' + url.valueOf()) : url.valueOf();
-    const response = await $.get(actualUrl);
+
+    let ajaxSettings : JQueryAjaxSettings = {
+      type:'GET',
+      url:actualUrl,
+      success: (response) => { 
+        console.log(response);
+        return response; 
+      } 
+    };
+
+    let format: any = opts ? opts.getValueForKeyword('format') : null;
+    if (format instanceof SchemString) {
+      ajaxSettings.dataType = format.valueOf() 
+    }
+    console.log(ajaxSettings);
+    
+    const response = await $.ajax(ajaxSettings);
+    //const response = await ajaxSettings.success;
+
     console.log(response);
     return new SchemString(response);
   },

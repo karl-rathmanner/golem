@@ -140,6 +140,14 @@ export class SchemMap {
     else return SchemNil.instance;
   }
 
+  getValueForSymbol(name: string) {
+    return this.get(SchemSymbol.from(name));
+  }
+
+  getValueForKeyword(name: string) {
+    return this.get(SchemKeyword.from(name));
+  }
+
   /** Changes each value in a SchemMap to the result of Applies the result the provided collback function.
    * If the callback returns undefined, the Map's value is left as is.
    */
