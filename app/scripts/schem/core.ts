@@ -29,30 +29,39 @@ function hasSameConstructorAndValue(a: SchemType, b: SchemType): boolean {
 }
 
 function createSchemMapFromXMLDocument(xmlDoc: XMLDocument): SchemMap {
-  
+
   const traverseDocument = (node: Element) => {
     const map = new SchemMap();
     map.set(SchemKeyword.from('tag'), SchemKeyword.from(node.tagName));
-    let content = new SchemVector();
 
-    if (node.childElementCount === 0 && node.textContent && node.textContent.length > 0) {
-      content.push(new SchemString(node.textContent));
+    if (node.attributes.length > 0) {
+      let attrs = new SchemMap();
+      for (let i = 0; i < node.attributes.length; i++) {
+        attrs.set(SchemKeyword.from(node.attributes.item(i)!.name), new SchemString(node.attributes.item(i)!.value));
+      }
+      map.set(SchemKeyword.from('attrs'), attrs);
     }
 
-    for (let i = 0; i < node.childElementCount; i++) {
-      content.push(traverseDocument(node.children.item(i)));
-    }
-
-    if (content.length === 1) {
-      map.set(SchemKeyword.from('content'), content[0]);
-    } else if (content.length > 1) {
-      map.set(SchemKeyword.from('content'), content);
+    if (node.childElementCount === 0) {
+      if (node.textContent && node.textContent.length > 0) {
+        map.set(SchemKeyword.from('content'), new SchemString(node.textContent));
+      }
+    } else {
+      if (node.childElementCount === 1) {
+        map.set(SchemKeyword.from('content'), traverseDocument(node.children.item(0)));
+      } else {
+        let content = new SchemVector();
+        for (let i = 0; i < node.childElementCount; i++) {
+          content.push(traverseDocument(node.children.item(i)));
+        }
+        map.set(SchemKeyword.from('content'), content);
+      }
     }
 
     return map;
   };
 
-  
+
   return traverseDocument(xmlDoc.documentElement);
 }
 
@@ -197,18 +206,18 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     // get full URL for files packaged with the browser extension, when url begins with a slash
     const actualUrl = (url[0] === '/') ? browser.extension.getURL('/schemScripts' + url.valueOf()) : url.valueOf();
 
-    let ajaxSettings : JQueryAjaxSettings = {
-      type:'GET',
-      url:actualUrl,
-      success: (response) => { 
+    let ajaxSettings: JQueryAjaxSettings = {
+      type: 'GET',
+      url: actualUrl,
+      success: (response) => {
         console.log(response);
-        return response; 
-      } 
+        return response;
+      }
     };
 
-    let format: any = opts ? opts.getValueForKeyword('format') : null;
+    let format: any = opts ? opts.getValueForKeyword('dataType') : null;
     if (format instanceof SchemString) {
-      ajaxSettings.dataType = format.valueOf() 
+      ajaxSettings.dataType = format.valueOf();
     }
 
     const response = await $.ajax(ajaxSettings);
