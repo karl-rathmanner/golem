@@ -12,16 +12,16 @@ $.when($.ready).then(() => {
   const commandHistory = new CommandHistory();
   const interpreter = new Schem();
 
-  /* example for an envOverwrite
+  // example for an envOverwrite
   const envOverwrites: EnvSetupMap = {
-    'prn': (...args: SchemType[]) => {
+    'notify': (...args: SchemType[]) => {
       const msg: string = (args.map((element) => {
         return pr_str(element, true);
       }).join(' '));
-      browser.runtime.sendMessage({action: 'notify', message: msg});
+      browser.runtime.sendMessage({action: 'notify', data: {message: msg}});
       return SchemNil.instance;
     },
-  };*/
+  };
 
 
   inputElement.focus();
@@ -33,7 +33,7 @@ $.when($.ready).then(() => {
         commandHistory.addCommandToHistory(input);
 
         // const repOutput = rep(input, envOverwrites);
-        interpreter.arep(input).then((result) => $('#output').text($('#output').text() + result + '\n'));
+        interpreter.arep(input, envOverwrites).then((result) => $('#output').text($('#output').text() + result + '\n'));
         // $('#output').text($('#output').text() + repOutput + '\n');
         $('input[name=input]').val('');
         break;

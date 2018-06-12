@@ -8,6 +8,10 @@ body {
   margin: 3em auto 0;
   padding: .5em;
 
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  overflow: overlay;
+
   border-style: dotted;
   border-width: 1px;
   border-color: #424242;
