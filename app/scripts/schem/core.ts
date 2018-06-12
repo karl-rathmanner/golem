@@ -182,12 +182,9 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     if (format instanceof SchemString) {
       ajaxSettings.dataType = format.valueOf() 
     }
-    console.log(ajaxSettings);
-    
-    const response = await $.ajax(ajaxSettings);
-    //const response = await ajaxSettings.success;
 
-    console.log(response);
+    const response = await $.ajax(ajaxSettings);
+
     return new SchemString(response);
   },
   'get': (map: SchemMap, key: SchemMapKey) => {
