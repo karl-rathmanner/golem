@@ -21,6 +21,9 @@ $.when($.ready).then(() => {
       browser.runtime.sendMessage({action: 'notify', data: {message: msg}});
       return SchemNil.instance;
     },
+    'clearRepl': () => {
+      $('#output').text('');
+    }
   };
 
 
@@ -33,7 +36,11 @@ $.when($.ready).then(() => {
         commandHistory.addCommandToHistory(input);
 
         // const repOutput = rep(input, envOverwrites);
-        interpreter.arep(input, envOverwrites).then((result) => $('#output').text($('#output').text() + result + '\n'));
+        interpreter.arep(input, envOverwrites).then((result) => {
+          $('#output').text($('#output').text() + result + '\n');
+          $('#output').animate({scrollTop: $('#output').prop('scrollHeight')}, 700);
+        });
+
         // $('#output').text($('#output').text() + repOutput + '\n');
         $('input[name=input]').val('');
         break;
