@@ -28,6 +28,34 @@ function hasSameConstructorAndValue(a: SchemType, b: SchemType): boolean {
   return (a.constructor === b.constructor && a.valueOf() === b.valueOf());
 }
 
+function createSchemMapFromXMLDocument(xmlDoc: XMLDocument): SchemMap {
+  
+  const traverseDocument = (node: Element) => {
+    const map = new SchemMap();
+    map.set(SchemKeyword.from('tag'), SchemKeyword.from(node.tagName));
+    let content = new SchemVector();
+
+    if (node.childElementCount === 0 && node.textContent && node.textContent.length > 0) {
+      content.push(new SchemString(node.textContent));
+    }
+
+    for (let i = 0; i < node.childElementCount; i++) {
+      content.push(traverseDocument(node.children.item(i)));
+    }
+
+    if (content.length === 1) {
+      map.set(SchemKeyword.from('content'), content[0]);
+    } else if (content.length > 1) {
+      map.set(SchemKeyword.from('content'), content);
+    }
+
+    return map;
+  };
+
+  
+  return traverseDocument(xmlDoc.documentElement);
+}
+
 export const coreFunctions: {[symbol: string]: SchemType} = {
   '+': (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue: SchemNumber, currentIndex: number) => {
     if (currentIndex === 0) return currentValue.valueOf();
@@ -184,11 +212,13 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     }
 
     const response = await $.ajax(ajaxSettings);
-
-    return new SchemString(response);
+    if (response instanceof XMLDocument) {
+      return createSchemMapFromXMLDocument(response);
+    } else {
+      return new SchemString(response);
+    }
   },
   'get': (map: SchemMap, key: SchemMapKey) => {
-
     if (map instanceof SchemMap) {
       if (key.isValidKeyType) {
         return map.get(key);
