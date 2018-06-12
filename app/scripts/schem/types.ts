@@ -99,7 +99,9 @@ export class SchemMap {
    * [key: SchemSymbol, value:  SchemType, ...] */
   public flatten(): SchemType[] {
     return Array.from(this.nativeMap.keys()).reduce((acc: SchemType[], currentKey: string) => {
-      return acc.concat(this.createSchemTypeForKeyString(currentKey), this.nativeMap.get(currentKey)!);
+      acc.push(this.createSchemTypeForKeyString(currentKey));
+      acc.push(this.nativeMap.get(currentKey)!);
+      return acc;
     }, []);
   }
 
