@@ -227,10 +227,10 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
       return new SchemString(response);
     }
   },
-  'get': (map: SchemMap, key: SchemMapKey) => {
+  'get': (map: SchemMap, key: SchemMapKey, defaultValue?: SchemType) => {
     if (map instanceof SchemMap) {
       if (key.isValidKeyType) {
-        return map.get(key);
+        return (map.has(key)) ? map.get(key) : defaultValue ? defaultValue : SchemNil.instance;
       } else {
         throw `map lookup only works with valid key types`;
       }

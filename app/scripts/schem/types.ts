@@ -142,6 +142,10 @@ export class SchemMap {
     else return SchemNil.instance;
   }
 
+  has(key: SchemMapKey): SchemType {
+    return this.nativeMap.has(this.turnIntoKeyString(key));
+  }
+
   getValueForSymbol(name: string) {
     return this.get(SchemSymbol.from(name));
   }
