@@ -2,5 +2,7 @@
   (def not (fn (a) (if a false true)))
   (def load-file 
     (fn (file) 
-        (eval (read-string (str "(do " (slurp file) " )"))))))
+        (eval (read-string (str "(do " (slurp file) " )")))))
+  (defmacro defn
+    (fn (name params body) `(def ~name (fn ~name ~params ~body)))))
   
