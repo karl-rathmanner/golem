@@ -22,12 +22,22 @@ export class Schem {
   constructor() {
     this.replEnv.addMap(coreFunctions);
     this.coreLoaded = false;
+
+    // functions that need a reference to the interpreter instance or environment need to go here
     this.replEnv.set('eval', (rand: SchemType) => this.evalSchem(rand, this.replEnv));
     this.replEnv.set('swap!', (atom: SchemAtom, fn: SchemFunction, ...rest: SchemType[]) => {
         atom.value = this.evalSchem(new SchemList(fn, atom.value, ...rest), this.replEnv);
         return atom.value;
       }
     );
+    this.replEnv.set('resolve', (sym: SchemSymbol) => {
+      try {
+        const value = this.replEnv.get(sym);
+        return value;
+      } catch {
+        return SchemNil.instance;
+      }
+    });
   }
 
   async evalAST(ast: SchemType, env: Env): Promise<SchemType> {
