@@ -104,10 +104,8 @@ export class Schem {
         } else {
           const first: SchemType = ast[0];
 
-          // SchemSymbols can be special forms
+          // SchemSymbols can indicate special forms
           if (first instanceof SchemSymbol) {
-
-
             switch (first.name) {
               /** (def symbol value)
                * Binds a value to a symbol in the current environment
@@ -250,6 +248,11 @@ export class Schem {
                 return SchemNil.instance;
 
             }
+          }
+
+          // Imply a call to get if a list starts witha a map. This makes lookups less tedious.
+          if (first instanceof SchemMap) {
+            ast = new SchemList(SchemSymbol.from('get'), ...ast);
           }
 
           // Keywords evaluate to themselves
