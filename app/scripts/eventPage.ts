@@ -6,6 +6,7 @@ import { Schem } from './schem/schem';
 import { SchemType, SchemString, SchemBoolean, SchemNil, SchemNumber } from './schem/types';
 //import { bibApiKey } from './local/apiKeys';
 import * as $ from 'jquery';
+import { Settings } from './options';
 
 // import almaKeywords from '!raw-loader!./schemScripts/almaKeywords.schem';
 const almaKeywords = require('!raw-loader!./schemScripts/almaKeywords.schem');
@@ -59,19 +60,25 @@ browser.runtime.onConnect.addListener((port: Runtime.Port) => {
   if (typeof port.sender!.tab! === 'undefined') throw `tab mustn't be undefined!`;
 
   /** Always returns the same Schem instance for a specific tab. Creates one, if necessary.*/
-  function getInterpreterForTab(tab: Tabs.Tab): Schem {
+  async function getInterpreterForTab(tab: Tabs.Tab): Promise<Schem> {
     if (!tab.id) throw `tab.id was undefined`;
 
     if (interpreterInstances.has(tab.id)) {
       // stuff that changes a tab's state has to be called again on reloads & navigation (only the schem environment survives them)
       // TODO: implement proper event handling, so the interpreter itself could react to this situation
-      // (i.e. by running these key binding functions whenever appropriate)
-      interpreterInstances.get(tab.id)!.arep(demoKeyBindings);
-      return interpreterInstances.get(tab.id)!;
+      const interpreter = interpreterInstances.get(tab.id)!
+      interpreter.arep(demoKeyBindings);
+      return interpreter;
     } else {
+      // Create and setup a new interpreter instance
       const interpreter = new Schem();
       interpreter.replEnv.addMap(coreGolemFunctions);
-      interpreter.arep(almaKeywords);
+
+      await Settings.loadSettings().then(s => {
+        interpreter.arep(s.configScript);
+      });
+
+      await interpreter.arep(almaKeywords);
       interpreterInstances.set(tab.id, interpreter);
       return interpreter;
     }
@@ -79,9 +86,12 @@ browser.runtime.onConnect.addListener((port: Runtime.Port) => {
 
   portForAlmaTab.onMessage.addListener((msg, port) => {
     if (msg.action === 'arep') {
-      getInterpreterForTab(port.sender!.tab!).arep(msg.schemExpression).then(result => {
-        console.log(result);
-      });
+      (async (schemExpression) => {
+        const interpreter = await getInterpreterForTab(port.sender!.tab!);
+        interpreter.arep(schemExpression).then(result => {
+          console.log(result);
+        });
+      })(msg.schemExpression);
       return;
     }
     console.warn(`unknown action in message`, msg);
