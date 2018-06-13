@@ -177,12 +177,12 @@ export type SchemFunctionMetadata = {
 export class SchemFunction {
   public isMacro = false;
   constructor(public f: Function,
-    public metadata: SchemFunctionMetadata,
+    public metadata?: SchemFunctionMetadata,
     public fnContext?: {ast: SchemType, params: SchemSymbol[], env: Env}) {
     
     // bind a function's name to itself within its environment
     // this allows recursion even in 'anonymous' functions
-    if (this.fnContext && metadata.name && metadata.name.length > 0) {
+    if (this.fnContext && metadata && metadata.name && metadata.name.length > 0) {
       this.fnContext.env.set(SchemSymbol.from(metadata.name), this);
     }
   }

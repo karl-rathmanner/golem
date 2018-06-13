@@ -250,9 +250,16 @@ export class Schem {
             }
           }
 
-          // Imply a call to get if a list starts witha a map. This makes lookups less tedious.
+          // Imply a call to get if a list starts with a a map. This makes lookups less tedious.
           if (first instanceof SchemMap) {
             ast = new SchemList(SchemSymbol.from('get'), ...ast);
+            continue fromTheTop;
+          }
+
+          // Imply a call to nth if a list starts with a vector.
+          if (first instanceof SchemVector) {
+            ast = new SchemList(SchemSymbol.from('nth'), ...ast);
+            continue fromTheTop;
           }
 
           // Keywords evaluate to themselves
@@ -267,7 +274,7 @@ export class Schem {
             if (this.debug.logSchemFunctionInvocation) {
               console.log('invoking a Schem function');
               console.group();
-              console.log(f.metadata.name);
+              console.log(f.metadata);
               console.log('args:');
               console.log(args);
             }
