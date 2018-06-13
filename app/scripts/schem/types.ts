@@ -171,7 +171,7 @@ export class SchemMap {
 }
 
 export type SchemFunctionMetadata = {
-  name: string
+  name?: string 
 }
 
 export class SchemFunction {
@@ -179,10 +179,16 @@ export class SchemFunction {
   constructor(public f: Function,
     public metadata: SchemFunctionMetadata,
     public fnContext?: {ast: SchemType, params: SchemSymbol[], env: Env}) {
+    
+    // named functions 
+    if (this.fnContext && metadata.name && metadata.name.length > 0) {
+      this.fnContext.env.set(SchemSymbol.from(metadata.name), this);
+    }
   }
 
   static fromSchemWithContext(that: Schem, env: Env, params: SchemSymbol[], functionBody: SchemType, metadata: SchemFunctionMetadata): SchemFunction {
     return new SchemFunction(async (...args: SchemType[]) => {
+
       return await that.evalSchem(functionBody, new Env(env, params, args));
     }, metadata, {ast: functionBody, params: params, env: env});
   }

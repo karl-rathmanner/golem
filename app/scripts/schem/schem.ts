@@ -211,9 +211,7 @@ export class Schem {
 
                 try {
                   let binds = params.asArrayOfSymbols();
-                  let metadata: SchemFunctionMetadata = {
-                    name: 'anonymous'
-                  };
+                  let metadata: SchemFunctionMetadata = {};
                   if (name) metadata.name = name;
                   return SchemFunction.fromSchemWithContext(this, env, params.asArrayOfSymbols(), fnBody, metadata);
 
