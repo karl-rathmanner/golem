@@ -170,17 +170,21 @@ export class SchemMap {
 
 }
 
+export type SchemFunctionMetadata = {
+  name: string
+}
+
 export class SchemFunction {
   public isMacro = false;
   constructor(public f: Function,
-    public metadata: {name: string} = {name: 'anonymous'},
+    public metadata: SchemFunctionMetadata,
     public fnContext?: {ast: SchemType, params: SchemSymbol[], env: Env}) {
   }
 
-  static fromSchemWithContext(that: Schem, env: Env, params: SchemSymbol[], functionBody: SchemType): SchemFunction {
+  static fromSchemWithContext(that: Schem, env: Env, params: SchemSymbol[], functionBody: SchemType, metadata: SchemFunctionMetadata): SchemFunction {
     return new SchemFunction(async (...args: SchemType[]) => {
       return await that.evalSchem(functionBody, new Env(env, params, args));
-    }, {name: 'anonymous, defined in Schem'} , {ast: functionBody, params: params, env: env});
+    }, metadata, {ast: functionBody, params: params, env: env});
   }
 
   newEnv(args: SchemType[]): Env {

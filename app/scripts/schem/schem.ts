@@ -1,5 +1,5 @@
 import { readStr } from './reader';
-import { SchemType, SchemSymbol, SchemList, SchemFunction, SchemNil, SchemNumber, SchemBoolean, SchemVector, SchemMap, SchemKeyword, SchemMapKey, SchemString, SchemAtom } from './types';
+import { SchemType, SchemSymbol, SchemList, SchemFunction, SchemNil, SchemNumber, SchemBoolean, SchemVector, SchemMap, SchemKeyword, SchemMapKey, SchemString, SchemAtom, SchemFunctionMetadata } from './types';
 import { isSequential } from './types';
 import { pr_str } from './printer';
 import { Env, EnvSetupMap } from './env';
@@ -191,20 +191,31 @@ export class Schem {
                   continue fromTheTop;
                 }
 
-              /** (fn parameters functionBody)
+              /** (fn name? [parameters] (functionBody)
                *  Defines a new function in the current environment. When it's colled, the function body gets executed in a new child environmet.
                *  In this child environmet, the symbols provided in parameters are bound to he values provided as arguments by the caller.
               */
               case 'fn':
-                const [, params, fnBody] = ast;
+                let name, params, fnBody;
+
+                if (ast[1] instanceof SchemSymbol) {
+                  [, name, params, fnBody] = ast;
+                  name = (name as SchemSymbol).name;
+                } else {
+                  [, params, fnBody] = ast;
+                }
 
                 if (!(params instanceof SchemList || params instanceof SchemVector)) {
-                  throw `expected list or vector`;
+                  throw `expected a list or vector of parameters`;
                 }
 
                 try {
                   let binds = params.asArrayOfSymbols();
-                  return SchemFunction.fromSchemWithContext(this, env, params.asArrayOfSymbols(), fnBody);
+                  let metadata: SchemFunctionMetadata = {
+                    name: 'anonymous'
+                  };
+                  if (name) metadata.name = name;
+                  return SchemFunction.fromSchemWithContext(this, env, params.asArrayOfSymbols(), fnBody, metadata);
 
                 } catch (error) {
                   throw `binds list for new environments must only contain symbols`;
