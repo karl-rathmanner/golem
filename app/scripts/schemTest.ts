@@ -6,11 +6,16 @@ import { EnvSetupMap } from './schem/env';
 import { pr_str } from './schem/printer';
 import { browser } from 'webextension-polyfill-ts';
 import { CommandHistory } from './utils/commandHistory';
+import { Settings } from './options';
 
 $.when($.ready).then(() => {
   const inputElement = $('input[name=input]');
   const commandHistory = new CommandHistory();
   const interpreter = new Schem();
+
+  Settings.loadSettings().then(s => {
+    interpreter.arep(s.configScript, envOverwrites);
+  })
 
   const separatorPresets: any = {
     'n': '\n',
