@@ -180,7 +180,8 @@ export class SchemFunction {
     public metadata: SchemFunctionMetadata,
     public fnContext?: {ast: SchemType, params: SchemSymbol[], env: Env}) {
     
-    // named functions 
+    // bind a function's name to itself within its environment
+    // this allows recursion even in 'anonymous' functions
     if (this.fnContext && metadata.name && metadata.name.length > 0) {
       this.fnContext.env.set(SchemSymbol.from(metadata.name), this);
     }
