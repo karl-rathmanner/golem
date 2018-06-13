@@ -210,7 +210,6 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
       type: 'GET',
       url: actualUrl,
       success: (response) => {
-        console.log(response);
         return response;
       }
     };
