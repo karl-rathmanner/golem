@@ -15,14 +15,14 @@ $.when($.ready).then(() => {
 
   Settings.loadSettings().then(s => {
     interpreter.arep(s.configScript, envOverwrites);
-  })
+  });
 
   const separatorPresets: any = {
     'n': '\n',
     '-': '\n───────────────────────────────────────────────────────────────────────────\n',
     '=': '\n═══════════════════════════════════════════════════════════════════════════\n',
     'lenny': '\n───────────────────────────────────────────────────────────────────────────\n ( ͡° ͜ʖ ͡°)  ( ͡☉ ͜ʖ ͡☉)  ᕕ( ͡° ͜ʖ ͡°)ᕗ  ᕙ( ͡° ͜ʖ ͡°)ᕗ  ᕦ( ͡° ͜ʖ ͡°)ᕤ  (ノ͡° ͜ʖ ͡°)ノ︵┻┻\n───────────────────────────────────────────────────────────────────────────\n',
-  }
+  };
 
   let currentSeparator = '\n';
 
@@ -43,7 +43,7 @@ $.when($.ready).then(() => {
         if (typeof separatorPresets[char.valueOf()] !== 'undefined') {
             currentSeparator = separatorPresets[char.valueOf()];
         } else {
-          currentSeparator = `\n${char.valueOf().repeat( Math.floor(77/char.length)) }\n`;
+          currentSeparator = `\n${char.valueOf().repeat( Math.floor(75 / char.length)) }\n`;
         }
       } else {
         currentSeparator = '\n';
@@ -62,7 +62,7 @@ $.when($.ready).then(() => {
 
         // const repOutput = rep(input, envOverwrites);
         interpreter.arep(input, envOverwrites).then((result) => {
-          
+
           $('#output').text($('#output').text() + result + currentSeparator);
           $('#output').animate({scrollTop: $('#output').prop('scrollHeight')}, 700);
         });
