@@ -22,12 +22,14 @@ export class Schem {
   constructor() {
     this.replEnv.addMap(coreFunctions);
     this.coreLoaded = false;
+    // Schem functions that need to reference the repl Environment go here - addMap doesn't support that
     this.replEnv.set('eval', (rand: SchemType) => this.evalSchem(rand, this.replEnv));
     this.replEnv.set('swap!', (atom: SchemAtom, fn: SchemFunction, ...rest: SchemType[]) => {
         atom.value = this.evalSchem(new SchemList(fn, atom.value, ...rest), this.replEnv);
         return atom.value;
       }
     );
+    this.replEnv.set('listSymbols', () => new SchemList(...this.replEnv.getSymbols()));
   }
 
   async evalAST(ast: SchemType, env: Env): Promise<SchemType> {
