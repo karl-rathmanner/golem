@@ -1,4 +1,4 @@
-import { SchemFunction, SchemNumber, SchemSymbol, SchemType } from './types';
+import { SchemFunction, SchemNumber, SchemSymbol, SchemType, SchemList } from './types';
 import { Schem } from './schem';
 import { readStr } from './reader';
 
@@ -94,5 +94,15 @@ export class Env {
     if (!env) throw `${key.name} not found`;
     return env.symbolValueMap.get(key)!;
   }
+
+  /** Returns all symbols defined in this and all outer environments */
+  getSymbols(): Array<SchemSymbol> {
+    if (this.outer) {
+      return Array.from(this.symbolValueMap.keys()).concat(this.outer.getSymbols());
+    } else {
+      return Array.from(this.symbolValueMap.keys());
+    }
+  }
+
 }
 
