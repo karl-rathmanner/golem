@@ -26,10 +26,15 @@ export class SchemNumber extends Number {
 
 export class SchemString extends String {
   isValidKeyType = true;
+  stringValueOf = this.valueOf;
 }
 
 export class SchemSymbol {
   isValidKeyType = true;
+  stringValueOf() {
+    return this.name;
+  }
+
   static registeredSymbols: Map<symbol, SchemSymbol> = new Map<symbol, SchemSymbol>();
 
   static from(name: string | SchemString): SchemSymbol {
@@ -51,6 +56,10 @@ export class SchemSymbol {
 
 export class SchemKeyword {
   isValidKeyType = true;
+  stringValueOf() {
+    return ':' + this.name;
+  }
+
   static registeredSymbols: Map<symbol, SchemKeyword> = new Map<symbol, SchemKeyword>();
 
   static from(name: string | SchemString): SchemKeyword {
@@ -154,7 +163,7 @@ export class SchemMap {
     return this.get(SchemKeyword.from(name));
   }
 
-  /** Changes each value in a SchemMap to the result of Applies the result the provided collback function.
+  /** Changes each value in a SchemMap to the result of applying the provided collback function to it.
    * If the callback returns undefined, the Map's value is left as is.
    */
   map(callbackFn: (value: SchemType , key?: SchemMapKey) => SchemType | undefined) {
@@ -175,15 +184,15 @@ export class SchemMap {
 }
 
 export type SchemFunctionMetadata = {
-  name?: string 
-}
+  name?: string
+};
 
 export class SchemFunction {
   public isMacro = false;
   constructor(public f: Function,
     public metadata?: SchemFunctionMetadata,
     public fnContext?: {ast: SchemType, params: SchemSymbol[], env: Env}) {
-    
+
     // bind a function's name to itself within its environment
     // this allows recursion even in 'anonymous' functions
     if (this.fnContext && metadata && metadata.name && metadata.name.length > 0) {
