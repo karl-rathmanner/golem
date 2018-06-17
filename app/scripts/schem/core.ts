@@ -1,4 +1,4 @@
-import { SchemFunction, SchemNumber, SchemSymbol, SchemType, SchemBoolean, SchemNil, SchemList, SchemString, SchemVector, SchemMap, SchemMapKey, SchemKeyword, SchemAtom, isSequential } from './types';
+import { SchemFunction, SchemNumber, SchemSymbol, SchemType, SchemBoolean, SchemNil, SchemList, SchemString, SchemVector, SchemMap, SchemMapKey, SchemKeyword, SchemAtom, isSequential, isSchemType } from './types';
 import { Schem } from './schem';
 import { readStr } from './reader';
 import { Env } from './env';
@@ -63,6 +63,43 @@ function createSchemMapFromXMLDocument(xmlDoc: XMLDocument): SchemMap {
 
 
   return traverseDocument(xmlDoc.documentElement);
+}
+
+
+function computeSimpleStringSimilarityScore(needle: string, haystack: string): number {
+  // no need to start matching if the needle is bigger than the haystack
+  if (needle.length > haystack.length) return 0;
+
+  let startPos = 0, score = 0, consecutiveCharacterBonus = 0;
+
+  outer:
+  // for every character in needle
+  for (let si = 0; si < needle.length; si++) {
+    // for every remaining character in haystack
+    for (let li = startPos; li < haystack.length; li++) {
+      if (needle[si] === haystack[li]) {
+        if ((needle.length - si) > (haystack.length - li)) {
+          // there aren't enough characters left in haystack for the remainder of needle to fit
+          return 0;
+        }
+        score += 1 + consecutiveCharacterBonus;
+        if (li === 0) {
+          // bonus points for matching the first letter in a haystack word
+          score += 2;
+        }
+        startPos = li + 1;
+        consecutiveCharacterBonus++;
+        continue outer;
+      } else {
+        consecutiveCharacterBonus = 0;
+        if (li === haystack.length - 1) {
+          // arrived at the end, found no match for current character
+          return 0;
+        }
+      }
+    }
+  }
+  return score;
 }
 
 export const coreFunctions: {[symbol: string]: SchemType} = {
@@ -257,5 +294,63 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
   'concat': (...lists: SchemList[]) => {
     const emptyList: SchemList[] = [];
     return new SchemList(...emptyList.concat(...lists));
+  },
+  'map': async (fn: SchemFunction, ...sequentials: (SchemList | SchemVector)[]) => {
+    throwErrorForNonSequentialArguments(...sequentials);
+
+    if (sequentials.length === 1) {
+      const newValues = await Promise.all(sequentials[0].map((value) => {
+        return fn.f(value);
+      }));
+      return new SchemList(...newValues);
+    } else {
+      const shortestLength = sequentials.reduce((shortestLength: number, currentValue) => {
+        return (currentValue.length < shortestLength) ? currentValue.length : shortestLength;
+      }, sequentials[0].length);
+
+      let newValues: SchemType[] = [];
+      for (let i = 0; i < shortestLength; i++) {
+        let args: SchemType[] = [];
+        for (let j = 0; j < sequentials.length; j++) {
+          args.push(sequentials[j][i]);
+        }
+        newValues.push(await fn.f(...args));
+      }
+      return new SchemList(...newValues);
+    }
+  },
+  'scoreStringSimilarity': (needle: SchemString, haystack: SchemString) => {
+    return new SchemNumber(computeSimpleStringSimilarityScore(needle.stringValueOf(), haystack.stringValueOf()));
+  },
+  'sortAndFilterByStringSimilarity' : (needle: SchemString, haystack: SchemList | SchemVector, scoreThreshold: SchemNumber = new SchemNumber(1)) => {
+
+    const rankedHaystack: Array<[number, SchemString | SchemSymbol | SchemKeyword ]> = haystack.map((hay) => {
+      // create an aray of tuples [score, haystackElement]
+      if (hay instanceof SchemString) {
+        return <[number, SchemString]> [computeSimpleStringSimilarityScore(needle.valueOf(), hay.valueOf()), hay];
+      } else if (hay instanceof SchemSymbol || hay instanceof SchemKeyword) {
+        return <[number, SchemSymbol | SchemKeyword]> [computeSimpleStringSimilarityScore(needle.valueOf(), hay.name), hay];
+      } else {
+        throw `${needle} and ${hay} can't be compared`;
+      }
+    }).filter((element, i) => {
+      // remove all elements below the with a score threshold
+      return (element[0] >= scoreThreshold.valueOf());
+    }).sort((a, b) => {
+      // sort the remaining entries by score, then alphabetically
+      if (a[0] === b[0]) {
+        return a[1].stringValueOf().localeCompare(b[1].stringValueOf());
+      } else {
+        return b[0] - a[0];
+      }
+    });
+
+    // remove score
+    const schemTypes = rankedHaystack.map((element) => {
+      return element[1];
+    });
+
+
+    return new SchemList(...schemTypes);
   }
 };
