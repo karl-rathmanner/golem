@@ -171,6 +171,15 @@ describe('blackbox tests', function() {
               '(macroexpand (executePostfix (7 (+ 1 five) *)))'],
               '(* 7 (+ 1 five))', 'Macros receive arguments as unevaluated data and expanding them works as expected.');
 
+  expectSchem(`(let [add1 (fn (x) (+ x 1))]
+                    (map add1 [1 2 3]))`,
+              '(2 3 4)');
+
+  expectSchem('(map + [1 2 3] [4 5 6] [7 8 9 10])', '(12 15 18)');
+  expectSchem('(map list `(a b c) [1 2 3] `(x y z q))', '((a 1 x) (b 2 y) (c 3 z))');
+
+  expectSchem('(map scoreStringSimilarity ["ab" "ab" "ab" "ab" "ab" "ab"] ["xabx" "abx" "axb" "bxa" "ab" "xbabx"])', '(3 5 4 0 5 3)');
+  expectSchem('(sortAndFilterByStringSimilarity "abc" ["axbxc" "abxc" "abc" "abx" "ab" "xbabxbcx"])', '("abc" "abxc" "axbxc" "xbabxbcx")');
   // MAYDO: mock $.get so this is possible?
   // expectRep('(load-url "/chaiTest.schem")', 'MEEP!');
 
