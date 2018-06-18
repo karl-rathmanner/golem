@@ -71,6 +71,8 @@ function computeSimpleStringSimilarityScore(needle: string, haystack: string): n
   if (needle.length > haystack.length) return 0;
 
   let startPos = 0, score = 0, consecutiveCharacterBonus = 0;
+  needle = needle.toLowerCase();
+  haystack = haystack.toLowerCase();
 
   outer:
   // for every character in needle
