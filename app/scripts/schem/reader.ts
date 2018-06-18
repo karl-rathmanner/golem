@@ -15,7 +15,7 @@ class Reader {
 }
 
 export function readStr(input: string): SchemType {
-  const tokens = tokenizer(input);
+  const tokens = tokenize(input);
 
   if (tokens === []) return SchemNil; // read a comment
 
@@ -140,7 +140,7 @@ function readAtom(reader: Reader) {
   return SchemSymbol.from(token);
 }
 
-function tokenizer(input: string): string[] {
+export function tokenize(input: string): string[] {
   const regex = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)/g;
   let matches: RegExpExecArray | null;
   let tokens: string[] = [];
