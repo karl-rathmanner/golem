@@ -71,7 +71,7 @@ export class Schem {
    * @description
    * TCO hint: recursive Schem functions should call themselves from tail position. Consult stackoverflow.com in case of stack overflows.
   */
-  async evalSchem(ast: SchemType, env: Env): Promise<SchemType> {
+  async evalSchem(ast: SchemType, env: Env = this.replEnv): Promise<SchemType> {
   let tcoCounter = 0;
 
   fromTheTop: while (true) {
@@ -353,6 +353,10 @@ export class Schem {
 
     if (this.debug.logArepInput) console.log('evaluating: ' + expression);
     return pr_str(await this.evalSchem(readStr(expression), this.replEnv));
+  }
+
+  async readEval(expression: string): Promise<SchemType> {
+    return await this.evalSchem(readStr(expression), this.replEnv);
   }
 
   delay(milliSeconds: number) {
