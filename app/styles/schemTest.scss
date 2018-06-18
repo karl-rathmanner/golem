@@ -23,6 +23,58 @@ body {
   color: lightgreen;
 }
 
+.terminalishInput {
+  display: block;
+  width: 42em;
+  margin:auto;
+  padding: .5em;
+
+  border-style: none dotted dotted dotted;
+  border-width: 1px;
+  border-color: #424242;
+
+  font-family: monospace;
+  font-size: initial;
+  background-color: #001300;
+  color: lightgreen;
+
+  resize: vertical;
+  overflow-wrap: break-word;
+  overflow: overlay;
+}
+
+.terminalishAutocompletePanel {
+  display: block;
+  width: 42em;
+  height: 3em;
+  margin: auto;
+  padding: .5em;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  border-style: none dotted dotted dotted;
+  border-width: 1px;
+  border-color: #424242;
+
+  font-family: monospace;
+  font-size: initial;
+  background-color: #001300;
+  color: #53aa53;
+}
+
+.acSuggestion {
+  display: inline-block;
+}
+
+.highlightedSuggestion {
+  display: inline-block;
+  color: #49cc49;
+}
+
+.acDivider {
+  color: #1a471a;
+}
 
 ::-webkit-scrollbar {
   width: 10px;
@@ -38,20 +90,4 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #999; 
-}
-
-.terminalishInput {
-  display: block;
-  width: 42em;
-  margin:auto;
-  padding: .5em;
-
-  border-style: none dotted dotted dotted;
-  border-width: 1px;
-  border-color: #424242;
-
-  font-family: monospace;
-  font-size: initial;
-  background-color: #001300;
-  color: lightgreen;
 }
