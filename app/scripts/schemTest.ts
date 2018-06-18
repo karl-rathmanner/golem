@@ -93,6 +93,8 @@ $.when($.ready).then(() => {
             }
 
             let replaceWith: string = '';
+            if (selectedSuggestion < -1) selectedSuggestion = -1;
+
             if (selectedSuggestion < 0) {
               replaceWith = lastManuallyTypedToken;
             } else {
