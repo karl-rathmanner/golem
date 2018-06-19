@@ -342,6 +342,9 @@ export class Schem {
   }
 
   async arep(expression: string, overwrites?: EnvSetupMap): Promise<string> {
+    if (typeof expression === 'undefined' || expression.length === 0) {
+      expression = 'nil';
+    }
     if (!this.coreLoaded) {
       this.coreLoaded = true; // technically, this isn't quite true, as core.schem isn't actually loaded yet, but the flag has to be set so the call to arep below may return
         const core = require('!raw-loader!../schemScripts/core.schem');
@@ -356,6 +359,9 @@ export class Schem {
   }
 
   async readEval(expression: string): Promise<SchemType> {
+    if (typeof expression === 'undefined' || expression.length === 0) {
+      return SchemNil.instance;
+    }
     return await this.evalSchem(readStr(expression), this.replEnv);
   }
 
