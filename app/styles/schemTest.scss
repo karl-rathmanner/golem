@@ -1,40 +1,68 @@
+$oldMonitorBezel: rgb(230, 219, 197);
+$terminalBackground: rgb(32, 32, 32);
+
+/* base rgb values corresponding to phosphor wavelengths */
+$p1Phosphor: rgb(51,255,51);
+$p3Phosphor: rgb(255,176,0);
+$p24Phosphor: rgb(102,255,102);
+
+$normalText: darken($p1Phosphor, 16%);
+$darkText: darken($p1Phosphor, 32%);
+$veryDarkText: darken($p1Phosphor, 42%);
+$highlightedText: darken($p3Phosphor, 16%);
+
 body {
-  background-color: #dcd9c8;
+  background-color: $oldMonitorBezel;
+}
+
+.monitorishBevelContainer {
+    background-color: $oldMonitorBezel;
+    display: inline-block;
+    padding: 5px 7px;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    border-radius: 7px;
+    transform: translate(-50%, -55%);
+    box-shadow: inset 0px 0px 2px 0px $oldMonitorBezel, inset 5px 5px 10px -1px rgba(0, 0, 0, 0.59), inset -5px -5px 10px -1px rgba(243, 240, 233, 0.9);
+}
+
+.terminalishContainer { 
+  border-style: inset;
+  border-radius: 2px;
+  border-width: 2px;
+
+  background-color: $terminalBackground;
+  color: $normalText;
+
+  font-family: monospace;
+  font-size: initial;
 }
 
 .terminalishOutput {
   width: 42em;
   height: 42em;
-  margin: 3em auto 0;
+  margin: 0;
   padding: .5em;
 
   white-space: pre-wrap;
   overflow-wrap: break-word;
   overflow: overlay;
 
-
-  font-family: monospace;
-  font-size: initial;
-
-  background-color: #001300;
-  color: lightgreen;
 }
 
 .terminalishInput {
   display: block;
   width: 42em;
   min-height: 1.2em;
-  margin: auto;
   padding: .5em;
 
   border-style: dotted none dotted none;
   border-width: 1px;
-  border-color: #344c34;
+  border-color: $veryDarkText;
 
-  font-family: monospace;
-  font-size: initial;
-  background-color: #001300;
-  color: lightgreen;
+  background-color: $terminalBackground;
+  color: $normalText;
 
   resize: vertical;
   overflow-wrap: break-word;
@@ -42,26 +70,21 @@ body {
 }
 
 .terminalishInput:focus {
-  border-color: #1a471a;
+  border-color: $darkText;
   outline: 0;
-  box-shadow:  inset 0 0px 2px #1a471a
+  /*box-shadow:  inset 0 0px 2px $darkText;*/
 }
 
 .terminalishAutocompletePanel {
   display: block;
   width: 42em;
-  height: 3em;
-  margin: auto;
-  padding: .5em;
+  height: 3.5em;
+  margin: .5em;
 
   overflow: hidden;
   text-overflow: ellipsis;
 
-  
-  font-family: monospace;
-  font-size: initial;
-  background-color: #001300;
-  color: #53aa53;
+  color: $darkText;
 }
 
 .acSuggestion {
@@ -70,11 +93,11 @@ body {
 
 .highlightedSuggestion {
   display: inline-block;
-  color: #49cc49;
+  color: $highlightedText;
 }
 
 .acDivider {
-  color: #1a471a;
+  color: $veryDarkText;
 }
 
 ::-webkit-scrollbar {
