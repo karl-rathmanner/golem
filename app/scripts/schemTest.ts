@@ -48,7 +48,7 @@ $.when($.ready).then(() => {
     'setReplSeparator': (char: SchemString) => {
       if (char instanceof SchemString && char.length > 0) {
         if (typeof separatorPresets[char.valueOf()] !== 'undefined') {
-            currentSeparator = separatorPresets[char.valueOf()];
+          currentSeparator = separatorPresets[char.valueOf()];
         } else {
           currentSeparator = `\n${char.valueOf().repeat( Math.floor(75 / char.length)) }\n`;
         }
@@ -70,6 +70,7 @@ $.when($.ready).then(() => {
         interpreter.arep(input, envOverwrites).then((result) => {
           appendToOutput(result);
         }).catch(e => {
+          console.warn('Exception during Schem evaluation:', e);
           appendToOutput(e);
         });
 
@@ -163,7 +164,6 @@ $.when($.ready).then(() => {
       lastManuallyTypedToken = tokenAtCursorPosition;
     }
 
-    
     interpreter.readEval(`(sortAndFilterByStringSimilarity "${lastManuallyTypedToken}" (listSymbols))`).then((suggestions) => {
       if (suggestions instanceof SchemList) {
         $('#autocompleteSuggestions').empty();
