@@ -68,9 +68,9 @@ $.when($.ready).then(() => {
         commandHistory.addCommandToHistory(input);
 
         interpreter.arep(input, envOverwrites).then((result) => {
-
-          $('#output').text($('#output').text() + result + currentSeparator);
-          $('#output').animate({scrollTop: $('#output').prop('scrollHeight')}, 700);
+          appendToOutput(result);
+        }).catch(e => {
+          appendToOutput(e);
         });
 
         inputElement.val('');
@@ -130,6 +130,11 @@ $.when($.ready).then(() => {
     }
   });
 
+  function appendToOutput(str: string) {
+    $('#output').text($('#output').text() + str + currentSeparator);
+    $('#output').animate({scrollTop: $('#output').prop('scrollHeight')}, 700);
+  }
+
   function insertAndDeleteRelativeToCursor(target: HTMLElement, insert: string, deleteBefore: number = 0, deleteAfter: number = 0, moveCursor: number = 0) {
     const cursorPosition = ($(target).prop('selectionStart') as number);
     const currentVal = (typeof $(target).val() === 'string') ? $(target).val() as string : '';
@@ -158,6 +163,7 @@ $.when($.ready).then(() => {
       lastManuallyTypedToken = tokenAtCursorPosition;
     }
 
+    
     interpreter.readEval(`(sortAndFilterByStringSimilarity "${lastManuallyTypedToken}" (listSymbols))`).then((suggestions) => {
       if (suggestions instanceof SchemList) {
         $('#autocompleteSuggestions').empty();
@@ -173,6 +179,8 @@ $.when($.ready).then(() => {
           }
         });
       }
+    }).catch(() => {
+      console.log('autocomplete lokup failed, no biggy.');
     });
 
   });
