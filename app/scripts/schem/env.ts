@@ -33,6 +33,11 @@ export class Env {
     }
     for (let i = 0; i < binds.length; i++) {
       if (logDebugMessages) console.log(`${binds[i].name} = ${exprs[i]}`);
+      if (binds[i].stringValueOf() === '&') {
+        // encountered a clojure style variadic function definition, turn the remaining expressions into a list and bind that to the symbol after '&'
+        this.set(binds[i + 1], new SchemList(...exprs.slice(i)));
+        return;
+      }
       this.set(binds[i], exprs[i]);
     }
   }
