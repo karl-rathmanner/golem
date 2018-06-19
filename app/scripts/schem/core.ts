@@ -6,104 +6,6 @@ import { pr_str } from './printer';
 import * as $ from 'jquery';
 import { browser } from 'webextension-polyfill-ts';
 
-function throwErrorIfArityIsInalid(argsLength: number, min: number = 1, max: number = Infinity, even: boolean = false) {
-  if (argsLength < min) {
-    throw `Unexpected number of argunents (${argsLength}), minimum number of arguments is ${min}.`;
-  } else if (argsLength > max) {
-    throw `Unexpected number of argunents (${argsLength}), maximum number of arguments is ${max}.`;
-  } else if (even && argsLength % 2 > 0) {
-    throw `Unexpected number of argunents (${argsLength}), should be even.`;
-  }
-}
-
-function throwErrorForNonSequentialArguments(...args: SchemType[]) {
-  args.forEach(arg => {
-    if (!isSequential(arg)) {
-      throw `Expected argument to be sequential. Got this instead: ${arg}`;
-    }
-  });
-}
-
-function hasSameConstructorAndValue(a: SchemType, b: SchemType): boolean {
-  return (a.constructor === b.constructor && a.valueOf() === b.valueOf());
-}
-
-function createSchemMapFromXMLDocument(xmlDoc: XMLDocument): SchemMap {
-
-  const traverseDocument = (node: Element) => {
-    const map = new SchemMap();
-    map.set(SchemKeyword.from('tag'), SchemKeyword.from(node.tagName));
-
-    if (node.attributes.length > 0) {
-      let attrs = new SchemMap();
-      for (let i = 0; i < node.attributes.length; i++) {
-        attrs.set(SchemKeyword.from(node.attributes.item(i)!.name), new SchemString(node.attributes.item(i)!.value));
-      }
-      map.set(SchemKeyword.from('attrs'), attrs);
-    }
-
-    if (node.childElementCount === 0) {
-      if (node.textContent && node.textContent.length > 0) {
-        map.set(SchemKeyword.from('content'), new SchemString(node.textContent));
-      }
-    } else {
-      if (node.childElementCount === 1) {
-        map.set(SchemKeyword.from('content'), traverseDocument(node.children.item(0)));
-      } else {
-        let content = new SchemVector();
-        for (let i = 0; i < node.childElementCount; i++) {
-          content.push(traverseDocument(node.children.item(i)));
-        }
-        map.set(SchemKeyword.from('content'), content);
-      }
-    }
-
-    return map;
-  };
-
-
-  return traverseDocument(xmlDoc.documentElement);
-}
-
-
-function computeSimpleStringSimilarityScore(needle: string, haystack: string): number {
-  // no need to start matching if the needle is bigger than the haystack
-  if (needle.length > haystack.length) return 0;
-
-  let startPos = 0, score = 0, consecutiveCharacterBonus = 0;
-  needle = needle.toLowerCase();
-  haystack = haystack.toLowerCase();
-
-  outer:
-  // for every character in needle
-  for (let si = 0; si < needle.length; si++) {
-    // for every remaining character in haystack
-    for (let li = startPos; li < haystack.length; li++) {
-      if (needle[si] === haystack[li]) {
-        if ((needle.length - si) > (haystack.length - li)) {
-          // there aren't enough characters left in haystack for the remainder of needle to fit
-          return 0;
-        }
-        score += 1 + consecutiveCharacterBonus;
-        if (li === 0) {
-          // bonus points for matching the first letter in a haystack word
-          score += 2;
-        }
-        startPos = li + 1;
-        consecutiveCharacterBonus++;
-        continue outer;
-      } else {
-        consecutiveCharacterBonus = 0;
-        if (li === haystack.length - 1) {
-          // arrived at the end, found no match for current character
-          return 0;
-        }
-      }
-    }
-  }
-  return score;
-}
-
 export const coreFunctions: {[symbol: string]: SchemType} = {
   '+': (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue: SchemNumber, currentIndex: number) => {
     if (currentIndex === 0) return currentValue.valueOf();
@@ -151,13 +53,16 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     return SchemBoolean.true; // none of the checks above resulted in inequality, so all arguments must be equal
   },
   '>': (...args: SchemNumber[]) => {
-    args.map((e) => {
-      if (!(e instanceof SchemNumber)) throw `trying to do numeric comparison on non numeric types`;
-    });
-    return SchemBoolean.fromBoolean(args[0].valueOf() > args[1].valueOf());
+    return doNumericComparisonForEachConsecutivePairInArray((a, b) => { return a > b; }, args);
   },
   '<': (...args: SchemNumber[]) => {
-    return SchemBoolean.fromBoolean(args[0] < args[1]);
+    return doNumericComparisonForEachConsecutivePairInArray((a, b) => { return a < b; }, args);
+  },
+  '>=': (...args: SchemNumber[]) => {
+    return doNumericComparisonForEachConsecutivePairInArray((a, b) => { return a >= b; }, args);
+  },
+  '<=': (...args: SchemNumber[]) => {
+    return doNumericComparisonForEachConsecutivePairInArray((a, b) => { return a <= b; }, args);
   },
   'empty?': (arg: SchemType) => {
     return SchemBoolean.fromBoolean(arg instanceof SchemList && arg.length === 0);
@@ -356,3 +261,118 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     return new SchemList(...schemTypes);
   }
 };
+
+
+/// supporting functions
+
+function doNumericComparisonForEachConsecutivePairInArray(predicate: (a: number, b: number) => boolean,  args: SchemNumber[]) {
+  for (let i = 0; i < args.length - 1; i++) {
+    if (!(args[i] instanceof SchemNumber) || !(args[i + 1] instanceof SchemNumber)) {
+      throw `trying to do numeric comparison on non numeric types (or less than two arguments)`;
+    }
+    // flip argument order and negate predicate because ... reasons.
+    if (!predicate(args[i + 1].valueOf(), args[i].valueOf())) {
+      // return on the first failed test
+      return SchemBoolean.false;
+    }
+  }
+  return SchemBoolean.true;
+}
+
+function throwErrorIfArityIsInalid(argsLength: number, min: number = 1, max: number = Infinity, even: boolean = false) {
+  if (argsLength < min) {
+    throw `Unexpected number of argunents (${argsLength}), minimum number of arguments is ${min}.`;
+  } else if (argsLength > max) {
+    throw `Unexpected number of argunents (${argsLength}), maximum number of arguments is ${max}.`;
+  } else if (even && argsLength % 2 > 0) {
+    throw `Unexpected number of argunents (${argsLength}), should be even.`;
+  }
+}
+
+function throwErrorForNonSequentialArguments(...args: SchemType[]) {
+  args.forEach(arg => {
+    if (!isSequential(arg)) {
+      throw `Expected argument to be sequential. Got this instead: ${arg}`;
+    }
+  });
+}
+
+function hasSameConstructorAndValue(a: SchemType, b: SchemType): boolean {
+  return (a.constructor === b.constructor && a.valueOf() === b.valueOf());
+}
+
+function createSchemMapFromXMLDocument(xmlDoc: XMLDocument): SchemMap {
+
+  const traverseDocument = (node: Element) => {
+    const map = new SchemMap();
+    map.set(SchemKeyword.from('tag'), SchemKeyword.from(node.tagName));
+
+    if (node.attributes.length > 0) {
+      let attrs = new SchemMap();
+      for (let i = 0; i < node.attributes.length; i++) {
+        attrs.set(SchemKeyword.from(node.attributes.item(i)!.name), new SchemString(node.attributes.item(i)!.value));
+      }
+      map.set(SchemKeyword.from('attrs'), attrs);
+    }
+
+    if (node.childElementCount === 0) {
+      if (node.textContent && node.textContent.length > 0) {
+        map.set(SchemKeyword.from('content'), new SchemString(node.textContent));
+      }
+    } else {
+      if (node.childElementCount === 1) {
+        map.set(SchemKeyword.from('content'), traverseDocument(node.children.item(0)));
+      } else {
+        let content = new SchemVector();
+        for (let i = 0; i < node.childElementCount; i++) {
+          content.push(traverseDocument(node.children.item(i)));
+        }
+        map.set(SchemKeyword.from('content'), content);
+      }
+    }
+
+    return map;
+  };
+
+
+  return traverseDocument(xmlDoc.documentElement);
+}
+
+
+function computeSimpleStringSimilarityScore(needle: string, haystack: string): number {
+  // no need to start matching if the needle is bigger than the haystack
+  if (needle.length > haystack.length) return 0;
+
+  let startPos = 0, score = 0, consecutiveCharacterBonus = 0;
+  needle = needle.toLowerCase();
+  haystack = haystack.toLowerCase();
+
+  outer:
+  // for every character in needle
+  for (let si = 0; si < needle.length; si++) {
+    // for every remaining character in haystack
+    for (let li = startPos; li < haystack.length; li++) {
+      if (needle[si] === haystack[li]) {
+        if ((needle.length - si) > (haystack.length - li)) {
+          // there aren't enough characters left in haystack for the remainder of needle to fit
+          return 0;
+        }
+        score += 1 + consecutiveCharacterBonus;
+        if (li === 0) {
+          // bonus points for matching the first letter in a haystack word
+          score += 2;
+        }
+        startPos = li + 1;
+        consecutiveCharacterBonus++;
+        continue outer;
+      } else {
+        consecutiveCharacterBonus = 0;
+        if (li === haystack.length - 1) {
+          // arrived at the end, found no match for current character
+          return 0;
+        }
+      }
+    }
+  }
+  return score;
+}
