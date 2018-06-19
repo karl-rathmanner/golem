@@ -108,6 +108,8 @@ describe('blackbox tests', function() {
     });
   });
 
+  expectSchem(['(defn variadic (a b & c) (list a b c))', '(variadic 1 2 3 4 5)'], '(1 2 (3 4 5))');
+
   expectSchem([`
     (def sum (fn (n acc)
       (if (= n 0)
