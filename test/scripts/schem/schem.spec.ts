@@ -81,6 +81,10 @@ describe('blackbox tests', function() {
 
   expectSchem('(+ 1 2)', '3');
 
+  expectSchem('(> 1 2 3 3.1)', 'true');
+  expectSchem('(> 1 2 3 1.3)', 'false');
+  expectSchem('(<= 42 42 24)', 'true');
+
   expectSchem(['(def x 2)', '(+ 1 x)'] , ['2', '3'], 'define a variable and use it in a following function');
 
   expectSchem('(not true)', 'false', 'core.schem is loaded correctly');
