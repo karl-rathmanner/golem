@@ -1,5 +1,5 @@
 import { readStr } from './reader';
-import { SchemType, SchemSymbol, SchemList, SchemFunction, SchemNil, SchemNumber, SchemBoolean, SchemVector, SchemMap, SchemKeyword, SchemMapKey, SchemString, SchemAtom, SchemFunctionMetadata } from './types';
+import { SchemType, SchemSymbol, SchemList, SchemFunction, SchemNil, SchemNumber, SchemBoolean, SchemVector, SchemMap, SchemKeyword, SchemMapKey, SchemString, SchemAtom, SchemFunctionMetadata, isCallable } from './types';
 import { isSequential } from './types';
 import { pr_str } from './printer';
 import { Env, EnvSetupMap } from './env';
@@ -252,56 +252,43 @@ export class Schem {
             }
           }
 
-          // Imply a call to get if a list starts with a a map. This makes lookups less tedious.
-          if (first instanceof SchemMap) {
-            ast = new SchemList(SchemSymbol.from('get'), ...ast);
-            continue fromTheTop;
-            //return await this.evalSchem(new SchemList(SchemSymbol.from('get'), ...ast));
-          }
-
-          // Imply a call to nth if a list starts with a vector.
-          if (first instanceof SchemVector) {
-            ast = new SchemList(SchemSymbol.from('nth'), ...ast);
-            continue fromTheTop;
-          }
-
-          // Keywords evaluate to themselves
-          if (first instanceof SchemKeyword) {
-            return first;
-          }
-
           // If first didn't match any of the above, treat it as a function: evaluate all list elements and call the first element using the others as arguments
           const [f, ...args] = await this.evalAST(ast, env) as SchemList;
 
-          if (f instanceof SchemFunction) {
-            if (this.debug.logSchemFunctionInvocation) {
-              console.log('invoking a Schem function');
-              console.group();
-              console.log(f.metadata);
-              console.log('args:');
-              console.log(args);
-            }
-            if (f.fnContext) {
-
+          if (isCallable(f)) {
+            if (f instanceof SchemFunction) {
               if (this.debug.logSchemFunctionInvocation) {
-                console.log('Function was defined in Schem and has a context object:');
-                console.log(f.fnContext);
+                console.log('invoking a Schem function');
+                console.group();
+                console.log(f.metadata);
+                console.log('args:');
+                console.log(args);
               }
+              if (f.fnContext) {
 
-              ast = f.fnContext.ast;
-              env = new Env(f.fnContext.env, f.fnContext.params, args);
-              console.groupEnd();
-              continue fromTheTop;
+                if (this.debug.logSchemFunctionInvocation) {
+                  console.log('Function was defined in Schem and has a context object:');
+                  console.log(f.fnContext);
+                }
 
-            } else {
-              if (this.debug.logSchemFunctionInvocation) {
-                console.log('Function has no context.');
+                ast = f.fnContext.ast;
+                env = new Env(f.fnContext.env, f.fnContext.params, args);
                 console.groupEnd();
+                continue fromTheTop;
+
+              } else {
+                if (this.debug.logSchemFunctionInvocation) {
+                  console.log('Function has no context.');
+                  console.groupEnd();
+                }
+                return await f.invoke(...args);
               }
-              return await f.f(...args);
+            } else {
+              ast = f.invoke(...args);
+              continue fromTheTop;
             }
           } else {
-            throw `tried to invoke ${f} as a function, when it's type was ${typeof f}`;
+            throw `Invalid form: first element is not callable`;
           }
         }
       }
