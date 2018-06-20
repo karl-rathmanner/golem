@@ -186,6 +186,13 @@ describe('blackbox tests', function() {
 
   expectSchem('(map scoreStringSimilarity ["ab" "ab" "ab" "ab" "ab" "ab"] ["xabx" "abx" "axb" "bxa" "ab" "xbabx"])', '(3 5 4 0 5 3)');
   expectSchem('(sortAndFilterByStringSimilarity "abc" ["axbxc" "abxc" "abc" "abx" "ab" "xbabxbcx"])', '("abc" "abxc" "axbxc" "xbabxbcx")');
+
+  // Invoking callable values
+  expectSchem('({:a 42 :b 13} :a)', '42');
+  expectSchem('({a: "meh" b: "bleh"} :c "default")', '"default"');
+  expectSchem('(:inner ({:outer {:inner 42}} :outer))', '42');
+  expectSchem('([:a :b :c] 2)', ':c');
+
   // MAYDO: mock $.get so this is possible?
   // expectRep('(load-url "/chaiTest.schem")', 'MEEP!');
 
