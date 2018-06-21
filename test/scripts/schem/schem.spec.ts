@@ -81,6 +81,10 @@ describe('blackbox tests', function() {
 
   expectSchem('(+ 1 2)', '3');
 
+  expectSchem('(> 1 2 3 3.1)', 'true');
+  expectSchem('(> 1 2 3 1.3)', 'false');
+  expectSchem('(<= 42 42 24)', 'true');
+
   expectSchem(['(def x 2)', '(+ 1 x)'] , ['2', '3'], 'define a variable and use it in a following function');
 
   expectSchem('(not true)', 'false', 'core.schem is loaded correctly');
@@ -107,6 +111,8 @@ describe('blackbox tests', function() {
       expect(ti.println_buffer).to.equal('3 6 9');
     });
   });
+
+  expectSchem(['(defn variadic (a b & c) (list a b c))', '(variadic 1 2 3 4 5)'], '(1 2 (3 4 5))');
 
   expectSchem([`
     (def sum (fn (n acc)
@@ -170,6 +176,22 @@ describe('blackbox tests', function() {
   expectSchem([testMacro, '(def five 5)',
               '(macroexpand (executePostfix (7 (+ 1 five) *)))'],
               '(* 7 (+ 1 five))', 'Macros receive arguments as unevaluated data and expanding them works as expected.');
+
+  expectSchem(`(let [add1 (fn (x) (+ x 1))]
+                    (map add1 [1 2 3]))`,
+              '(2 3 4)');
+
+  expectSchem('(map + [1 2 3] [4 5 6] [7 8 9 10])', '(12 15 18)');
+  expectSchem('(map list `(a b c) [1 2 3] `(x y z q))', '((a 1 x) (b 2 y) (c 3 z))');
+
+  expectSchem('(map scoreStringSimilarity ["ab" "ab" "ab" "ab" "ab" "ab"] ["xabx" "abx" "axb" "bxa" "ab" "xbabx"])', '(3 5 4 0 5 3)');
+  expectSchem('(sortAndFilterByStringSimilarity "abc" ["axbxc" "abxc" "abc" "abx" "ab" "xbabxbcx"])', '("abc" "abxc" "axbxc" "xbabxbcx")');
+
+  // Invoking callable values
+  expectSchem('({:a 42 :b 13} :a)', '42');
+  expectSchem('({a: "meh" b: "bleh"} :c "default")', '"default"');
+  expectSchem('(:inner ({:outer {:inner 42}} :outer))', '42');
+  expectSchem('([:a :b :c] 2)', ':c');
 
   // MAYDO: mock $.get so this is possible?
   // expectRep('(load-url "/chaiTest.schem")', 'MEEP!');

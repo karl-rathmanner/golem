@@ -1,7 +1,7 @@
 import { Env } from './env';
 import { Schem } from './schem';
 
-export type SchemType = SchemList | SchemVector| SchemNumber | SchemSymbol | SchemKeyword | SchemNil | SchemString | SchemFunction | SchemBoolean | SchemAtom;
+export type SchemType = SchemList | SchemVector| SchemMap | SchemNumber | SchemSymbol | SchemKeyword | SchemNil | SchemString | SchemFunction | SchemBoolean | SchemAtom;
 
 export function isSequential(object: SchemType): object is SchemList | SchemVector {
   return (object instanceof SchemList || object instanceof SchemVector);
@@ -10,6 +10,7 @@ export function isSequential(object: SchemType): object is SchemList | SchemVect
 export function isSchemType(object: any): object is SchemType {
   return (object instanceof SchemList ||
           object instanceof SchemVector ||
+          object instanceof SchemMap ||
           object instanceof SchemNumber ||
           object instanceof SchemSymbol ||
           object instanceof SchemKeyword ||
@@ -20,16 +21,34 @@ export function isSchemType(object: any): object is SchemType {
           object instanceof SchemAtom);
 }
 
+export interface Callable {
+  invoke: (...args: SchemType[]) => SchemType;
+}
+
+export function isCallable(o: any): o is Callable {
+  return (typeof o.invoke === 'function');
+}
+
+export function isValidKeyType(o: any): o is SchemMapKey {
+  return o.isValidKExType;
+}
+
+
 export class SchemNumber extends Number {
   isValidKeyType = true;
 }
 
 export class SchemString extends String {
   isValidKeyType = true;
+  stringValueOf = this.valueOf;
 }
 
 export class SchemSymbol {
   isValidKeyType = true;
+  stringValueOf() {
+    return this.name;
+  }
+
   static registeredSymbols: Map<symbol, SchemSymbol> = new Map<symbol, SchemSymbol>();
 
   static from(name: string | SchemString): SchemSymbol {
@@ -49,8 +68,12 @@ export class SchemSymbol {
   }
 }
 
-export class SchemKeyword {
+export class SchemKeyword implements Callable {
   isValidKeyType = true;
+  stringValueOf() {
+    return ':' + this.name;
+  }
+
   static registeredSymbols: Map<symbol, SchemKeyword> = new Map<symbol, SchemKeyword>();
 
   static from(name: string | SchemString): SchemKeyword {
@@ -68,6 +91,17 @@ export class SchemKeyword {
 
   private constructor(public name: string) {
   }
+
+  invoke(...args: SchemType[]) {
+    if (args.length === 0) {
+      throw `Keywords aren't functions.`;
+    }
+    if (args[0] instanceof SchemMap) {
+      return (args[0] as SchemMap).get(this, args[1]);
+    } else {
+      throw 'First argument to keyword lookup must be a map';
+    }
+  }
 }
 
 export class SchemList extends Array<SchemType> {
@@ -80,20 +114,27 @@ export class SchemList extends Array<SchemType> {
   }
 }
 
-export class SchemVector extends Array<SchemType> {
+export class SchemVector extends Array<SchemType> implements Callable {
   public asArrayOfSymbols(): SchemSymbol[] {
     return this.map((e) => {
       if (!(e instanceof SchemSymbol)) throw `Vector contained an element of type ${e} where only symbols where expected`;
       return e;
     });
   }
+
+  invoke(...args: SchemType[]) {
+    const index = (args[0] instanceof SchemNumber) ? (args[0] as SchemNumber).valueOf() : NaN;
+    if (Number.isInteger(index) && index > 0 && index < this.length) {
+      return this[index];
+    }
+    return SchemNil.instance;
+  }
 }
 
 export type SchemMapKey = SchemSymbol | SchemKeyword | SchemString | SchemNumber;
 
-export class SchemMap {
+export class SchemMap implements Callable {
   private nativeMap: Map<string, SchemType> = new Map<string, SchemType>();
-
   /** Returns an array of alternating key value pairs
    * @returns
    * [key: SchemSymbol, value:  SchemType, ...] */
@@ -136,10 +177,11 @@ export class SchemMap {
     this.nativeMap.set(this.turnIntoKeyString(key), value);
   }
 
-  get(key: SchemMapKey): SchemType {
+  get(key: SchemMapKey, defaultValue?: SchemType): SchemType {
     let v = this.nativeMap.get(this.turnIntoKeyString(key));
     if (v) return v;
-    else return SchemNil.instance;
+    if (defaultValue) return defaultValue;
+    return SchemNil.instance;
   }
 
   has(key: SchemMapKey): SchemType {
@@ -154,7 +196,7 @@ export class SchemMap {
     return this.get(SchemKeyword.from(name));
   }
 
-  /** Changes each value in a SchemMap to the result of Applies the result the provided collback function.
+  /** Changes each value in a SchemMap to the result of applying the provided collback function to it.
    * If the callback returns undefined, the Map's value is left as is.
    */
   map(callbackFn: (value: SchemType , key?: SchemMapKey) => SchemType | undefined) {
@@ -172,18 +214,26 @@ export class SchemMap {
     }
   }
 
+  invoke(...args: SchemType[]) {
+    let key = args[0];
+    if ('isValidKeyType' in key) {
+      return this.get(key, args[1]);
+    } else {
+      throw `type of ${key} is not of a key for maps`;
+    }
+  }
 }
 
 export type SchemFunctionMetadata = {
-  name?: string 
-}
+  name?: string
+};
 
-export class SchemFunction {
+export class SchemFunction implements Callable {
   public isMacro = false;
   constructor(public f: Function,
     public metadata?: SchemFunctionMetadata,
     public fnContext?: {ast: SchemType, params: SchemSymbol[], env: Env}) {
-    
+
     // bind a function's name to itself within its environment
     // this allows recursion even in 'anonymous' functions
     if (this.fnContext && metadata && metadata.name && metadata.name.length > 0) {
@@ -204,6 +254,10 @@ export class SchemFunction {
     } else {
       return new Env(void 0, void 0, args);
     }
+  }
+
+  invoke(...args: SchemType[]) {
+    return this.f(...args);
   }
 }
 

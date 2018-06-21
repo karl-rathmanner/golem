@@ -7,10 +7,8 @@ export function pr_str(ast: SchemType, escapeStrings: boolean = true): string {
     return ast.toString();
   } else if (ast instanceof SchemNil) {
     return 'nil';
-  } else if (ast instanceof SchemSymbol) {
-    return ast.name;
-  } else if (ast instanceof SchemKeyword) {
-    return ':' + ast.name;
+  } else if (ast instanceof SchemSymbol || ast instanceof SchemKeyword) {
+    return ast.stringValueOf();
   } else if (ast instanceof SchemList) {
     return '(' + ast.map(e => pr_str(e, escapeStrings)).join(' ') + ')';
   } else if (ast instanceof SchemVector) {

@@ -1,4 +1,4 @@
-import { SchemFunction, SchemNumber, SchemSymbol, SchemType } from './types';
+import { SchemFunction, SchemNumber, SchemSymbol, SchemType, SchemList } from './types';
 import { Schem } from './schem';
 import { readStr } from './reader';
 
@@ -33,6 +33,11 @@ export class Env {
     }
     for (let i = 0; i < binds.length; i++) {
       if (logDebugMessages) console.log(`${binds[i].name} = ${exprs[i]}`);
+      if (binds[i].stringValueOf() === '&') {
+        // encountered a clojure style variadic function definition, turn the remaining expressions into a list and bind that to the symbol after '&'
+        this.set(binds[i + 1], new SchemList(...exprs.slice(i)));
+        return;
+      }
       this.set(binds[i], exprs[i]);
     }
   }
@@ -94,5 +99,15 @@ export class Env {
     if (!env) throw `${key.name} not found`;
     return env.symbolValueMap.get(key)!;
   }
+
+  /** Returns all symbols defined in this and all outer environments */
+  getSymbols(): Array<SchemSymbol> {
+    if (this.outer) {
+      return Array.from(this.symbolValueMap.keys()).concat(this.outer.getSymbols());
+    } else {
+      return Array.from(this.symbolValueMap.keys());
+    }
+  }
+
 }
 

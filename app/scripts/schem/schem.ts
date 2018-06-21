@@ -1,5 +1,5 @@
 import { readStr } from './reader';
-import { SchemType, SchemSymbol, SchemList, SchemFunction, SchemNil, SchemNumber, SchemBoolean, SchemVector, SchemMap, SchemKeyword, SchemMapKey, SchemString, SchemAtom, SchemFunctionMetadata } from './types';
+import { SchemType, SchemSymbol, SchemList, SchemFunction, SchemNil, SchemNumber, SchemBoolean, SchemVector, SchemMap, SchemKeyword, SchemMapKey, SchemString, SchemAtom, SchemFunctionMetadata, isCallable } from './types';
 import { isSequential } from './types';
 import { pr_str } from './printer';
 import { Env, EnvSetupMap } from './env';
@@ -22,8 +22,7 @@ export class Schem {
   constructor() {
     this.replEnv.addMap(coreFunctions);
     this.coreLoaded = false;
-
-    // functions that need a reference to the interpreter instance or environment need to go here
+    // Schem functions that need to reference the repl Environment go here - addMap doesn't support that
     this.replEnv.set('eval', (rand: SchemType) => this.evalSchem(rand, this.replEnv));
     this.replEnv.set('swap!', (atom: SchemAtom, fn: SchemFunction, ...rest: SchemType[]) => {
         atom.value = this.evalSchem(new SchemList(fn, atom.value, ...rest), this.replEnv);
@@ -38,6 +37,7 @@ export class Schem {
         return SchemNil.instance;
       }
     });
+    this.replEnv.set('listSymbols', () => new SchemList(...this.replEnv.getSymbols()));
   }
 
   async evalAST(ast: SchemType, env: Env): Promise<SchemType> {
@@ -79,7 +79,7 @@ export class Schem {
    * @description
    * TCO hint: recursive Schem functions should call themselves from tail position. Consult stackoverflow.com in case of stack overflows.
   */
-  async evalSchem(ast: SchemType, env: Env): Promise<SchemType> {
+  async evalSchem(ast: SchemType, env: Env = this.replEnv): Promise<SchemType> {
   let tcoCounter = 0;
 
   fromTheTop: while (true) {
@@ -260,55 +260,43 @@ export class Schem {
             }
           }
 
-          // Imply a call to get if a list starts with a a map. This makes lookups less tedious.
-          if (first instanceof SchemMap) {
-            ast = new SchemList(SchemSymbol.from('get'), ...ast);
-            continue fromTheTop;
-          }
-
-          // Imply a call to nth if a list starts with a vector.
-          if (first instanceof SchemVector) {
-            ast = new SchemList(SchemSymbol.from('nth'), ...ast);
-            continue fromTheTop;
-          }
-
-          // Keywords evaluate to themselves
-          if (first instanceof SchemKeyword) {
-            return first;
-          }
-
           // If first didn't match any of the above, treat it as a function: evaluate all list elements and call the first element using the others as arguments
           const [f, ...args] = await this.evalAST(ast, env) as SchemList;
 
-          if (f instanceof SchemFunction) {
-            if (this.debug.logSchemFunctionInvocation) {
-              console.log('invoking a Schem function');
-              console.group();
-              console.log(f.metadata);
-              console.log('args:');
-              console.log(args);
-            }
-            if (f.fnContext) {
-
+          if (isCallable(f)) {
+            if (f instanceof SchemFunction) {
               if (this.debug.logSchemFunctionInvocation) {
-                console.log('Function was defined in Schem and has a context object:');
-                console.log(f.fnContext);
+                console.log('invoking a Schem function');
+                console.group();
+                console.log(f.metadata);
+                console.log('args:');
+                console.log(args);
               }
+              if (f.fnContext) {
 
-              ast = f.fnContext.ast;
-              env = new Env(f.fnContext.env, f.fnContext.params, args);
-              console.groupEnd();
-              continue fromTheTop;
+                if (this.debug.logSchemFunctionInvocation) {
+                  console.log('Function was defined in Schem and has a context object:');
+                  console.log(f.fnContext);
+                }
 
-            } else {
-              if (this.debug.logSchemFunctionInvocation) {
-                console.log('Function has no context.');
+                ast = f.fnContext.ast;
+                env = new Env(f.fnContext.env, f.fnContext.params, args);
                 console.groupEnd();
+                continue fromTheTop;
+
+              } else {
+                if (this.debug.logSchemFunctionInvocation) {
+                  console.log('Function has no context.');
+                  console.groupEnd();
+                }
+                return await f.invoke(...args);
               }
-              return await f.f(...args);
+            } else {
+              ast = f.invoke(...args);
+              continue fromTheTop;
             }
           } else {
-            throw `tried to invoke ${f} as a function, when it's type was ${typeof f}`;
+            throw `Invalid form: first element is not callable`;
           }
         }
       }
@@ -350,6 +338,9 @@ export class Schem {
   }
 
   async arep(expression: string, overwrites?: EnvSetupMap): Promise<string> {
+    if (typeof expression === 'undefined' || expression.length === 0) {
+      expression = 'nil';
+    }
     if (!this.coreLoaded) {
       this.coreLoaded = true; // technically, this isn't quite true, as core.schem isn't actually loaded yet, but the flag has to be set so the call to arep below may return
         const core = require('!raw-loader!../schemScripts/core.schem');
@@ -361,6 +352,13 @@ export class Schem {
 
     if (this.debug.logArepInput) console.log('evaluating: ' + expression);
     return pr_str(await this.evalSchem(readStr(expression), this.replEnv));
+  }
+
+  async readEval(expression: string): Promise<SchemType> {
+    if (typeof expression === 'undefined' || expression.length === 0) {
+      return SchemNil.instance;
+    }
+    return await this.evalSchem(readStr(expression), this.replEnv);
   }
 
   delay(milliSeconds: number) {
@@ -390,7 +388,7 @@ export class Schem {
   async macroExpand(ast: SchemType, env: Env) {
     while (this.isMacroCall(ast, env)) {
       const [symbol, ...rest] = ast as SchemList;
-      // the following typecast are safe because isMacroCall returned true
+      // the following typecasts are safe because isMacroCall returned true
       const macroFunction = env.get(symbol as SchemSymbol) as SchemFunction;
       ast = await macroFunction.f(...rest);
     }

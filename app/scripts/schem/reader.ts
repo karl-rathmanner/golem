@@ -15,9 +15,11 @@ class Reader {
 }
 
 export function readStr(input: string): SchemType {
-  const tokens = tokenizer(input);
+  const tokens = tokenize(input);
 
-  if (tokens === []) return SchemNil; // read a comment
+  if (tokens.length === 0 ) {
+    throw `tried to evaluate empty expression`;
+  }
 
   const reader = new Reader(tokens);
   return readForm(reader);
@@ -140,7 +142,7 @@ function readAtom(reader: Reader) {
   return SchemSymbol.from(token);
 }
 
-function tokenizer(input: string): string[] {
+export function tokenize(input: string): string[] {
   const regex = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)/g;
   let matches: RegExpExecArray | null;
   let tokens: string[] = [];
@@ -148,7 +150,10 @@ function tokenizer(input: string): string[] {
   while ((matches = regex.exec(input)) !== null) {
     const match = matches[1];
     if (match === '') break;
-    tokens.push(match);
+    if (match[0] !== ';') {
+      // add token unless it's a comment
+      tokens.push(match);
+    }
   }
   return tokens;
 }
