@@ -124,10 +124,10 @@ export class SchemVector extends Array<SchemType> implements Callable {
 
   invoke(...args: SchemType[]) {
     const index = (args[0] instanceof SchemNumber) ? (args[0] as SchemNumber).valueOf() : NaN;
-    if (Number.isInteger(index) && index > 0 && index < this.length) {
+    if (Number.isInteger(index) && index >= 0 && index < this.length) {
       return this[index];
     }
-    return SchemNil.instance;
+    throw `index ${index} out of bounds`
   }
 }
 
