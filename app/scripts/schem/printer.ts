@@ -36,3 +36,30 @@ export function pr_str(ast: SchemType, escapeStrings: boolean = true): string {
     return '';
   }
 }
+
+export function prettyPrint(ast: SchemType, escapeStrings: boolean = true, opts: {indentSize: number} = {indentSize: 2}, currentIndentDepth = 0, addComma = true): string {
+  if (ast instanceof SchemList) {
+    return `(${ast.map(e => prettyPrint(e, escapeStrings, opts, currentIndentDepth + 1)).join(' ')})` + 
+      (addComma ? ',':'');
+  } else if (ast instanceof SchemVector) {
+    return '[' + 
+      ast.map((e, index) => {
+        return prettyPrint(e, escapeStrings, opts, currentIndentDepth + 1, (index < ast.length -1));
+      }).join(' ') + 
+      ']' + 
+      (addComma ? ',':'');
+  } else if (ast instanceof SchemMap) {
+    const numberOfElements = ast.flatten().length;
+    return '{\n' + 
+      ' '.repeat(opts.indentSize * (currentIndentDepth + 1)) +
+      ast.flatten().map((e, index) => {
+        let useComma = ((index % 2) > 0) && (index < numberOfElements - 1);
+        return prettyPrint(e, escapeStrings, opts, currentIndentDepth + 1, useComma);
+      }).join(' ') +
+      '\n' + ' '.repeat(opts.indentSize * (currentIndentDepth)) +
+      '}'+
+      (addComma ? ',':'');
+  } else {
+    return pr_str(ast, escapeStrings) + (addComma ? ',':'');
+  }
+}

@@ -2,7 +2,7 @@ import { SchemFunction, SchemNumber, SchemSymbol, SchemType, SchemBoolean, Schem
 import { Schem } from './schem';
 import { readStr } from './reader';
 import { Env } from './env';
-import { pr_str } from './printer';
+import { pr_str, prettyPrint } from './printer';
 import * as $ from 'jquery';
 import { browser } from 'webextension-polyfill-ts';
 
@@ -259,6 +259,9 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
 
 
     return new SchemList(...schemTypes);
+  },
+  'prettyPrint': (m: SchemMap, indent: SchemNumber = new SchemNumber(2)) => {
+    return new SchemString(prettyPrint(m, true, {indentSize: indent.valueOf()}));
   }
 };
 
