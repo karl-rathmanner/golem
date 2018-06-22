@@ -11,6 +11,8 @@ $darkText: darken($p1Phosphor, 32%);
 $veryDarkText: darken($p1Phosphor, 42%);
 $highlightedText: darken($p3Phosphor, 16%);
 
+$terminalWidth: 56em;
+
 body {
   background-color: $oldMonitorBezel;
 }
@@ -40,10 +42,10 @@ body {
 }
 
 .terminalishOutput {
-  width: 42em;
+  width: $terminalWidth;
   height: 42em;
   margin: 0;
-  padding: .5em;
+  padding: 1em;
 
   white-space: pre-wrap;
   overflow-wrap: break-word;
@@ -53,8 +55,9 @@ body {
 
 .terminalishInput {
   display: block;
-  width: 42em;
   min-height: 1.2em;
+  width: $terminalWidth - 1em;
+  margin: 0 auto;
   padding: .5em;
 
   border-style: dotted none dotted none;
@@ -77,7 +80,6 @@ body {
 
 .terminalishAutocompletePanel {
   display: block;
-  width: 42em;
   height: 3.5em;
   margin: .5em;
 
@@ -105,13 +107,13 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #222; 
+  background: $terminalBackground; 
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #888; 
+  background: $veryDarkText; 
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #999; 
+  background: $darkText; 
 }
