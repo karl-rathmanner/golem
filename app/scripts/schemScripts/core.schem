@@ -4,5 +4,25 @@
     (fn (file) 
         (eval (read-string (str "(do " (slurp file) " )")))))
   (defmacro defn
-    (fn (name params body) `(def ~name (fn ~name ~params ~body)))))
+    (fn (name params body) `(def ~name (fn ~name ~params ~body))))
   
+
+  (defmacro -> (fn self (value & fs)
+                        (if (> 0 (count fs))
+                          (list (last fs) 
+                                (apply self (cons value (butlast fs)))) 
+                          value)))
+
+  (defn add1 (x) (+ x 1))
+  (defmacro executePostfix (fn (l) (cons (last l) (butlast l)))))
+  
+  ; (defmacro => (fn self (value & fs) 
+  ;                       (if (empty? fs)
+  ;                         value
+  ;                         (do
+  ;                           (prn "supplied val" ((resolve (first fs)) value))
+  ;                           (prn "supplied fn " (rest fs))
+  ;                           (apply self 
+  ;                             (cons
+  ;                               ((resolve (first fs)) value)
+  ;                               (rest fs)))))))
