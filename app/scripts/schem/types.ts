@@ -34,8 +34,21 @@ export function isValidKeyType(o: any): o is SchemMapKey {
 }
 
 
-export class SchemNumber extends Number {
+export class SchemNumber extends Number implements Callable {
   isValidKeyType = true;
+
+  invoke(...args: SchemType[]) {
+    const i = this.valueOf();
+    const sequential = args[0];
+    if (sequential instanceof SchemList || sequential instanceof SchemVector) {
+      if (i < 0 || i >= sequential.length) {
+        throw `index ${i} out of bounds!`
+      }
+      return sequential[this.valueOf()];      
+    } else {
+      throw `integers can only be invoked with lists or vectors as parameters`;
+    }
+  }
 }
 
 export class SchemString extends String {
