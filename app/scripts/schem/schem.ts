@@ -37,7 +37,10 @@ export class Schem {
         return SchemNil.instance;
       }
     });
-    this.replEnv.set('listSymbols', () => new SchemList(...this.replEnv.getSymbols()));
+    this.replEnv.set('listSymbols', () => new SchemList(...this.replEnv.getSymbols().concat(
+      SchemSymbol.from('def'), SchemSymbol.from('defmacro'), SchemSymbol.from('macroexpand'), SchemSymbol.from('let'), SchemSymbol.from('do'),
+      SchemSymbol.from('if'), SchemSymbol.from('quote'), SchemSymbol.from('quasiquote'), SchemSymbol.from('setInterpreterOptions')
+    )));
   }
 
   async evalAST(ast: SchemType, env: Env): Promise<SchemType> {
