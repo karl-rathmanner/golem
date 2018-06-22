@@ -62,21 +62,7 @@ $.when($.ready).then(() => {
   inputElement.focus();
   inputElement.keydown((e) => {
     if (e.ctrlKey) switch (e.keyCode) {
-      case Key.Enter:
-        commandHistory.resetHistoryPosition();
-        const input = inputElement.val() as string;
-        commandHistory.addCommandToHistory(input);
-
-        interpreter.arep(input, envOverwrites).then((result) => {
-          appendToOutput(result);
-        }).catch(e => {
-          console.warn('Exception during Schem evaluation:', e);
-          appendToOutput(e);
-        });
-
-        inputElement.val('');
-        break;
-
+      
       case Key.UpArrow:
       commandHistory.previousCommand().then(v => inputElement.val(v));
         break;
@@ -85,6 +71,23 @@ $.when($.ready).then(() => {
         break;
     } else {
       switch (e.keyCode) {
+        case Key.Enter:
+          if (!e.shiftKey) {
+            commandHistory.resetHistoryPosition();
+            const input = inputElement.val() as string;
+            commandHistory.addCommandToHistory(input);
+
+            interpreter.arep(input, envOverwrites).then((result) => {
+              appendToOutput(result);
+            }).catch(e => {
+              console.warn('Exception during Schem evaluation:', e);
+              appendToOutput(e);
+            });
+
+            inputElement.val('');
+          }
+          break;
+
         case Key.Tab:
           if (autocompleteSuggestions.length > 0) {
             selectedSuggestion += (e.shiftKey) ? -1 : 1;
