@@ -95,7 +95,7 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
   'rest': (sequential: SchemList | SchemVector) => {
     throwErrorForNonSequentialArguments(sequential);
     if (sequential.length === 0) return SchemNil.instance;
-    return new SchemList(sequential.slice(1));
+    return new SchemList(...sequential.slice(1));
   },
   'last': (sequential: SchemList | SchemVector) => {
     throwErrorForNonSequentialArguments(sequential);
@@ -262,6 +262,15 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
   },
   'prettyPrint': (m: SchemMap, indent: SchemNumber = new SchemNumber(2)) => {
     return new SchemString(prettyPrint(m, true, {indentSize: indent.valueOf()}));
+  }, 
+  'prompt': (message: SchemString = new SchemString(''), defaultValue: SchemString = new SchemString('')) => {
+    let input = window.prompt(message.stringValueOf(), defaultValue.stringValueOf())
+    return new SchemString(input);
+
+  },
+  'apply': async (fn: SchemFunction, argList: SchemList | SchemVector) => {
+    throwErrorForNonSequentialArguments(argList);
+    return await fn.invoke(...argList);
   }
 };
 
