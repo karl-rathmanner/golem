@@ -179,13 +179,17 @@ export class Schem {
                * Evaluates all elements in sequence, but only returns the last one.
                */
               case 'do':
+                // return nil if do isn't followed by any expressions
+                if (ast.length == 1) {
+                  return SchemNil.instance;
+                }
                 // evaluate elements, starting from the second one, but return the last one as is
                 const evaluatedAST = new SchemList();
                 // skip the ast's first (which was 'do') and last element (which will be evaluated during next loop iteration)
                 for (let i = 1; i < ast.length - 1; i++) {
                   evaluatedAST.push(await this.evalSchem(ast[i], env));
                 }
-
+                
                 ast = ast[ast.length - 1];
                 continue fromTheTop;
 
@@ -193,9 +197,12 @@ export class Schem {
                * returns x if condition is true; otherwise returns y
                */
               case 'if':
+                if (ast.length < 3) {
+                  throw `if must be followed by at least two arguments`
+                }
                 const condition = await this.evalSchem(ast[1], env);
                 if ((condition instanceof SchemBoolean && condition === SchemBoolean.false) || condition instanceof SchemNil) {
-                  ast = ast[3];
+                  ast = (typeof ast[3] === 'undefined') ? SchemNil.instance : ast[3];
                   continue;
                 } else {
                   ast = ast[2];
@@ -224,7 +231,7 @@ export class Schem {
                   let binds = params.asArrayOfSymbols();
                   let metadata: SchemFunctionMetadata = {};
                   if (name) metadata.name = name;
-                  return SchemFunction.fromSchemWithContext(this, env, params.asArrayOfSymbols(), fnBody, metadata);
+                  return SchemFunction.fromSchemWithContext(this, env, binds, fnBody, metadata);
 
                 } catch (error) {
                   throw `binds list for new environments must only contain symbols`;
