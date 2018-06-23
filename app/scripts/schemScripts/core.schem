@@ -6,13 +6,27 @@
   (defmacro defn
     (fn (name params body) `(def ~name (fn ~name ~params ~body))))
   
-
+  ; TODO: add support for n-ary functions
   (defmacro -> (fn self (value & fs)
-                        (if (> 0 (count fs))
+                        (if (> (count fs) 0)
                           (list (last fs) 
                                 (apply self (cons value (butlast fs)))) 
                           value)))
 
+  (defmacro when (fn (predicate & expressions)
+                     `(if ~predicate (do ~@expressions))))
+
+  ; adapted from: https://github.com/kanaka/mal/blob/master/process/guide.md
+  (defmacro cond (fn (& xs) 
+                    (if (> (count xs) 0) 
+                      (list 'if (first xs) 
+                        (if (> (count xs) 1) 
+                          (nth xs 1) 
+                          (throw "odd number of forms to cond")) 
+                        (cons 'cond (rest (rest xs)))))))
+                      
+
+  
   (defn add1 (x) (+ x 1))
   (defmacro executePostfix (fn (l) (cons (last l) (butlast l)))))
   
