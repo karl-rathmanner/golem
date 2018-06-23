@@ -282,8 +282,8 @@ function doNumericComparisonForEachConsecutivePairInArray(predicate: (a: number,
     if (!(args[i] instanceof SchemNumber) || !(args[i + 1] instanceof SchemNumber)) {
       throw `trying to do numeric comparison on non numeric types (or less than two arguments)`;
     }
-    // flip argument order and negate predicate because ... reasons.
-    if (!predicate(args[i + 1].valueOf(), args[i].valueOf())) {
+    
+    if (!predicate(args[i].valueOf(), args[i + 1].valueOf())) {
       // return on the first failed test
       return SchemBoolean.false;
     }
