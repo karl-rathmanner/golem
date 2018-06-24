@@ -180,7 +180,7 @@ export class Schem {
                */
               case 'do':
                 // return nil if do isn't followed by any expressions
-                if (ast.length == 1) {
+                if (ast.length === 1) {
                   return SchemNil.instance;
                 }
                 // evaluate elements, starting from the second one, but return the last one as is
@@ -189,7 +189,7 @@ export class Schem {
                 for (let i = 1; i < ast.length - 1; i++) {
                   evaluatedAST.push(await this.evalSchem(ast[i], env));
                 }
-                
+
                 ast = ast[ast.length - 1];
                 continue fromTheTop;
 
@@ -198,7 +198,7 @@ export class Schem {
                */
               case 'if':
                 if (ast.length < 3) {
-                  throw `if must be followed by at least two arguments`
+                  throw `if must be followed by at least two arguments`;
                 }
                 const condition = await this.evalSchem(ast[1], env);
                 if ((condition instanceof SchemBoolean && condition === SchemBoolean.false) || condition instanceof SchemNil) {
