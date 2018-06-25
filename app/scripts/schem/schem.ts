@@ -37,8 +37,10 @@ export class Schem {
         return SchemNil.instance;
       }
     });
+
+    // TODO: add the 'special' symbols to the environment instead of faking it
     this.replEnv.set('listSymbols', () => new SchemList(...this.replEnv.getSymbols().concat(
-      SchemSymbol.from('def'), SchemSymbol.from('defmacro'), SchemSymbol.from('macroexpand'), SchemSymbol.from('let'), SchemSymbol.from('do'),
+      SchemSymbol.from('def'), SchemSymbol.from('defmacro'), SchemSymbol.from('macroexpand'), SchemSymbol.from('macroexpand-all'), SchemSymbol.from('let'), SchemSymbol.from('do'),
       SchemSymbol.from('if'), SchemSymbol.from('quote'), SchemSymbol.from('quasiquote'), SchemSymbol.from('setInterpreterOptions')
     )));
   }
@@ -250,8 +252,17 @@ export class Schem {
                 ast = this.evalQuasiquote(ast[1]);
                 continue fromTheTop;
 
+              /** (macroexpand (m))
+               * explicitly expand one level of a macro function
+              */
               case 'macroexpand':
                 return await this.macroExpand(ast[1], env);
+
+              /** (macroexpandAll (m))
+               * explicitly expand all macro functions (even nested ones)
+              */
+              case 'macroexpand-all':
+                return await this.macroExpandAll(ast, env);
 
               /** (setInterpreterOptions map) changes interpreter settings
                *  e.g.: (setInterpreterOptions {"logArepInput" true "pauseEvaluation" false}) */
@@ -395,12 +406,27 @@ export class Schem {
     }
   }
 
+  /** Expands the macro at the beginning of a list (repeatedly) */
   async macroExpand(ast: SchemType, env: Env) {
     while (this.isMacroCall(ast, env)) {
       const [symbol, ...rest] = ast as SchemList;
       // the following typecasts are safe because isMacroCall returned true
       const macroFunction = env.get(symbol as SchemSymbol) as SchemFunction;
       ast = await macroFunction.f(...rest);
+    }
+    return ast;
+  }
+
+  /** Recursively expands macro all functions in an abstract syntax tree */
+  async macroExpandAll(ast: SchemType, env: Env): Promise<SchemType> {
+    if (ast instanceof SchemList) {
+      return new SchemList(...await Promise.all<SchemType>(
+        ast.map(async (element) => {
+          // expand every node
+          let expandedElement = await this.macroExpand(element, env);
+          // expand their children
+          return this.macroExpandAll(expandedElement, env);
+        })));
     }
     return ast;
   }
