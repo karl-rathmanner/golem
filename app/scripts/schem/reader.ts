@@ -61,6 +61,10 @@ function readForm(reader: Reader): SchemType {
       reader.next();
       return new SchemList(SchemSymbol.from('splice-unquote'), readForm(reader));
     }
+    case '@': {
+      reader.next();
+      return new SchemList(SchemSymbol.from('deref'), readForm(reader));
+    }
     default: {
       return readAtom(reader);
     }
