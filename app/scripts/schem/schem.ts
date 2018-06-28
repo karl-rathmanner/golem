@@ -39,9 +39,9 @@ export class Schem {
     });
 
     // TODO: add the 'special' symbols to the environment instead of faking it
-    this.replEnv.set('listSymbols', () => new SchemList(...this.replEnv.getSymbols().concat(
+    this.replEnv.set('list-symbols', () => new SchemList(...this.replEnv.getSymbols().concat(
       SchemSymbol.from('def'), SchemSymbol.from('defmacro'), SchemSymbol.from('macroexpand'), SchemSymbol.from('macroexpand-all'), SchemSymbol.from('let'), SchemSymbol.from('do'),
-      SchemSymbol.from('if'), SchemSymbol.from('quote'), SchemSymbol.from('quasiquote'), SchemSymbol.from('setInterpreterOptions')
+      SchemSymbol.from('if'), SchemSymbol.from('quote'), SchemSymbol.from('quasiquote'), SchemSymbol.from('set-interpreter-options')
     )));
   }
 
@@ -264,11 +264,11 @@ export class Schem {
               case 'macroexpand-all':
                 return await this.macroExpandAll(ast, env);
 
-              /** (setInterpreterOptions map) changes interpreter settings
-               *  e.g.: (setInterpreterOptions {"logArepInput" true "pauseEvaluation" false}) */
-              case 'setInterpreterOptions':
+              /** (set-interpreter-options map) changes interpreter settings
+               *  e.g.: (set-interpreter-options {"logArepInput" true "pauseEvaluation" false}) */
+              case 'set-interpreter-options':
                 const options = await this.evalAST(ast[1], env);
-                if (!(options instanceof SchemMap)) throw `(setInterpreterOptions options) options must be a map`;
+                if (!(options instanceof SchemMap)) throw `(set-interpreter-options options) options must be a map`;
 
                 options.map((value, key) => {
                   if (key instanceof SchemString && value instanceof SchemBoolean && key.valueOf() in this.debug) {

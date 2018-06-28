@@ -1,4 +1,4 @@
 (do
-  (bindKey "1" "(setVal searchBox \"Hellö world!\")")
-  (bindKey "2" "(click submitSearch)")
-  (bindKey "3" "(setCSS \"MDE..exl-TextAreaWithScroll\" \"font-family\" \"monospace\")"))
+  (bind-key "1" "(set-val searchBox \"Hellö world!\")")
+  (bind-key "2" "(click submitSearch)")
+  (bind-key "3" "(set-css \"MDE..exl-TextAreaWithScroll\" \"font-family\" \"monospace\")"))

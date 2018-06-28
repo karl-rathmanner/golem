@@ -158,7 +158,7 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
       }
     };
 
-    let format: any = opts ? opts.getValueForKeyword('dataType') : null;
+    let format: any = opts ? opts.getValueForKeyword('data-type') : null;
     if (format instanceof SchemString) {
       ajaxSettings.dataType = format.valueOf();
     }
@@ -226,10 +226,10 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
       return new SchemList(...newValues);
     }
   },
-  'scoreStringSimilarity': (needle: SchemString, haystack: SchemString) => {
+  'score-string-similarity': (needle: SchemString, haystack: SchemString) => {
     return new SchemNumber(computeSimpleStringSimilarityScore(needle.stringValueOf(), haystack.stringValueOf()));
   },
-  'sortAndFilterByStringSimilarity' : (needle: SchemString, haystack: SchemList | SchemVector, scoreThreshold: SchemNumber = new SchemNumber(1)) => {
+  'sort-and-filter-by-string-similarity' : (needle: SchemString, haystack: SchemList | SchemVector, scoreThreshold: SchemNumber = new SchemNumber(1)) => {
 
     const rankedHaystack: Array<[number, SchemString | SchemSymbol | SchemKeyword ]> = haystack.map((hay) => {
       // create an aray of tuples [score, haystackElement]
@@ -260,7 +260,7 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
 
     return new SchemList(...schemTypes);
   },
-  'prettyPrint': (m: SchemMap, indent: SchemNumber = new SchemNumber(2)) => {
+  'pretty-print': (m: SchemMap, indent: SchemNumber = new SchemNumber(2)) => {
     return new SchemString(prettyPrint(m, true, {indentSize: indent.valueOf()}));
   }, 
   'prompt': (message: SchemString = new SchemString(''), defaultValue: SchemString = new SchemString('')) => {

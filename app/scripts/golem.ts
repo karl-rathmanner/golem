@@ -32,12 +32,12 @@ export class Golem {
     // currently using arrow notation instead of putting handler in its own function b/c 'this' needs to be bound to golem
     // TODO: an instance function would do the same I guess
     this.port.onMessage.addListener((message: {action: string, data: any}, port: Runtime.Port) => {
-      const golemClosure = this;
+
       switch (message.action) {
-        case 'setVal':
+        case 'set-val':
           $(message.data.selector).val(message.data.value);
           break;
-        case 'setCSS':
+        case 'set-css':
           const selector = message.data.selector as string;
           const element = (/^MDE\./.test(selector)) ? this.selectMDEDomElement(selector.substr(4)) : this.selectDomElement(selector);
           element.css(message.data.property, message.data.value);
@@ -45,7 +45,7 @@ export class Golem {
         case 'click':
           $(message.data.selector).click();
           break;
-        case 'bindKey':
+        case 'bind-key':
           this.schemHotKeys.set(message.data.key, message.data.schemExpression);
           break;
       }

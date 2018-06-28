@@ -185,8 +185,8 @@ describe('blackbox tests', function() {
   expectSchem('(map + [1 2 3] [4 5 6] [7 8 9 10])', '(12 15 18)');
   expectSchem('(map list `(a b c) [1 2 3] `(x y z q))', '((a 1 x) (b 2 y) (c 3 z))');
 
-  expectSchem('(map scoreStringSimilarity ["ab" "ab" "ab" "ab" "ab" "ab"] ["xabx" "abx" "axb" "bxa" "ab" "xbabx"])', '(3 5 4 0 5 3)');
-  expectSchem('(sortAndFilterByStringSimilarity "abc" ["axbxc" "abxc" "abc" "abx" "ab" "xbabxbcx"])', '("abc" "abxc" "axbxc" "xbabxbcx")');
+  expectSchem('(map score-string-similarity ["ab" "ab" "ab" "ab" "ab" "ab"] ["xabx" "abx" "axb" "bxa" "ab" "xbabx"])', '(3 5 4 0 5 3)');
+  expectSchem('(sort-and-filter-by-string-similarity "abc" ["axbxc" "abxc" "abc" "abx" "ab" "xbabxbcx"])', '("abc" "abxc" "axbxc" "xbabxbcx")');
 
   // Invoking callable values
   expectSchem('({:a 42 :b 13} :a)', '42');

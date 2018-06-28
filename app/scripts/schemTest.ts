@@ -42,10 +42,10 @@ $.when($.ready).then(() => {
       browser.runtime.sendMessage({action: 'notify', data: {message: msg}});
       return SchemNil.instance;
     },
-    'clearRepl': () => {
+    'clear-repl': () => {
       $('#output').text('');
     },
-    'setReplSeparator': (char: SchemString) => {
+    'set-repl-separator': (char: SchemString) => {
       if (char instanceof SchemString && char.length > 0) {
         if (typeof separatorPresets[char.valueOf()] !== 'undefined') {
           currentSeparator = separatorPresets[char.valueOf()];
@@ -167,7 +167,7 @@ $.when($.ready).then(() => {
       lastManuallyTypedToken = tokenAtCursorPosition;
     }
 
-    interpreter.readEval(`(sortAndFilterByStringSimilarity "${lastManuallyTypedToken}" (listSymbols))`).then((suggestions) => {
+    interpreter.readEval(`(sort-and-filter-by-string-similarity "${lastManuallyTypedToken}" (list-symbols))`).then((suggestions) => {
       if (suggestions instanceof SchemList) {
         $('#autocompleteSuggestions').empty();
         autocompleteSuggestions = [];

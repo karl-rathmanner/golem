@@ -102,9 +102,9 @@ browser.runtime.onConnect.addListener((port: Runtime.Port) => {
   }
 
   const coreGolemFunctions: {[symbol: string]: SchemType} = {
-    'setVal': (selector: SchemString, value: SchemString) => {
+    'set-val': (selector: SchemString, value: SchemString) => {
       postMessageToAlmaTab({
-        action: 'setVal',
+        action: 'set-val',
         data: {
           selector: selector.valueOf(),
           value: value.valueOf()
@@ -121,9 +121,9 @@ browser.runtime.onConnect.addListener((port: Runtime.Port) => {
       });
       return SchemBoolean.true;
     },
-    'setCSS': (selector: SchemString, property: SchemString, value: SchemString) => {
+    'set-css': (selector: SchemString, property: SchemString, value: SchemString) => {
       postMessageToAlmaTab({
-        action: 'setCSS',
+        action: 'set-css',
         data: {
           selector: selector.valueOf(),
           property: property.valueOf(),
@@ -132,17 +132,17 @@ browser.runtime.onConnect.addListener((port: Runtime.Port) => {
       });
       return SchemBoolean.true;
     },
-    'injectCSS': (css: SchemString) => {
+    'inject-css': (css: SchemString) => {
       injectCSS(port.sender!.tab!.id!, css.valueOf());
       return SchemBoolean.true;
     },
-    'getBib': async (mmsId: SchemString) => {
+    'get-bib': async (mmsId: SchemString) => {
       //$.get(`https://api-na.hosted.exlibrisgroup.com/almaws/v1/bibs/${mmsId.valueOf()}?apikey=${bibApiKey}`).then(result => console.log(result));
       return SchemNil.instance;
     },
-    'bindKey': (key: SchemString, schemExpression: SchemString) => {
+    'bind-key': (key: SchemString, schemExpression: SchemString) => {
       postMessageToAlmaTab({
-        action: 'bindKey',
+        action: 'bind-key',
         data: {
           key: key.valueOf(),
           schemExpression: schemExpression.valueOf()
