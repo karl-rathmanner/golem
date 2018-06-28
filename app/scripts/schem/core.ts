@@ -1,4 +1,4 @@
-import { SchemFunction, SchemNumber, SchemSymbol, SchemType, SchemBoolean, SchemNil, SchemList, SchemString, SchemVector, SchemMap, SchemMapKey, SchemKeyword, SchemAtom, isSequential, isSchemType } from './types';
+import { SchemFunction, SchemNumber, SchemSymbol, SchemType, SchemBoolean, SchemNil, SchemList, SchemString, SchemVector, SchemMap, SchemMapKey, SchemKeyword, SchemAtom, isSequential, isSchemType, SchemRegExp } from './types';
 import { Schem } from './schem';
 import { readStr } from './reader';
 import { Env } from './env';
@@ -271,6 +271,25 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
   'apply': async (fn: SchemFunction, argList: SchemList | SchemVector) => {
     throwErrorForNonSequentialArguments(argList);
     return await fn.invoke(...argList);
+  },
+  're-pattern': async (pattern: SchemString) => {
+    const matches = /(?:\(\?(.*)?\))?(.+)/.exec(pattern.stringValueOf());
+    if (matches === null) {
+      throw `invalid regular expression: ${pattern.stringValueOf()}`;
+    }
+    const [,flags, rest] = matches;
+    if (typeof flags !== 'undefined') {
+      return new SchemRegExp(rest, flags);
+    } 
+    return new SchemRegExp(rest);
+  },
+  're-find': async (rex: SchemRegExp, str: SchemString) => {
+    const matches = rex.exec(str.stringValueOf());
+    if (matches !== null) {
+      return new SchemVector(...matches.map(m => new SchemString(m)));
+    } else {
+      return SchemNil.instance;
+    }
   }
 };
 

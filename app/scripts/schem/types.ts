@@ -1,7 +1,7 @@
 import { Env } from './env';
 import { Schem } from './schem';
 
-export type SchemType = SchemList | SchemVector| SchemMap | SchemNumber | SchemSymbol | SchemKeyword | SchemNil | SchemString | SchemFunction | SchemBoolean | SchemAtom;
+export type SchemType = SchemList | SchemVector| SchemMap | SchemNumber | SchemSymbol | SchemKeyword | SchemNil | SchemString | SchemRegExp | SchemFunction | SchemBoolean | SchemAtom;
 
 export function isSequential(object: SchemType): object is SchemList | SchemVector {
   return (object instanceof SchemList || object instanceof SchemVector);
@@ -16,6 +16,7 @@ export function isSchemType(object: any): object is SchemType {
           object instanceof SchemKeyword ||
           object instanceof SchemNil ||
           object instanceof SchemString ||
+          object instanceof SchemRegExp ||
           object instanceof SchemFunction ||
           object instanceof SchemBoolean ||
           object instanceof SchemAtom);
@@ -54,6 +55,15 @@ export class SchemNumber extends Number implements Callable {
 export class SchemString extends String {
   isValidKeyType = true;
   stringValueOf = this.valueOf;
+}
+
+export class SchemRegExp extends RegExp {  
+  stringValueOf() {
+    if (this.flags.length > 0) {
+      return `#"(?${this.flags})${this.source}"`;
+    } 
+    return `#"${this.source}"`;
+  }
 }
 
 export class SchemSymbol {

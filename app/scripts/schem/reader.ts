@@ -65,6 +65,10 @@ function readForm(reader: Reader): SchemType {
       reader.next();
       return new SchemList(SchemSymbol.from('deref'), readForm(reader));
     }
+    case '#': {
+      reader.next();
+      return new SchemList(SchemSymbol.from('re-pattern'), readForm(reader));
+    }
     default: {
       return readAtom(reader);
     }
