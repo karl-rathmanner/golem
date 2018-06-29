@@ -112,6 +112,16 @@ browser.runtime.onConnect.addListener((port: Runtime.Port) => {
       });
       return SchemBoolean.true;
     },
+    'set-html': (selector: SchemString, html: SchemString) => {
+      postMessageToAlmaTab({
+        action: 'set-html',
+        data: {
+          selector: selector.valueOf(),
+          html: html.valueOf()
+        }
+      });
+      return SchemBoolean.true;
+    },
     'click': (selector: SchemString) => {
       postMessageToAlmaTab({
         action: 'click',

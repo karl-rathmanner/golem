@@ -37,6 +37,9 @@ export class Golem {
         case 'set-val':
           $(message.data.selector).val(message.data.value);
           break;
+        case 'set-html': 
+          //$(message.data.selector).html(message.data.html);
+          document.getElementById(message.data.selector)!.innerHTML = message.data.html;
         case 'set-css':
           const selector = message.data.selector as string;
           const element = (/^MDE\./.test(selector)) ? this.selectMDEDomElement(selector.substr(4)) : this.selectDomElement(selector);
