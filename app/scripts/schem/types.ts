@@ -43,9 +43,9 @@ export class SchemNumber extends Number implements Callable {
     const sequential = args[0];
     if (sequential instanceof SchemList || sequential instanceof SchemVector) {
       if (i < 0 || i >= sequential.length) {
-        throw `index ${i} out of bounds!`
+        throw `index ${i} out of bounds!`;
       }
-      return sequential[this.valueOf()];      
+      return sequential[this.valueOf()];
     } else {
       throw `integers can only be invoked with lists or vectors as parameters`;
     }
@@ -57,11 +57,11 @@ export class SchemString extends String {
   stringValueOf = this.valueOf;
 }
 
-export class SchemRegExp extends RegExp {  
+export class SchemRegExp extends RegExp {
   stringValueOf() {
     if (this.flags.length > 0) {
       return `#"(?${this.flags})${this.source}"`;
-    } 
+    }
     return `#"${this.source}"`;
   }
 }
@@ -150,7 +150,7 @@ export class SchemVector extends Array<SchemType> implements Callable {
     if (Number.isInteger(index) && index >= 0 && index < this.length) {
       return this[index];
     }
-    throw `index ${index} out of bounds`
+    throw `index ${index} out of bounds`;
   }
 }
 
