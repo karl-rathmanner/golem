@@ -277,7 +277,7 @@ export class Schem {
                 const options = await this.evalAST(ast[1], env);
                 if (!(options instanceof SchemMap)) throw `(set-interpreter-options options) options must be a map`;
 
-                options.map((value, key) => {
+                options.forEach((value, key) => {
                   if (key instanceof SchemString && value instanceof SchemBoolean && key.valueOf() in this.debug) {
                     (this.debug as any)[key.valueOf()] = value.valueOf();  // typecost is necessary, because the debug options literal lacks a string indexer – but we allready checked if the object has that key, so it's all good
                   }

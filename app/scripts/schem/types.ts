@@ -10,6 +10,10 @@ export interface Indexable {
   nth(index: number): SchemType;
 }
 
+export interface Reducible {
+  reduce(callbackfn: (previousValue: any, currentValue: SchemType) => any, initialValue?: any): any;
+}
+
 export interface Sequable {
   first(): SchemType;
   next(): Sequable;
@@ -36,7 +40,6 @@ export class SchemFunction implements Callable {
   constructor(public f: Function,
     public metadata?: SchemFunctionMetadata,
     public fnContext?: {ast: SchemType, params: SchemSymbol[], env: Env}) {
-
     // bind a function's name to itself within its environment
     // this allows recursion even in 'anonymous' functions
     if (this.fnContext && metadata && metadata.name && metadata.name.length > 0) {
@@ -66,7 +69,9 @@ export class SchemFunction implements Callable {
 
 // classes - Schem collection types
 
-export class SchemList extends Array<SchemType> implements Countable, Indexable {
+export class SchemList extends Array<SchemType> implements Reducible, Countable, Indexable {
+  static isCollection = true;
+
   /** Makes sure that all elements of the list are SchemSymbols and returns them in an array.*/
   public asArrayOfSymbols(): SchemSymbol[] {
     return this.map((e) => {
@@ -83,13 +88,14 @@ export class SchemList extends Array<SchemType> implements Countable, Indexable 
     return this.length;
   }
 
-
   nth(index: number) {
     return this[index];
   }
 }
 
 export class SchemVector extends Array<SchemType> implements Callable, Indexable, Countable {
+  static isCollection = true;
+
   get count(): number {
     return this.length;
   }
@@ -118,7 +124,9 @@ export class SchemVector extends Array<SchemType> implements Callable, Indexable
   }
 }
 
-export class SchemMap implements Callable {
+export class SchemMap implements Callable, Reducible {
+  static isCollection = true;
+
   private nativeMap: Map<string, SchemType> = new Map<string, SchemType>();
   /** Returns an array of alternating key value pairs
    * @returns
@@ -182,22 +190,29 @@ export class SchemMap implements Callable {
     return this.get(SchemKeyword.from(name));
   }
 
-  /** Changes each value in a SchemMap to the result of applying the provided collback function to it.
-   * If the callback returns undefined, the Map's value is left as is.
-   */
-  map(callbackFn: (value: SchemType , key?: SchemMapKey) => SchemType | undefined) {
-    const stringKeyArray = Array.from(this.nativeMap.keys());
+  /** Returns a new map from the results of passing this map's values through the callback function (keys are not changed)*/
+  map(callbackFn: (value: SchemType, key?: SchemMapKey) => SchemType): SchemMap {
+    let newMap = new SchemMap();
 
-    for (const stringKey of stringKeyArray) {
-      const schemKey = this.createSchemTypeForKeyString(stringKey);
+    this.nativeMap.forEach((value, key) => {
+      newMap.set(this.createSchemTypeForKeyString(key), callbackFn(value));
+    });
 
-      if (!this.nativeMap.has(stringKey)) {
-        throw `key '${stringKey} could not be found in map, even though a corresponding SchemKey existed`;
-      }
+    return newMap;
+  }
 
-      const newValue = callbackFn(this.nativeMap.get(stringKey)!, schemKey); // Since we checked for the key to exist in the map, the non-null assertion should be safe
-      if (newValue) this.nativeMap.set(stringKey, newValue);                 // Don't change anything if the callback returned undefined
-    }
+  forEach(callbackFn: (value: SchemType, key: SchemMapKey) => void) {
+    this.nativeMap.forEach((value: SchemType, key: string) => {
+      callbackFn(value, this.createSchemTypeForKeyString(key));
+    });
+  }
+
+  /* TODO: implement amap?
+  async amap(callbackFn: (value: SchemType , index: number, arrayOfValues: any[]) => any): Promise<any[]> {
+  }*/
+
+  reduce(callbackfn: (previousValue: number, currentValue: SchemType) => number, initialValue: number = 0): any {
+    return this.flatten().reduce(callbackfn, initialValue);
   }
 
   invoke(...args: SchemType[]) {
@@ -211,6 +226,8 @@ export class SchemMap implements Callable {
 }
 
 export class LazyVector implements Countable, Indexable {
+  static isCollection = true;
+
   private cachedValues: Map<number, SchemType>;
 
   constructor(private producer: SchemFunction, public count = Infinity) {

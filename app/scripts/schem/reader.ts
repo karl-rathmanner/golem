@@ -1,4 +1,4 @@
-import {SchemType, SchemList, SchemNumber, SchemSymbol, SchemNil, SchemString, SchemBoolean, SchemVector, SchemMap, SchemKeyword} from './types';
+import {SchemType, SchemList, SchemNumber, SchemSymbol, SchemNil, SchemString, SchemBoolean, SchemVector, SchemMap, SchemKeyword, isSchemType, isSequential, SchemMapKey} from './types';
 
 class Reader {
   private position = 0;
@@ -67,7 +67,12 @@ function readForm(reader: Reader): SchemType {
     }
     case '#': {
       reader.next();
-      return new SchemList(SchemSymbol.from('re-pattern'), readForm(reader));
+      switch (reader.peek()[0]) {
+        case '"':
+          return new SchemList(SchemSymbol.from('re-pattern'), readForm(reader));
+        case '(':
+          return expandFnShorthand(reader);
+      }
     }
     default: {
       return readAtom(reader);
@@ -148,6 +153,72 @@ function readAtom(reader: Reader) {
     case 'nil': return SchemNil.instance;
   }
   return SchemSymbol.from(token);
+}
+
+function expandFnShorthand(reader: Reader) {
+  let fnBody = readParen(reader, '(');
+  if (!(fnBody instanceof SchemList)) {
+    throw `fn shorthand failed, expected list`;
+  } else {
+
+    let containsNestedFnShorthands = false;
+    let containsAmpersandArg = false;
+    let highestPlaceholderNumber = 0;
+
+    const analyzeAndMassageCollection = (element: SchemType, indexOrKey: number | SchemMapKey, collection?: SchemType[]): SchemType => {
+      if (element instanceof SchemSymbol &&
+        element.name === '#' &&
+        typeof indexOrKey === 'number' &&
+        typeof collection !== 'undefined' &&
+        collection[indexOrKey + 1] instanceof SchemSymbol &&
+        (collection[indexOrKey + 1] as SchemSymbol).name === '(') {
+          containsNestedFnShorthands = true;
+      }
+
+      if (element instanceof SchemSymbol) {
+        if (element.name === '%') {
+          highestPlaceholderNumber = Math.max(1, highestPlaceholderNumber);
+          return SchemSymbol.from('%1');
+        } else if (/%\d$/.test(element.name)) {
+          const currentPlaceholderNumber: number = (element.name === '%') ? 1 : Number.parseInt(element.name[1]);
+          highestPlaceholderNumber = Math.max(currentPlaceholderNumber, highestPlaceholderNumber);
+        } else if (element.name === '%&') {
+          containsAmpersandArg = true;
+        }
+      }
+
+      if (element instanceof SchemVector || element instanceof SchemList) {
+        return element.map(analyzeAndMassageCollection);
+      } if (element instanceof SchemMap) {
+        return element.map(analyzeAndMassageCollection as any); // Deliberately not caring about the actual method signature, here...
+      }
+
+      return element;
+    };
+
+    /* TODO: fix check
+    if (containsNestedFnShorthands) {
+      throw `You shall not nest thy #()s!`;
+    }*/
+
+    fnBody = fnBody.map(analyzeAndMassageCollection);
+
+    let anonymousArgs = new Array<SchemType>();
+
+    for (let i = 1; i <= highestPlaceholderNumber; i++) {
+      anonymousArgs.push(SchemSymbol.from('%' + i));
+    }
+
+    if (containsAmpersandArg) {
+      anonymousArgs.push(SchemSymbol.from('&'), SchemSymbol.from('%&'));
+    }
+
+    if (!(fnBody instanceof SchemList)) {
+      throw `Something went wrong during fn-shorthand expansion. Needless to say: this should never happen.`;
+    }
+
+    return new SchemList(SchemSymbol.from('fn'), new SchemList(...anonymousArgs), new SchemList(...fnBody as SchemList));
+  }
 }
 
 export function tokenize(input: string): string[] {
