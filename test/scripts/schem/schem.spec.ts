@@ -14,10 +14,10 @@ class TestInterpreter extends Schem {
     super();
 
      // override (println x), exposes its output via println_buffer
-    this.replEnv.set('println', new SchemFunction((...args: SchemType[]) => {
-        this.println_buffer += (args.map((element) => {
+    this.replEnv.set('println', new SchemFunction(async (...args: SchemType[]) => {
+        this.println_buffer += (await Promise.all(args.map((element) => {
           return pr_str(element, false);
-        }).join(' '));
+        }))).join(' ');
         return SchemNil.instance;
       }));
   }
@@ -194,6 +194,8 @@ describe('blackbox tests', function() {
   expectSchem('(:inner ({:outer {:inner 42}} :outer))', '42');
   expectSchem('([:a :b :c] 2)', ':c');
 
+  // Lazy Vectors
+  expectSchem('(lazy-vector (fn (x) (* x x)) 7)', '[0 1 4 9 16 25 36]');
   // MAYDO: mock $.get so this is possible?
   // expectRep('(load-url "/chaiTest.schem")', 'MEEP!');
 

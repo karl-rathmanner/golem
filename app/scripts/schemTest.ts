@@ -36,8 +36,8 @@ $.when($.ready).then(() => {
   // example for an envOverwrite
   const envOverwrites: EnvSetupMap = {
     'notify': (...args: SchemType[]) => {
-      const msg: string = (args.map((element) => {
-        return pr_str(element, true);
+      const msg: string = (args.map(async (element) => {
+        return await pr_str(element, true);
       }).join(' '));
       browser.runtime.sendMessage({action: 'notify', data: {message: msg}});
       return SchemNil.instance;

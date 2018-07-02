@@ -6,6 +6,20 @@ export interface Callable {
   invoke: (...args: SchemType[]) => SchemType;
 }
 
+export interface Indexable {
+  nth(index: number): SchemType;
+}
+
+export interface Sequable {
+  first(): SchemType;
+  next(): Sequable;
+  rest(): Sequable;
+  cons(): Sequable;
+}
+
+export interface Countable {
+  count: number;
+}
 // types
 
 export type SchemType = SchemList | SchemVector| SchemMap | SchemNumber | SchemSymbol | SchemKeyword | SchemNil | SchemString | SchemRegExp | SchemFunction | SchemBoolean | SchemAtom;
@@ -52,7 +66,7 @@ export class SchemFunction implements Callable {
 
 // classes - Schem collection types
 
-export class SchemList extends Array<SchemType> {
+export class SchemList extends Array<SchemType> implements Countable, Indexable {
   /** Makes sure that all elements of the list are SchemSymbols and returns them in an array.*/
   public asArrayOfSymbols(): SchemSymbol[] {
     return this.map((e) => {
@@ -60,14 +74,39 @@ export class SchemList extends Array<SchemType> {
       return e;
     });
   }
+
+  async amap(callbackfn: (value: SchemType, index: number, array: any[]) => any, thisArg?: any): Promise<any[]> {
+    return Promise.all(this.map(callbackfn, thisArg));
+  }
+
+  get count(): number {
+    return this.length;
+  }
+
+
+  nth(index: number) {
+    return this[index];
+  }
 }
 
-export class SchemVector extends Array<SchemType> implements Callable {
+export class SchemVector extends Array<SchemType> implements Callable, Indexable, Countable {
+  get count(): number {
+    return this.length;
+  }
+
   public asArrayOfSymbols(): SchemSymbol[] {
     return this.map((e) => {
       if (!(e instanceof SchemSymbol)) throw `Vector contained an element of type ${e} where only symbols where expected`;
       return e;
     });
+  }
+
+  async amap(callbackfn: (value: SchemType, index: number, array: any[]) => any, thisArg?: any): Promise<any[]> {
+    return Promise.all(this.map(callbackfn, thisArg));
+  }
+
+  nth(index: number) {
+    return this[index];
   }
 
   invoke(...args: SchemType[]) {
@@ -84,12 +123,13 @@ export class SchemMap implements Callable {
   /** Returns an array of alternating key value pairs
    * @returns
    * [key: SchemSymbol, value:  SchemType, ...] */
-  public flatten(): SchemType[] {
-    return Array.from(this.nativeMap.keys()).reduce((acc: SchemType[], currentKey: string) => {
-      acc.push(this.createSchemTypeForKeyString(currentKey));
-      acc.push(this.nativeMap.get(currentKey)!);
-      return acc;
-    }, []);
+  public flatten(): SchemList {
+    return new SchemList(...Array.from(this.nativeMap.keys()).reduce(
+      (acc: SchemType[], currentKey: string) => {
+        acc.push(this.createSchemTypeForKeyString(currentKey));
+        acc.push(this.nativeMap.get(currentKey)!);
+        return acc;
+      }, []));
   }
 
   private turnIntoKeyString(key: SchemMapKey): string {
@@ -167,6 +207,48 @@ export class SchemMap implements Callable {
     } else {
       throw `type of ${key} is not of a key for maps`;
     }
+  }
+}
+
+export class LazyVector implements Countable, Indexable {
+  private cachedValues: Map<number, SchemType>;
+
+  constructor(private producer: SchemFunction, public count = Infinity) {
+    this.cachedValues = new Map<number, SchemType>();
+  }
+
+  async nth(index: number): Promise<SchemType> {
+    if (!this.cachedValues.has(index)) {
+      this.cachedValues.set(index,
+        await this.producer.invoke(new SchemNumber(index))
+      );
+    }
+    return this.cachedValues.get(index)!;
+  }
+
+  async realizeSubvec(start: number, end: number = this.count): Promise<SchemVector> {
+    if (typeof end === 'undefined' && this.count === Infinity) {
+      throw `can't realize an infinite vector`;
+    }
+    let realizedContents: SchemType[] = new Array<SchemType>();
+    for (let i = start; i < this.count && i < end; i++) {
+      const value = await this.nth(i);
+      realizedContents.push(value);
+    }
+    return new SchemVector(...realizedContents);
+  }
+
+  map(callbackfn: (value: SchemType, index: number, array: any[]) => any, thisArg?: any): any[] {
+    let realizedContents: SchemType[] = new Array<SchemType>();
+    for (let i = 0; i < this.count; i++) {
+      if (thisArg) {
+        realizedContents.push(callbackfn.apply(thisArg, [this.nth(i), i, realizedContents]));
+      } else {
+        const realizedValue = this.nth(i);
+        realizedContents[i] = (callbackfn(realizedValue, i, realizedContents));
+      }
+    }
+    return realizedContents;
   }
 }
 
