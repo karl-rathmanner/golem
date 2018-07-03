@@ -7,3 +7,15 @@
                 acc   
                 (inner (- n 1) (+ n acc)))))
           n 0)))
+
+(defn fizzbuzz (start end)
+  (subvec 
+    (lazy-vector 
+      #(cond 
+        (= 0 (mod % 15)) "fizzbuzz" 
+        (= 0 (mod % 3)) "fizz" 
+        (= 0 (mod % 5)) "buzz"
+        :else %)) 
+    start end))
+
+"example functions loaded"
