@@ -24,6 +24,14 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     if (currentIndex === 0) return currentValue.valueOf();
     else return accumulator / currentValue.valueOf();
   }, 0)),
+  'rem': (dividend: SchemNumber, divisor: SchemNumber) => {
+    return new SchemNumber(dividend.valueOf() % divisor.valueOf());
+  },
+  'quot': (dividend: SchemNumber, divisor: SchemNumber) => {
+    const quotient = dividend.valueOf() / divisor.valueOf();
+    // round towards zero
+    return new SchemNumber((quotient > 0) ? Math.floor(quotient) : Math.ceil(quotient));
+  },
   'sqr': (d: SchemNumber) => new SchemNumber(d.valueOf() * d.valueOf()),
   '=': (...args: SchemType[]) => {
     throwErrorIfArityIsInalid(args.length, 1);
