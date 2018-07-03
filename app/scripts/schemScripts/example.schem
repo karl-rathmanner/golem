@@ -8,13 +8,13 @@
                 (inner (- n 1) (+ n acc)))))
           n 0)))
 
-(defn fizzbuzz (start end)
+(defn fizz-buzz (start end)
   (subvec 
     (lazy-vector 
       #(cond 
-        (= 0 (mod % 15)) "fizzbuzz" 
-        (= 0 (mod % 3)) "fizz" 
-        (= 0 (mod % 5)) "buzz"
+        (= 0 (rem % 15)) "fizzbuzz" 
+        (= 0 (rem % 3)) "fizz" 
+        (= 0 (rem % 5)) "buzz"
         :else %)) 
     start end))
 
