@@ -1,13 +1,3 @@
-(def
-  sum (fn (n) 
-        (
-          (def inner 
-            (fn (n acc) 
-              (if (= n 0) 
-                acc   
-                (inner (- n 1) (+ n acc)))))
-          n 0)))
-
 (defn fizz-buzz (start end)
   (subvec 
     (lazy-vector 
@@ -18,4 +8,7 @@
         :else %)) 
     start end))
 
-"example functions loaded"
+(defn add1 (x) (+ x 1))
+(defmacro executePostfix (fn (l) (cons (last l) (butlast l))))
+
+"example functions/macros loaded"
