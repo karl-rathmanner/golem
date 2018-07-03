@@ -1,20 +1,33 @@
 (do 
-  (def not (fn (a) (if a false true)))
-  (def load-file 
-    (fn (file) 
-        (eval (read-string (str "(do " (slurp file) " )")))))
-  (defmacro defn
-    (fn (name params body) `(def ~name (fn ~name ~params ~body))))
-  
-  ; TODO: add support for n-ary functions
-  (defmacro -> (fn self (value & fs)
-                        (if (> (count fs) 0)
-                          (list (last fs) 
-                                (apply self (cons value (butlast fs)))) 
-                          value)))
 
   (defmacro when (fn (predicate & expressions)
                      `(if ~predicate (do ~@expressions))))
+
+  (def not (fn (a) (if a false true)))
+
+  (def load-file 
+    (fn (file) 
+        (eval (read-string (str "(do " (slurp file) " )")))))
+
+  (defmacro defn
+    (fn (name params body) `(def ~name (fn ~name ~params ~body))))
+
+  ; The thread first macro turns this:
+  ; (-> x fn1 (fn2 y z) fn3)
+  ; into this:
+  ; (fn3 (fn2 (fn1 x) y z))
+  (defmacro -> (fn self (value & forms)
+                        (if (> (count forms) 0)
+                          (let (lastForm (last forms))
+                            (if (list? lastForm)
+                              `(
+                                ~(first lastForm)
+                                ~(apply self (cons value (butlast forms)))
+                                ~@(rest lastForm))
+                              `(
+                                ~lastForm 
+                                ~(apply self (cons value (butlast forms)))))) 
+                          value)))
 
   ; adapted from: https://github.com/kanaka/mal/blob/master/process/guide.md
   (defmacro cond (fn (& xs) 
@@ -22,21 +35,5 @@
                       (list 'if (first xs) 
                         (if (> (count xs) 1) 
                           (nth xs 1) 
-                          (throw "odd number of forms to cond")) 
-                        (cons 'cond (rest (rest xs)))))))
-                      
-
-  
-  (defn add1 (x) (+ x 1))
-  (defmacro executePostfix (fn (l) (cons (last l) (butlast l)))))
-  
-  ; (defmacro => (fn self (value & fs) 
-  ;                       (if (empty? fs)
-  ;                         value
-  ;                         (do
-  ;                           (prn "supplied val" ((resolve (first fs)) value))
-  ;                           (prn "supplied fn " (rest fs))
-  ;                           (apply self 
-  ;                             (cons
-  ;                               ((resolve (first fs)) value)
-  ;                               (rest fs)))))))
+                          (throw "odd number of forms supplied to cond")) 
+                        (cons 'cond (rest (rest xs))))))))
