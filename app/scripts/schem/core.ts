@@ -1,4 +1,4 @@
-import { SchemFunction, SchemNumber, SchemSymbol, SchemType, SchemBoolean, SchemNil, SchemList, SchemString, SchemVector, SchemMap, SchemMapKey, SchemKeyword, SchemAtom, isSequential, isSchemType, SchemRegExp } from './types';
+import { SchemFunction, SchemNumber, SchemSymbol, SchemType, SchemBoolean, SchemNil, SchemList, SchemString, SchemVector, SchemMap, SchemMapKey, SchemKeyword, SchemAtom, isSequential, isSchemType, SchemRegExp, LazyVector } from './types';
 import { Schem } from './schem';
 import { readStr } from './reader';
 import { Env } from './env';
@@ -81,10 +81,14 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     return SchemBoolean.fromBoolean(arg instanceof SchemVector);
   },
   'count': (arg: SchemType) => {
-    if (arg instanceof SchemList || arg instanceof SchemVector) {
+    if ('count' in arg) {
+      return new SchemNumber(arg.count);
+    } else if (arg instanceof SchemString) {
       return new SchemNumber(arg.length);
-    } else {
+    } else if (arg === SchemNil.instance) {
       return new SchemNumber(0);
+    } else {
+      throw `tried to count soemthing other than a collection, string or nil`;
     }
   },
   'first': (sequential: SchemList | SchemVector) => {
@@ -111,8 +115,10 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     throwErrorForNonSequentialArguments(sequential);
     const i = index.valueOf();
     if (i < 0) throw `index value must be positive`;
-    if (i >= sequential.length) throw `index out of bounds: ${i} >= ${sequential.length}`;
-    return sequential[index.valueOf()];
+    if (!(sequential instanceof LazyVector) && i >= sequential.length) {
+      throw `index out of bounds: ${i} >= ${sequential.length}`;
+    }
+    return sequential.nth(index.valueOf());
   },
 
   /** calls pr_str (escaped) on each argument, joins the results, seperated by ' ' */
@@ -124,23 +130,18 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     );
   },
   /** calls pr_str (unescaped) on each argument, concatenates the results */
-  'str': (...args: SchemType[]) => {
+  'str': async (...args: SchemType[]) => {
     return new SchemString(
-      args.map((element) => {
-        return pr_str(element, false);
-      }).join('')
+      (await asyncStringifyAll(args, false)).join('')
     );
   },
-  'prn': (...args: SchemType[]) => {
-    console.log(args.map((element) => {
-      return pr_str(element, true);
-    }).join(' '));
+  'prn': async (...args: SchemType[]) => {
+    const stringified = await asyncStringifyAll(args);
+    console.log(stringified.join(' '));
     return SchemNil.instance;
   },
-  'println': (...args: SchemType[]) => {
-    console.log(args.map((element) => {
-      return pr_str(element, false);
-    }).join(' '));
+  'println': async (...args: SchemType[]) => {
+    console.log(await asyncStringifyAll(args, false));
     return SchemNil.instance;
   },
   'read-string': (str: SchemString) => {
@@ -257,14 +258,13 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
       return element[1];
     });
 
-
     return new SchemList(...schemTypes);
   },
-  'pretty-print': (m: SchemMap, indent: SchemNumber = new SchemNumber(2)) => {
-    return new SchemString(prettyPrint(m, true, {indentSize: indent.valueOf()}));
-  }, 
+  'pretty-print': async (m: SchemMap, indent: SchemNumber = new SchemNumber(2)) => {
+    return new SchemString(await prettyPrint(m, true, {indentSize: indent.valueOf()}));
+  },
   'prompt': (message: SchemString = new SchemString(''), defaultValue: SchemString = new SchemString('')) => {
-    let input = window.prompt(message.stringValueOf(), defaultValue.stringValueOf())
+    let input = window.prompt(message.stringValueOf(), defaultValue.stringValueOf());
     return new SchemString(input);
 
   },
@@ -277,10 +277,10 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     if (matches === null) {
       throw `invalid regular expression: ${pattern.stringValueOf()}`;
     }
-    const [,flags, rest] = matches;
+    const [, flags, rest] = matches;
     if (typeof flags !== 'undefined') {
       return new SchemRegExp(rest, flags);
-    } 
+    }
     return new SchemRegExp(rest);
   },
   're-find': async (rex: SchemRegExp, str: SchemString) => {
@@ -290,6 +290,28 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     } else {
       return SchemNil.instance;
     }
+  },
+  'lazy-vector': (producer: SchemFunction, count?: SchemNumber) => {
+    return new LazyVector(producer, (count) ? count.valueOf() : Infinity);
+  },
+  'subvec': async (source: SchemVector | LazyVector, start?: SchemNumber, end?: SchemNumber) => {
+    if (source instanceof SchemVector) {
+      return source.slice(
+        (start) ? start.valueOf() : 0,
+        (end) ? end.valueOf() : undefined
+      );
+    } else {
+      if (typeof end === 'undefined' && source.count === Infinity) {
+        throw `You must provide an end index for lazy vectors of infinite size.`;
+      }
+      return source.realizeSubvec(
+        (start) ? start.valueOf() : 0,
+        (end) ? end.valueOf() : undefined);
+    }
+  },
+  'console-log': (value: any) => {
+    console.log(value);
+    return SchemNil.instance;
   }
 };
 
@@ -301,7 +323,6 @@ function doNumericComparisonForEachConsecutivePairInArray(predicate: (a: number,
     if (!(args[i] instanceof SchemNumber) || !(args[i + 1] instanceof SchemNumber)) {
       throw `trying to do numeric comparison on non numeric types (or less than two arguments)`;
     }
-    
     if (!predicate(args[i].valueOf(), args[i + 1].valueOf())) {
       // return on the first failed test
       return SchemBoolean.false;
@@ -322,7 +343,7 @@ function throwErrorIfArityIsInalid(argsLength: number, min: number = 1, max: num
 
 function throwErrorForNonSequentialArguments(...args: SchemType[]) {
   args.forEach(arg => {
-    if (!isSequential(arg)) {
+    if (!(isSequential(arg) || ('nth' in arg))) {
       throw `Expected argument to be sequential. Got this instead: ${arg}`;
     }
   });
@@ -330,6 +351,12 @@ function throwErrorForNonSequentialArguments(...args: SchemType[]) {
 
 function hasSameConstructorAndValue(a: SchemType, b: SchemType): boolean {
   return (a.constructor === b.constructor && a.valueOf() === b.valueOf());
+}
+
+async function asyncStringifyAll(schemObjects: SchemType[], escapeStrings: boolean = true): Promise<string[]> {
+  return Promise.all(schemObjects.map((element) => {
+    return pr_str(element, escapeStrings);
+  }));
 }
 
 function createSchemMapFromXMLDocument(xmlDoc: XMLDocument): SchemMap {

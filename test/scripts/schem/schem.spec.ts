@@ -14,10 +14,10 @@ class TestInterpreter extends Schem {
     super();
 
      // override (println x), exposes its output via println_buffer
-    this.replEnv.set('println', new SchemFunction((...args: SchemType[]) => {
-        this.println_buffer += (args.map((element) => {
+    this.replEnv.set('println', new SchemFunction(async (...args: SchemType[]) => {
+        this.println_buffer += (await Promise.all(args.map((element) => {
           return pr_str(element, false);
-        }).join(' '));
+        }))).join(' ');
         return SchemNil.instance;
       }));
   }
@@ -193,6 +193,13 @@ describe('blackbox tests', function() {
   expectSchem('({a: "meh" b: "bleh"} :c "default")', '"default"');
   expectSchem('(:inner ({:outer {:inner 42}} :outer))', '42');
   expectSchem('([:a :b :c] 2)', ':c');
+
+  // Lazy Vectors
+  expectSchem('(lazy-vector (fn (x) (* x x)) 7)', '[0 1 4 9 16 25 36]');
+
+  // fn shorthand
+  expectSchem('(#(list %3 [%5 [%4]] (list %1 {:first % :rest %&}) ) 1 2 3 4 5 6 7)', '(3 [5 [4]] (1 {:first 1 :rest (6 7)}))',
+              `The reader macro #() expands correctly, finding placeholders in nested collections, treating "%" and "%1" as interchangeable, it doesn't care about the order in which placeholders occur or if some are omitted`);
 
   // MAYDO: mock $.get so this is possible?
   // expectRep('(load-url "/chaiTest.schem")', 'MEEP!');

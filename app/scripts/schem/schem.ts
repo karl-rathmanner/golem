@@ -1,5 +1,5 @@
 import { readStr } from './reader';
-import { SchemType, SchemSymbol, SchemList, SchemFunction, SchemNil, SchemNumber, SchemBoolean, SchemVector, SchemMap, SchemKeyword, SchemMapKey, SchemString, SchemAtom, SchemFunctionMetadata, isCallable } from './types';
+import { SchemType, SchemSymbol, SchemList, SchemFunction, SchemNil, SchemNumber, SchemBoolean, SchemVector, SchemMap, SchemKeyword, SchemMapKey, SchemString, SchemAtom, SchemFunctionMetadata, isCallable, LazyVector } from './types';
 import { isSequential } from './types';
 import { pr_str } from './printer';
 import { Env, EnvSetupMap } from './env';
@@ -62,7 +62,14 @@ export class Schem {
       }
 
       return evaluatedAST;
+    } else if (ast instanceof LazyVector) {
 
+      const evaluatedAST = new SchemVector();
+      for (let i = 0; i < ast.count; i++) {
+        evaluatedAST[i] = await this.evalSchem((ast.nth(i) as SchemType), env);
+      }
+
+      return evaluatedAST;
     } else if (ast instanceof SchemMap) {
       let m = new SchemMap();
 
@@ -96,7 +103,7 @@ export class Schem {
           console.log(`evalSchem looped. Number of recursions skipped due to TCO: ${tcoCounter}`);
         }
         console.group();
-        console.log('ast: ' + pr_str(ast));
+        console.log('ast: ' + await pr_str(ast));
         console.log(ast);
         console.log('env: ' + env.name);
         console.log(env);
@@ -270,7 +277,7 @@ export class Schem {
                 const options = await this.evalAST(ast[1], env);
                 if (!(options instanceof SchemMap)) throw `(set-interpreter-options options) options must be a map`;
 
-                options.map((value, key) => {
+                options.forEach((value, key) => {
                   if (key instanceof SchemString && value instanceof SchemBoolean && key.valueOf() in this.debug) {
                     (this.debug as any)[key.valueOf()] = value.valueOf();  // typecost is necessary, because the debug options literal lacks a string indexer – but we allready checked if the object has that key, so it's all good
                   }
@@ -372,7 +379,7 @@ export class Schem {
     }
 
     if (this.debug.logArepInput) console.log('evaluating: ' + expression);
-    return pr_str(await this.evalSchem(readStr(expression), this.replEnv));
+    return await pr_str(await this.evalSchem(readStr(expression), this.replEnv));
   }
 
   async readEval(expression: string): Promise<SchemType> {

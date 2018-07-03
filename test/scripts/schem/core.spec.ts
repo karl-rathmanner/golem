@@ -107,10 +107,7 @@ describe('core operators', function() {
       let res = getCoreFunction('count')(new SchemVector(0, 1, 2, 3, 4, 5));
       expect(res).hasValueOf(6);
     });
-    it('counting a non-list/vector returns 0', function () {
-      expect(getCoreFunction('count')(new SchemNumber(123))).hasValueOf(0);
-      expect(getCoreFunction('count')(new SchemString('x'))).hasValueOf(0);
-      expect(getCoreFunction('count')(SchemBoolean.true)).hasValueOf(0);
+    it('counting a nil returns 0', function () {
       expect(getCoreFunction('count')(SchemNil.instance)).hasValueOf(0);
     });
   });
