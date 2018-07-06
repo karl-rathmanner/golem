@@ -1,10 +1,8 @@
-import { SchemFunction, SchemNumber, SchemSymbol, SchemType, SchemBoolean, SchemNil, SchemList, SchemString, SchemVector, SchemMap, SchemMapKey, SchemKeyword, SchemAtom, isSequential, isSchemType, SchemRegExp, LazyVector } from './types';
-import { Schem } from './schem';
-import { readStr } from './reader';
-import { Env } from './env';
-import { pr_str, prettyPrint } from './printer';
 import * as $ from 'jquery';
 import { browser } from 'webextension-polyfill-ts';
+import { prettyPrint, pr_str } from './printer';
+import { readStr } from './reader';
+import { isSequential, LazyVector, SchemAtom, SchemBoolean, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemNil, SchemNumber, SchemRegExp, SchemString, SchemSymbol, SchemType, SchemVector } from './types';
 
 export const coreFunctions: {[symbol: string]: SchemType} = {
   '+': (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue: SchemNumber, currentIndex: number) => {

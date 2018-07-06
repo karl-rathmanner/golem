@@ -1,13 +1,13 @@
 import * as $ from 'jquery';
-import { Key } from './utils/Key.enum';
-import { Schem } from './schem/schem';
-import { SchemBoolean, SchemType, SchemNil, SchemString, SchemList, SchemSymbol, SchemKeyword } from './schem/types';
+import { browser } from 'webextension-polyfill-ts';
+import { Settings } from './options';
 import { EnvSetupMap } from './schem/env';
 import { pr_str } from './schem/printer';
-import { browser } from 'webextension-polyfill-ts';
-import { CommandHistory } from './utils/commandHistory';
-import { Settings } from './options';
 import { tokenize } from './schem/reader';
+import { Schem } from './schem/schem';
+import { SchemKeyword, SchemList, SchemNil, SchemString, SchemSymbol, SchemType } from './schem/types';
+import { CommandHistory } from './utils/commandHistory';
+import { Key } from './utils/Key.enum';
 
 $.when($.ready).then(() => {
   const inputElement = $('#input');

@@ -1,12 +1,9 @@
 // Enable chromereload by uncommenting this line:
 import 'chromereload/devonly';
-import { browser, Browser, Runtime, Tabs } from 'webextension-polyfill-ts';
-import { Golem } from './golem';
-import { Schem } from './schem/schem';
-import { SchemType, SchemString, SchemBoolean, SchemNil, SchemNumber } from './schem/types';
-//import { bibApiKey } from './local/apiKeys';
-import * as $ from 'jquery';
+import { browser, Runtime, Tabs } from 'webextension-polyfill-ts';
 import { Settings } from './options';
+import { Schem } from './schem/schem';
+import { SchemBoolean, SchemNil, SchemString, SchemType } from './schem/types';
 
 // import almaKeywords from '!raw-loader!./schemScripts/almaKeywords.schem';
 const almaKeywords = require('!raw-loader!./schemScripts/almaKeywords.schem');

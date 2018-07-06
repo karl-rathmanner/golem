@@ -1,12 +1,11 @@
-import { Schem } from './schem/schem';
+// load css as string
+import * as iFrameStyle from '!raw-loader!../styles/iFrame.css';
 import * as $ from 'jquery';
-
+import { browser, Runtime } from 'webextension-polyfill-ts';
 import { CommandHistory } from './utils/commandHistory';
 import { Key } from './utils/Key.enum';
-import { browser, Runtime } from 'webextension-polyfill-ts';
 
-// load css and schem file as string
-import * as iFrameStyle from '!raw-loader!../styles/iFrame.css';
+
 
 export class Golem {
   private inputBox: JQuery<HTMLElement>;

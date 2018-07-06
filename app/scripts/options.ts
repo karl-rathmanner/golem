@@ -2,7 +2,6 @@
 // import 'chromereload/devonly';
 import * as $ from 'jquery';
 import { browser } from 'webextension-polyfill-ts';
-import { settings } from 'cluster';
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('options page loaded');

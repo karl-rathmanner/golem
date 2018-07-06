@@ -1,11 +1,9 @@
-import { readStr } from './reader';
-import { SchemType, SchemSymbol, SchemList, SchemFunction, SchemNil, SchemNumber, SchemBoolean, SchemVector, SchemMap, SchemKeyword, SchemMapKey, SchemString, SchemAtom, SchemFunctionMetadata, isCallable, LazyVector } from './types';
-import { isSequential } from './types';
-import { pr_str } from './printer';
-import { Env, EnvSetupMap } from './env';
-import { coreFunctions } from './core';
-// import  content from '../schemScripts/core.schem';
 import { browser } from 'webextension-polyfill-ts';
+import { coreFunctions } from './core';
+import { Env, EnvSetupMap } from './env';
+import { pr_str } from './printer';
+import { readStr } from './reader';
+import { isCallable, isSequential, LazyVector, SchemAtom, SchemBoolean, SchemFunction, SchemFunctionMetadata, SchemList, SchemMap, SchemMapKey, SchemNil, SchemString, SchemSymbol, SchemType, SchemVector } from './types';
 
 export class Schem {
 

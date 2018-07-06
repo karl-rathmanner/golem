@@ -1,6 +1,6 @@
-import { SchemFunction, SchemNumber, SchemSymbol, SchemType, SchemList } from './types';
-import { Schem } from './schem';
 import { readStr } from './reader';
+import { Schem } from './schem';
+import { SchemFunction, SchemList, SchemSymbol, SchemType } from './types';
 
 /** This allows concevient initialization of environments when using Env.addMap()
  *
