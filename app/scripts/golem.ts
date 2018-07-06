@@ -51,6 +51,10 @@ export class Golem {
         case 'bind-key':
           this.schemHotKeys.set(message.data.key, message.data.schemExpression);
           break;
+        case 'add-event-listener':
+          $(message.data.selector).on(message.data.events, () => {
+            this.evalAndLogOutput(message.data.expression)
+          });
       }
       return true;
     });
@@ -70,9 +74,8 @@ export class Golem {
     // Note: can't use jQuery here, because I want events to be captured/prevent bubbling
     const golemClosure = this;
     window.addEventListener('keydown', function(event) {
-      console.log(golemClosure);
       if (event.altKey && golemClosure.schemHotKeys.has(event.key)) {
-          golemClosure.arepSchemExpressionByEventPage(golemClosure.schemHotKeys.get(event.key)!);
+          golemClosure.evalAndLogOutput(golemClosure.schemHotKeys.get(event.key)!);
           console.log('hotkey');
           event.stopImmediatePropagation();
       }
@@ -99,7 +102,17 @@ export class Golem {
     * See: https://github.com/Microsoft/TypeScript/issues/18877
     * Until either the polyfill module is fixed or someone has a better idea, I'll just cast that method to 'any' and be done with it. I already wasted four hours on this. :|
     */
-    (this.port.postMessage as any)({action: 'arep', schemExpression: expression});
+    return (this.port.postMessage as any)({action: 'arep', schemExpression: expression}, (r: any) => console.log(r));
+    
+  }
+
+  private async evalAndLogOutput(expression: string) {
+    try {
+      const result = await this.arepSchemExpressionByEventPage(expression);
+      console.log(result);
+    } catch(e) {
+      console.log(e);              
+    };
   }
 
   private createInputBox() {
@@ -129,7 +142,8 @@ export class Golem {
             commandHistory.resetHistoryPosition();
             const input = inputField.val() as string;
             commandHistory.addCommandToHistory(input);
-            this.arepSchemExpressionByEventPage(input);
+            this.evalAndLogOutput(input);
+
             inputField.val('');
             this.hideinputBox();
           break;

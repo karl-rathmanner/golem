@@ -1,6 +1,6 @@
 // Enable chromereload by uncommenting this line:
 import 'chromereload/devonly';
-import { browser } from 'webextension-polyfill-ts';
+import { browser, Runtime } from 'webextension-polyfill-ts';
 import * as $ from 'jquery';
 
 if (process.env.NODE_ENV === 'development') {
@@ -25,7 +25,7 @@ let golem: Golem;
 
 function startListening() {
   golem.addEventListeners();
-  browser.runtime.onMessage.addListener((m: {action: string, data: any}) => {
+  browser.runtime.onMessage.addListener(async (m: {action: string, data: any}, sender: Runtime.MessageSender) => {
     switch (m.action) {
       case 'showGolemInput':
         golem.toggleInputBoxVisibility();

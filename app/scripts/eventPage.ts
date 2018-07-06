@@ -18,7 +18,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 
 
-browser.runtime.onMessage.addListener((message: {action: string, data: any}, sender) => {
+browser.runtime.onMessage.addListener(async (message: {action: string, data: any}, sender) => {
   switch (message.action) {
     case 'getInterpreter':
     case 'notify': {
@@ -83,18 +83,18 @@ browser.runtime.onConnect.addListener((port: Runtime.Port) => {
       return interpreter;
     }
   }
+  // look at dis: https://stackoverflow.com/questions/20077487/chrome-extension-message-passing-response-not-sent?rq=1
+  // and dis: https://developer.mozilla.org/en-US/Add-ons/WebExtensions/API/runtime/onMessage
+  // sendresponse will be removed
 
+  //use plain messages instead of ports?
   portForAlmaTab.onMessage.addListener((msg, port) => {
-    if (msg.action === 'arep') {
-      (async (schemExpression) => {
+      return (async (schemExpression) => {
         const interpreter = await getInterpreterForTab(port.sender!.tab!);
-        interpreter.arep(schemExpression).then(result => {
-          console.log(result);
-        });
+        const result = await interpreter.arep(schemExpression);
+        (port.postMessage as any)(result);
+        return result;
       })(msg.schemExpression);
-      return;
-    }
-    console.warn(`unknown action in message`, msg);
   });
 
   function postMessageToAlmaTab(msg: any) {
@@ -159,6 +159,17 @@ browser.runtime.onConnect.addListener((port: Runtime.Port) => {
         }
       });
       return SchemBoolean.true;
+    },
+    'add-event-listener': (selector: SchemString, events: SchemString, schemExpression: SchemString) => {
+      postMessageToAlmaTab({
+        action: 'add-event-listener',
+        data: {
+          selector: selector.valueOf(),
+          events: events.valueOf(),
+          schemExpression: schemExpression.valueOf()
+        }
+      });
+      return SchemBoolean.true;
     }
   };
 
@@ -171,13 +182,13 @@ browser.commands.onCommand.addListener(function(command) {
   switch (command) {
     case 'go-go-golem': {
 
-      browser.tabs.query({currentWindow: true}).then((tabs) => {
+      browser.tabs.query({active: true, currentWindow: true}).then((tabs) => {
         browser.windows.getCurrent().then((window) => {
           if (window.id) browser.windows.update(window.id, {state: 'maximized', focused: true});
         });
 
         for (let tab of tabs) {
-          if (tab && tab.id && /alma/.test(tab.url!) && !/pdsHandleLogin/.test(tab.url!)) {
+          if (tab && tab.id && !/pdsHandleLogin/.test(tab.url!)) {
             browser.tabs.sendMessage(tab.id, {action: 'showGolemInput'});
 
             /* random example
