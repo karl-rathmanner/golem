@@ -194,6 +194,12 @@ describe('blackbox tests', function() {
   expectSchem('(:inner ({:outer {:inner 42}} :outer))', '42');
   expectSchem('([:a :b :c] 2)', ':c');
 
+  // thread first macro
+  expectSchem(`(-> {:six 6} :six (* 3 2.3333333333333333) (#(str "It's " %1 "!"))))`, `"It's 42!"`, 'Thread first macro supports unary, n-ary and anonymous functions');
+  expectSchem(`(macroexpand (-> {:six 6} :six (* 7) (#(str "It's " %1 "!"))))`,
+              `((fn (%1) (str "It's " %1 "!")) (* (:six {:six 6}) 7))`,
+              '(-> convoluted example) expands into (even less readable code)');
+
   // Lazy Vectors
   expectSchem('(lazy-vector (fn (x) (* x x)) 7)', '[0 1 4 9 16 25 36]');
 
