@@ -63,7 +63,7 @@ browser.runtime.onConnect.addListener((port: Runtime.Port) => {
     if (interpreterInstances.has(tab.id)) {
       // stuff that changes a tab's state has to be called again on reloads & navigation (only the schem environment survives them)
       // TODO: implement proper event handling, so the interpreter itself could react to this situation
-      const interpreter = interpreterInstances.get(tab.id)!
+      const interpreter = interpreterInstances.get(tab.id)!;
       interpreter.arep(demoKeyBindings);
       return interpreter;
     } else {
@@ -84,7 +84,7 @@ browser.runtime.onConnect.addListener((port: Runtime.Port) => {
   // and dis: https://developer.mozilla.org/en-US/Add-ons/WebExtensions/API/runtime/onMessage
   // sendresponse will be removed
 
-  //use plain messages instead of ports?
+  // use plain messages instead of ports?
   portForAlmaTab.onMessage.addListener((msg, port) => {
       return (async (schemExpression) => {
         const interpreter = await getInterpreterForTab(port.sender!.tab!);
@@ -144,7 +144,7 @@ browser.runtime.onConnect.addListener((port: Runtime.Port) => {
       return SchemBoolean.true;
     },
     'get-bib': async (mmsId: SchemString) => {
-      //$.get(`https://api-na.hosted.exlibrisgroup.com/almaws/v1/bibs/${mmsId.valueOf()}?apikey=${bibApiKey}`).then(result => console.log(result));
+      // $.get(`https://api-na.hosted.exlibrisgroup.com/almaws/v1/bibs/${mmsId.valueOf()}?apikey=${bibApiKey}`).then(result => console.log(result));
       return SchemNil.instance;
     },
     'bind-key': (key: SchemString, schemExpression: SchemString) => {

@@ -36,8 +36,8 @@ export class Golem {
         case 'set-val':
           $(message.data.selector).val(message.data.value);
           break;
-        case 'set-html': 
-          //$(message.data.selector).html(message.data.html);
+        case 'set-html':
+          // $(message.data.selector).html(message.data.html);
           document.getElementById(message.data.selector)!.innerHTML = message.data.html;
         case 'set-css':
           const selector = message.data.selector as string;
@@ -52,7 +52,7 @@ export class Golem {
           break;
         case 'add-event-listener':
           $(message.data.selector).on(message.data.events, () => {
-            this.evalAndLogOutput(message.data.expression)
+            this.evalAndLogOutput(message.data.expression);
           });
       }
       return true;
@@ -102,16 +102,16 @@ export class Golem {
     * Until either the polyfill module is fixed or someone has a better idea, I'll just cast that method to 'any' and be done with it. I already wasted four hours on this. :|
     */
     return (this.port.postMessage as any)({action: 'arep', schemExpression: expression}, (r: any) => console.log(r));
-    
+
   }
 
   private async evalAndLogOutput(expression: string) {
     try {
       const result = await this.arepSchemExpressionByEventPage(expression);
       console.log(result);
-    } catch(e) {
-      console.log(e);              
-    };
+    } catch (e) {
+      console.log(e);
+    }
   }
 
   private createInputBox() {
