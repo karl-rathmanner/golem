@@ -128,11 +128,9 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
   },
 
   /** calls pr_str (escaped) on each argument, joins the results, seperated by ' ' */
-  'pr-str': (...args: SchemType[]) => {
+  'pr-str': async (...args: SchemType[]) => {
     return new SchemString(
-      args.map((element) => {
-        return pr_str(element, true);
-      }).join(' ')
+      (await asyncStringifyAll(args, true)).join(' ')
     );
   },
   /** calls pr_str (unescaped) on each argument, concatenates the results */
