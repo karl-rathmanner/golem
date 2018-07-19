@@ -15,7 +15,7 @@ When it grows up, Schem is going to be a clojure-ish lisp dialect that's going t
 
 Install [node.js](https://nodejs.org/en/) and [yarn](https://yarnpkg.com/en/docs/install), check if you're on the correct branch.
 
-Run yarn to download and install all of golem's dependencies. (Feel free to use npm instead of yarn, if that works for you.)
+Run yarn to download and install all of golem's dependencies.
 
 	$ yarn    
 
