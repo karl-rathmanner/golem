@@ -13,8 +13,6 @@ chrome.runtime.onInstalled.addListener((details) => {
   console.log('previousVersion', details.previousVersion);
 });
 
-
-
 browser.runtime.onMessage.addListener(async (message: {action: string, data: any}, sender) => {
   switch (message.action) {
     case 'getInterpreter':
@@ -201,6 +199,10 @@ browser.commands.onCommand.addListener(function(command) {
     }
     case 'open-schem-playground':
       browser.tabs.create({url: './pages/schemTest.html'});
+      break;
+
+    case 'open-editor':
+      browser.tabs.create({url: './pages/editor.html'});
       break;
 
     case 'advanceSchemInterpreter':

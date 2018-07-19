@@ -8,6 +8,7 @@ import plumber from 'gulp-plumber'
 import livereload from 'gulp-livereload'
 import args from './lib/args'
 
+const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const ENV = args.production ? 'production' : 'development'
 
 gulp.task('scripts', (cb) => {
@@ -20,12 +21,21 @@ gulp.task('scripts', (cb) => {
     .pipe(gulpWebpack({
       devtool: args.sourcemaps ? 'inline-source-map' : false,
       watch: args.watch,
+      mode: 'development',
+      output : {
+        publicPath: '/scripts/' // the MonacoWebpackPlugin needs this
+      },
       plugins: [
         new webpack.DefinePlugin({
           'process.env.NODE_ENV': JSON.stringify(ENV),
           'process.env.VENDOR': JSON.stringify(args.vendor)
+        }),
+        new MonacoWebpackPlugin({
+          output: 'monaco/',
+          features: ['bracketMatching'],
+          languages: ['json']
         })
-      ].concat(args.production ? [
+        ].concat(args.production ? [
         // new webpack.optimize.UglifyJsPlugin(),  <- TODO: reenable later. (doesn't like es6?)
         new webpack.optimize.ModuleConcatenationPlugin()
       ] : []),
@@ -40,7 +50,11 @@ gulp.task('scripts', (cb) => {
             }
           },
           {
-            test: /\.(css|schem)$/,
+            test: /\.css$/,
+            use: [ 'style-loader', 'css-loader' ]
+          },
+          {
+            test: /\.schem$/,
             loader: 'raw-loader'
           }
         ]

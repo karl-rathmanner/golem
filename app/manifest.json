@@ -59,6 +59,12 @@
       },
       "description": "Opens the Schem Playground"
     },
+    "open-editor": {
+      "suggested_key": {
+        "default":"Alt+A"
+      },
+      "description": "Opens a Monaco instance in a new tab"
+    },
     "advanceSchemInterpreter" : {
       "suggested_key": {
         "default":"Alt+R"
