@@ -36,6 +36,7 @@
     "babel-register": "^6.26.0",
     "chai": "4.x.x",
     "chromereload": "0.x.x",
+    "css-loader": "^1.0.0",
     "debounce": "1.x.x",
     "del": "3.x.x",
     "gulp": "3.x.x",
@@ -69,16 +70,19 @@
     "raw-loader": "^0.5.1",
     "require-dir": "0.x.x",
     "standard": "^10.0.2",
-    "ts-loader": "^2.x.x",
+    "style-loader": "^0.21.0",
+    "ts-loader": "^4.4.2",
     "tslint": "^5.x.x",
     "vinyl-named": "1.x.x",
     "webextension-polyfill-ts": "^0.8.2",
-    "webpack": "3.x.x",
+    "webpack": "^4.5.0",
     "webpack-stream": "3.x.x",
     "yargs": "^8.x.x"
   },
   "dependencies": {
     "jquery": "^3.3.1",
+    "monaco-editor": "^0.13.1",
+    "monaco-editor-webpack-plugin": "^1.4.0",
     "typescript": "^2.7.2"
   }
 }
