@@ -32,7 +32,7 @@ gulp.task('scripts', (cb) => {
         }),
         new MonacoWebpackPlugin({
           output: 'monaco/',
-          features: ['bracketMatching'],
+          // features: ['bracketMatching', 'suggest'], <-- TODO: pick and choose features?
           languages: ['json']
         })
         ].concat(args.production ? [
