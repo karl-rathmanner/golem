@@ -4,6 +4,23 @@
   margin: 4rem auto;
 }
 
+.evalResultViewZone {
+  background-color: #242;
+}
+
+.evalErrorViewZone {
+  background-color: '#622';
+}
+
+.evalMarginViewZone {
+  text-align: center;
+}
+
+.evaluatedSourceDecoration {
+  text-decoration: underline dotted #242;
+}
+
+
 body {
   background-color: #28292c;
 }
