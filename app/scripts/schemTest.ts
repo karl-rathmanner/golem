@@ -155,9 +155,9 @@ $.when($.ready).then(() => {
     const tokens = tokenize(currentInput);
 
     tokenAtCursorPosition = tokens.reduce((matched, token) => {
-      if (token.includes('☺')) {
-        cursorPositionInToken = token.indexOf('☺');
-        return token.replace('☺', '');
+      if (token.value.includes('☺')) {
+        cursorPositionInToken = token.value.indexOf('☺');
+        return token.value.replace('☺', '');
       } else {
         return matched;
       }

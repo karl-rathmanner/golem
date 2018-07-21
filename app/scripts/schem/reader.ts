@@ -1,21 +1,33 @@
 import {SchemType, SchemList, SchemNumber, SchemSymbol, SchemNil, SchemString, SchemBoolean, SchemVector, SchemMap, SchemKeyword, isSchemType, isSequential, SchemMapKey} from './types';
 
+
+type token = {
+  value: string,
+  index?: number,
+  length?: number
+};
+
 class Reader {
   private position = 0;
+  public hasSourceIndices = false;
 
-  constructor(private tokens: string[]) { }
+  constructor(private tokens: token[], public withMetadata = false) {
+  }
 
-  public peek(): string {
+  public peek(): token {
     return this.tokens[this.position];
   }
 
-  public next(): string {
+  public next(): token {
       return this.tokens[this.position++];
   }
+
 }
 
-export function readStr(input: string): SchemType {
-  const tokens = tokenize(input);
+export function readStr(input: string, withMetadata = false): SchemType {
+  let tokens: token[];
+
+  tokens = tokenize(input, withMetadata);
 
   if (tokens.length === 0 ) {
     throw `tried to evaluate empty expression`;
@@ -26,7 +38,7 @@ export function readStr(input: string): SchemType {
 }
 
 function readForm(reader: Reader): SchemType {
-  switch (reader.peek()) {
+  switch (reader.peek().value) {
     case '(': {
       return readParen(reader, '(');
     }
@@ -67,7 +79,7 @@ function readForm(reader: Reader): SchemType {
     }
     case '#': {
       reader.next();
-      switch (reader.peek()[0]) {
+      switch (reader.peek().value[0]) {
         case '"':
           return new SchemList(SchemSymbol.from('re-pattern'), readForm(reader));
         case '(':
@@ -83,6 +95,7 @@ function readForm(reader: Reader): SchemType {
 function readParen(reader: Reader, openParen: string): SchemType {
   let closeParen: string, collection;
 
+  // instantiate correct collection type
   switch (openParen) {
     case '(': {
       closeParen = ')';
@@ -104,12 +117,19 @@ function readParen(reader: Reader, openParen: string): SchemType {
     }
   }
 
+  // start reading
   const token = reader.next();
-  if (token !== openParen ) {
+  if (token.value !== openParen ) {
     throw `expected ${openParen}, got ${token} instead`;
   }
 
-  while (reader.peek() !== closeParen) {
+  // add metadata about start index
+  if (typeof token.index !== 'undefined') {
+    collection.metadata = { sourceIndexStart: token.index };
+  }
+
+  // read contents
+  while (reader.peek().value !== closeParen) {
     if (typeof reader.peek() === 'undefined') {
       throw 'unexpected EOF';
     }
@@ -129,30 +149,40 @@ function readParen(reader: Reader, openParen: string): SchemType {
     }
   }
 
-  reader.next(); // drop close paren
+  const closingParen = reader.next(); // this also drops the close paren
+
+  if (typeof closingParen.index !== 'undefined') {
+    collection.metadata.sourceIndexEnd = closingParen.index;
+  }
+
   return collection;
 }
 
 function readAtom(reader: Reader) {
   const token = reader.next();
-  if (/^-?\d+$/.test(token)) {
-    return new SchemNumber(parseInt(token));
-  } else if (/^-?\d*\.\d+$/.test(token)) {
-    return new SchemNumber(parseFloat(token));
-  } else if (token[0] === '"') {
-    const value = token.substr(1, token.length - 2)
+
+  if (/^-?\d+$/.test(token.value)) {
+    return new SchemNumber(parseInt(token.value));
+  } else if (/^-?\d*\.\d+$/.test(token.value)) {
+    return new SchemNumber(parseFloat(token.value));
+  } else if (token.value[0] === '"') {
+    const value = token.value.substr(1, token.value.length - 2)
       .replace(/\\"/g, '"')
       .replace(/\\n/g, '\n')
       .replace(/\\\\/g, '\\');
     return new SchemString(value);
-  } else if (token[0] === ':') {
-    return SchemKeyword.from(token.slice(1));
-  } else switch (token) {
+  } else if (token.value[0] === ':') {
+    return SchemKeyword.from(token.value.slice(1));
+  } else switch (token.value) {
     case 'true': return SchemBoolean.true;
     case 'false': return SchemBoolean.false;
     case 'nil': return SchemNil.instance;
   }
-  return SchemSymbol.from(token);
+
+  let returnValue = SchemSymbol.from(token.value);
+  returnValue.metadata = {sourceIndexStart: token.index};
+
+  return returnValue;
 }
 
 function expandFnShorthand(reader: Reader) {
@@ -221,17 +251,24 @@ function expandFnShorthand(reader: Reader) {
   }
 }
 
-export function tokenize(input: string): string[] {
+export function tokenize(input: string, withMetadata = false): token[] {
   const regex = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)/g;
   let matches: RegExpExecArray | null;
-  let tokens: string[] = [];
+  let tokens: token[] = new Array<token>();
 
   while ((matches = regex.exec(input)) !== null) {
     const match = matches[1];
     if (match === '') break;
     if (match[0] !== ';') {
       // add token unless it's a comment
-      tokens.push(match);
+      if (withMetadata) {
+        // matches.index returns the start of the index of the full match (which may include leading whitespaces), but we're interested in the position of the token (contained in the capturing group).
+        // To compensate for this: offset the index by the index of the first non-whitespace in the full match.
+        const startIndex = matches.index + matches[0].search(/\S/);
+        tokens.push({value: match, index: startIndex  });
+      } else {
+        tokens.push({value: match});
+      }
     }
   }
   return tokens;
