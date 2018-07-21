@@ -2,7 +2,7 @@ import * as $ from 'jquery';
 import { browser } from 'webextension-polyfill-ts';
 import { prettyPrint, pr_str } from './printer';
 import { readStr } from './reader';
-import { isSequential, LazyVector, SchemAtom, SchemBoolean, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemNil, SchemNumber, SchemRegExp, SchemString, SchemSymbol, SchemType, SchemVector } from './types';
+import { isSequential, LazyVector, SchemAtom, SchemBoolean, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemNil, SchemNumber, SchemRegExp, SchemString, SchemSymbol, SchemType, SchemVector, isValidKeyType } from './types';
 
 export const coreFunctions: {[symbol: string]: SchemType} = {
   '+': (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue: SchemNumber, currentIndex: number) => {
@@ -71,7 +71,7 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     return doNumericComparisonForEachConsecutivePairInArray((a, b) => { return a <= b; }, args);
   },
   'empty?': (arg: SchemType) => {
-    return SchemBoolean.fromBoolean(arg instanceof SchemList && arg.length === 0);
+    return SchemBoolean.fromBoolean('length' in arg && arg.length === 0);
   },
   // returns arguments as a list
   'list': (...args: SchemType[]) => {
@@ -88,7 +88,7 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
   },
   'count': (arg: SchemType) => {
     if ('count' in arg) {
-      return new SchemNumber(arg.count);
+      return new SchemNumber(arg.count());
     } else if (arg instanceof SchemString) {
       return new SchemNumber(arg.length);
     } else if (arg === SchemNil.instance) {
@@ -177,7 +177,7 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
   },
   'get': (map: SchemMap, key: SchemMapKey, defaultValue?: SchemType) => {
     if (map instanceof SchemMap) {
-      if (key.isValidKeyType) {
+      if (isValidKeyType(key)) {
         return (map.has(key)) ? map.get(key) : defaultValue ? defaultValue : SchemNil.instance;
       } else {
         throw `map lookup only works with valid key types`;
@@ -305,7 +305,7 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
         (end) ? end.valueOf() : undefined
       );
     } else {
-      if (typeof end === 'undefined' && source.count === Infinity) {
+      if (typeof end === 'undefined' && source.count() === Infinity) {
         throw `You must provide an end index for lazy vectors of infinite size.`;
       }
       return source.realizeSubvec(

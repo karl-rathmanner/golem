@@ -22,23 +22,34 @@ export interface Sequable {
 }
 
 export interface Countable {
-  count: number;
+  count: () => number;
 }
+
+export interface Metadatable {
+  metadata?: SchemMetadata;
+  // getMetadata(): SchemMap {}
+}
+
 // types
 
 export type SchemType = SchemList | SchemVector| SchemMap | SchemNumber | SchemSymbol | SchemKeyword | SchemNil | SchemString | SchemRegExp | SchemFunction | SchemBoolean | SchemAtom;
 export type SchemMapKey = SchemSymbol | SchemKeyword | SchemString | SchemNumber;
 
-export type SchemFunctionMetadata = {
-  name?: string
+export type SchemMetadata = {
+  name?: string,
+  sourceIndexStart?: number,
+  sourceIndexEnd?: number,
+  [index: string]: any,
 };
 
 // class - Schem Function
 
-export class SchemFunction implements Callable {
+export class SchemFunction implements Callable, Metadatable {
   public isMacro = false;
+
+
   constructor(public f: Function,
-    public metadata?: SchemFunctionMetadata,
+    public metadata?: SchemMetadata,
     public fnContext?: {ast: SchemType, params: SchemSymbol[], env: Env}) {
     // bind a function's name to itself within its environment
     // this allows recursion even in 'anonymous' functions
@@ -47,7 +58,7 @@ export class SchemFunction implements Callable {
     }
   }
 
-  static fromSchemWithContext(that: Schem, env: Env, params: SchemSymbol[], functionBody: SchemType, metadata: SchemFunctionMetadata): SchemFunction {
+  static fromSchemWithContext(that: Schem, env: Env, params: SchemSymbol[], functionBody: SchemType, metadata: SchemMetadata): SchemFunction {
     return new SchemFunction(async (...args: SchemType[]) => {
 
       return await that.evalSchem(functionBody, new Env(env, params, args));
@@ -69,8 +80,9 @@ export class SchemFunction implements Callable {
 
 // classes - Schem collection types
 
-export class SchemList extends Array<SchemType> implements Reducible, Countable, Indexable {
+export class SchemList extends Array<SchemType> implements Reducible, Countable, Indexable, Metadatable {
   static isCollection = true;
+  metadata: SchemMetadata;
 
   /** Makes sure that all elements of the list are SchemSymbols and returns them in an array.*/
   public asArrayOfSymbols(): SchemSymbol[] {
@@ -84,7 +96,7 @@ export class SchemList extends Array<SchemType> implements Reducible, Countable,
     return Promise.all(this.map(callbackfn, thisArg));
   }
 
-  get count(): number {
+  count(): number {
     return this.length;
   }
 
@@ -93,10 +105,11 @@ export class SchemList extends Array<SchemType> implements Reducible, Countable,
   }
 }
 
-export class SchemVector extends Array<SchemType> implements Callable, Indexable, Countable {
+export class SchemVector extends Array<SchemType> implements Callable, Indexable, Countable, Metadatable {
   static isCollection = true;
+  metadata: SchemMetadata;
 
-  get count(): number {
+  count(): number {
     return this.length;
   }
 
@@ -124,8 +137,9 @@ export class SchemVector extends Array<SchemType> implements Callable, Indexable
   }
 }
 
-export class SchemMap implements Callable, Reducible {
+export class SchemMap implements Callable, Reducible, Countable, Metadatable {
   static isCollection = true;
+  metadata: SchemMetadata;
 
   private nativeMap: Map<string, SchemType> = new Map<string, SchemType>();
   /** Returns an array of alternating key value pairs
@@ -207,6 +221,10 @@ export class SchemMap implements Callable, Reducible {
     });
   }
 
+  count(): number {
+    return this.nativeMap.keys.length;
+  }
+
   /* TODO: implement amap?
   async amap(callbackFn: (value: SchemType , index: number, arrayOfValues: any[]) => any): Promise<any[]> {
   }*/
@@ -224,13 +242,12 @@ export class SchemMap implements Callable, Reducible {
     }
   }
 }
-
 export class LazyVector implements Countable, Indexable {
   static isCollection = true;
 
   private cachedValues: Map<number, SchemType>;
 
-  constructor(private producer: SchemFunction, public count = Infinity) {
+  constructor(private producer: SchemFunction, public maximumSize = Infinity) {
     this.cachedValues = new Map<number, SchemType>();
   }
 
@@ -243,12 +260,12 @@ export class LazyVector implements Countable, Indexable {
     return this.cachedValues.get(index)!;
   }
 
-  async realizeSubvec(start: number, end: number = this.count): Promise<SchemVector> {
-    if (typeof end === 'undefined' && this.count === Infinity) {
+  async realizeSubvec(start: number, end: number = this.maximumSize): Promise<SchemVector> {
+    if (typeof end === 'undefined' && this.maximumSize === Infinity) {
       throw `can't realize an infinite vector`;
     }
     let realizedContents: SchemType[] = new Array<SchemType>();
-    for (let i = start; i < this.count && i < end; i++) {
+    for (let i = start; i < this.maximumSize && i < end; i++) {
       const value = await this.nth(i);
       realizedContents.push(value);
     }
@@ -257,7 +274,7 @@ export class LazyVector implements Countable, Indexable {
 
   map(callbackfn: (value: SchemType, index: number, array: any[]) => any, thisArg?: any): any[] {
     let realizedContents: SchemType[] = new Array<SchemType>();
-    for (let i = 0; i < this.count; i++) {
+    for (let i = 0; i < this.maximumSize; i++) {
       if (thisArg) {
         realizedContents.push(callbackfn.apply(thisArg, [this.nth(i), i, realizedContents]));
       } else {
@@ -266,6 +283,10 @@ export class LazyVector implements Countable, Indexable {
       }
     }
     return realizedContents;
+  }
+
+  count() {
+    return this.maximumSize;
   }
 }
 
@@ -320,8 +341,10 @@ export class SchemRegExp extends RegExp {
   }
 }
 
-export class SchemSymbol {
-  isValidKeyType = true;
+export class SchemSymbol implements Metadatable {
+  static isValidKeyType = true;
+  metadata: SchemMetadata;
+
   stringValueOf() {
     return this.name;
   }
@@ -413,6 +436,15 @@ export function isCallable(o: any): o is Callable {
   return (typeof o.invoke === 'function');
 }
 
-export function isValidKeyType(o: any): o is SchemMapKey {
-  return o.isValidKExType;
+export function isValidKeyType(object: any): object is SchemMapKey {
+  return (object instanceof SchemKeyword ||
+          object instanceof SchemNumber ||
+          object instanceof SchemString);
+}
+
+export function isSequable(o: any) {
+  return (typeof o.first === 'function' &&
+          typeof o.next === 'function' &&
+          typeof o.rest === 'function' &&
+          typeof o.cons === 'function');
 }

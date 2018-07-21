@@ -14,9 +14,9 @@ export async function pr_str(ast: SchemType, escapeStrings: boolean = true): Pro
   } else if (ast instanceof SchemVector) {
     return '[' + (await ast.amap(e => pr_str(e, escapeStrings))).join(' ') + ']';
   } else if (ast instanceof LazyVector) {
-    const realizedVector = await ast.realizeSubvec(0, (ast.count === Infinity) ? 10 : ast.count);
+    const realizedVector = await ast.realizeSubvec(0, (ast.count() === Infinity) ? 10 : ast.count());
     const printedContent = await realizedVector.amap(async e => await pr_str(e, escapeStrings));
-    return '[' + printedContent.join(' ') + ((ast.count === Infinity) ? ' (...)]' : ']');
+    return '[' + printedContent.join(' ') + ((ast.count() === Infinity) ? ' (...)]' : ']');
   } else if (ast instanceof SchemMap) {
     const kvpairs = ast.flatten();
     const stringifiedPairs = await kvpairs.amap(e => pr_str(e, escapeStrings));
@@ -55,15 +55,15 @@ export async function prettyPrint(ast: SchemType, escapeStrings: boolean = true,
       ']' +
       (addComma ? ',' : '');
   } else if (ast instanceof LazyVector) {
-    const realizedVector = await ast.realizeSubvec(0, (ast.count === Infinity) ? 10 : ast.count);
+    const realizedVector = await ast.realizeSubvec(0, (ast.count() === Infinity) ? 10 : ast.count());
     const stringyfiedContent = await realizedVector.amap(
       async (element, index) => {
-        return await prettyPrint(element, escapeStrings, opts, currentIndentDepth + 1, (index < ast.count - 1));
+        return await prettyPrint(element, escapeStrings, opts, currentIndentDepth + 1, (index < ast.count() - 1));
       });
 
     return '[' +
       stringyfiedContent.join(' ') +
-      ((ast.count === Infinity) ? ' (...)]' : ']') +
+      ((ast.count() === Infinity) ? ' (...)]' : ']') +
       (addComma ? ',' : '');
 
   } else if (ast instanceof SchemMap) {
