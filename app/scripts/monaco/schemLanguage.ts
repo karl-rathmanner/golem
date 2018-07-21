@@ -112,9 +112,8 @@ function registerCompletionItemProvider(interpreter: Schem) {
     provideCompletionItems: async (textModel, position) => {
       let wordAtCursor = textModel.getWordAtPosition(position).word;
       let symbols = await interpreter.readEval(`(sort-and-filter-by-string-similarity "${wordAtCursor}" (list-symbols))`);
-      console.log(`completing ${wordAtCursor}`);
+
       if (symbols instanceof SchemList) {
-        console.log(symbols);
         let completionItems: monaco.languages.CompletionItem[] = symbols.map((sym: SchemSymbol) => {
           return {
             label: sym.name,
@@ -122,10 +121,9 @@ function registerCompletionItemProvider(interpreter: Schem) {
             insertText: sym.name + ' '
           };
         });
-        console.log(completionItems);
         return completionItems;
       }
-      console.log('fail');
+
       return [];
     }
   });
