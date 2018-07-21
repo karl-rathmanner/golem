@@ -3,7 +3,7 @@ import { coreFunctions } from './core';
 import { Env, EnvSetupMap } from './env';
 import { pr_str } from './printer';
 import { readStr } from './reader';
-import { isCallable, isSequential, LazyVector, SchemAtom, SchemBoolean, SchemFunction, SchemFunctionMetadata, SchemList, SchemMap, SchemMapKey, SchemNil, SchemString, SchemSymbol, SchemType, SchemVector } from './types';
+import { isCallable, isSequential, LazyVector, SchemAtom, SchemBoolean, SchemFunction, SchemList, SchemMap, SchemMapKey, SchemNil, SchemString, SchemSymbol, SchemType, SchemVector, isValidKeyType, SchemMetadata } from './types';
 
 export class Schem {
 
@@ -63,7 +63,7 @@ export class Schem {
     } else if (ast instanceof LazyVector) {
 
       const evaluatedAST = new SchemVector();
-      for (let i = 0; i < ast.count; i++) {
+      for (let i = 0; i < ast.count(); i++) {
         evaluatedAST[i] = await this.evalSchem((ast.nth(i) as SchemType), env);
       }
 
@@ -74,7 +74,7 @@ export class Schem {
       let flatAst = ast.flatten();
 
       for (let i = 0; i < flatAst.length; i += 2) {
-        if ((flatAst[i] as SchemMapKey).isValidKeyType) {
+        if (isValidKeyType(flatAst[i])) {
           m.set(flatAst[i] as SchemMapKey, await this.evalSchem(flatAst[i + 1], env));
         }
       }
@@ -236,7 +236,7 @@ export class Schem {
 
                 try {
                   let binds = params.asArrayOfSymbols();
-                  let metadata: SchemFunctionMetadata = {};
+                  let metadata: SchemMetadata = {};
                   if (name) metadata.name = name;
                   return SchemFunction.fromSchemWithContext(this, env, binds, fnBody, metadata);
 
@@ -455,4 +455,33 @@ export class Schem {
     await true;
   }
 
+}
+
+/** Returns all elements in an indexed & possibly nested SchemCollection as a flat array. Searches depth first. */
+export function filterRecursively(ast: SchemType, predicate: (element: SchemType) => boolean): SchemType[] {
+  let results = Array<SchemType>();
+  let currentElement: SchemType;
+  function notUndefinedOrString(o: any) {
+    return (typeof o !== 'undefined' && typeof o !== 'string');
+  }
+
+  // test the collection itself (if it even is one)
+  if (predicate(ast)) {
+    results.push(ast);
+  }
+
+  // iterate over ast as long as it's an indexable collection
+  for (let i = 0; notUndefinedOrString((ast as any)[i]); i++) {
+    currentElement = (ast as any)[i];
+
+    // if an element is itself an indexable collection, filter its contents and add them to results
+    // if (notUndefinedOrString((currentElement as any)[i])) {
+    if (notUndefinedOrString((currentElement as any)[0])) {
+      results.push(...this.filterRecursively(currentElement, predicate));
+    } else if (predicate(currentElement)) {
+      results.push(currentElement);
+    }
+  }
+
+  return results;
 }
