@@ -98,13 +98,9 @@ export class Env {
 
   /** Resolves a symbol to its value */
   get(sym: SchemSymbol): SchemType {
-    if (sym.environmentName) {
-      throw new Error('Trying to look up a symbol from a different Environment');
-    } else {
-      const env = this.find(sym);
-      if (!env) throw `${sym.name} not found`;
-      return env.symbolValueMap.get(Symbol.for(sym.name))!;
-    }
+    const env = this.find(sym);
+    if (!env) throw `${sym.name} not found`;
+    return env.symbolValueMap.get(Symbol.for(sym.name))!;
   }
 
   /** Returns all symbols defined in this and all outer environments */

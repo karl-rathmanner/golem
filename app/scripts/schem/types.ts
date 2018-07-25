@@ -345,28 +345,40 @@ export class SchemSymbol implements Metadatable {
   static isValidKeyType = true;
   metadata: SchemMetadata;
 
-  stringValueOf() {
-    return this.name;
-  }
-
   static registeredSymbols: Map<symbol, SchemSymbol> = new Map<symbol, SchemSymbol>();
 
-  static from(name: string | SchemString): SchemSymbol {
-    // Creates symbols using the global symbol registry, so the same name maps to the same symbol
-    const jsSym: symbol = Symbol.for(name.valueOf());
+  private constructor(public name: string) {
+  }
 
-    if (this.registeredSymbols.has(jsSym)) {
-      return this.registeredSymbols.get(jsSym)!;
+  static from(name: string | SchemString, environmentName?: string): SchemSymbol {
+    const indexOfPointyBracket = name.indexOf('>');
+
+    // split name and environmentSymbol if necessary
+    if (indexOfPointyBracket === 0) {
+      new Error(`Symbols can't start with ">".`);
+    } else if (indexOfPointyBracket > 0) {
+      environmentName = name.slice(0, indexOfPointyBracket);
+      name = name.slice(indexOfPointyBracket + 1);
+    }
+
+    // Creates symbols using the global symbol registry, so the same name maps to the same symbol
+    const key = Symbol.for(name.valueOf());
+
+    if (this.registeredSymbols.has(key) &&
+        typeof environmentName === 'undefined') {
+      return this.registeredSymbols.get(key)!;
     } else {
       const newSchemSymbol = new SchemSymbol(name.valueOf());
-      this.registeredSymbols.set(jsSym, newSchemSymbol);
+      this.registeredSymbols.set(key, newSchemSymbol);
       return newSchemSymbol;
     }
   }
 
-  private constructor(public name: string) {
+  stringValueOf() {
+    return this.name;
   }
 }
+
 
 export class SchemKeyword implements Callable {
   isValidKeyType = true;

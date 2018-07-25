@@ -45,7 +45,6 @@ export class Schem {
 
   async evalAST(ast: SchemType, env: Env): Promise<SchemType> {
     if (ast instanceof SchemSymbol) {
-
       if (typeof env.find(ast) === 'undefined') {
         throw `Symbol ${ast.name} is undefined`;
       } else {
