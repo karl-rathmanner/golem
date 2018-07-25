@@ -1,3 +1,5 @@
+(alert "meh")
+
 (defn fizz-buzz (start end)
   (subvec 
     (lazy-vector 

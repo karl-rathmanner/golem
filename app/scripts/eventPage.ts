@@ -8,6 +8,7 @@ import { SchemBoolean, SchemNil, SchemString, SchemType } from './schem/types';
 // import almaKeywords from '!raw-loader!./schemScripts/almaKeywords.schem';
 const almaKeywords = require('!raw-loader!./schemScripts/almaKeywords.schem');
 const demoKeyBindings = require('!raw-loader!./schemScripts/demoKeyBindings.schem');
+const baseContentScript = require('!raw-loader!./baseContentScript');
 
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('previousVersion', details.previousVersion);
@@ -15,11 +16,23 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 browser.runtime.onMessage.addListener(async (message: {action: string, data: any}, sender) => {
   switch (message.action) {
-    case 'getInterpreter':
     case 'notify': {
       notify(message.data.message);
       return true;
     }
+    case 'tab-action':
+      const tabs = await browser.tabs.query(/*message.data.query*/ {});
+      const resultsAndReasons = Promise.all(
+        tabs.map(async tab => {
+          if (typeof tab.id !== 'undefined') {
+            await browser.tabs.executeScript(tab.id, {file: 'scripts/baseContentScript.js'}).catch(e => e); // turn error into resolved promise
+            return browser.tabs.sendMessage(tab.id!, {action: message.data.action, args: message.data.args}).catch(e => e);
+          }
+          return Promise.resolve(Error('no valid tab specified'));
+        }
+      ));
+      console.log(resultsAndReasons);
+      return resultsAndReasons;
 
     default: {
       console.warn(`unknown message received`);

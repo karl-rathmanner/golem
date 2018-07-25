@@ -1,11 +1,25 @@
 import * as monaco from 'monaco-editor';
+import { browser } from '../../node_modules/webextension-polyfill-ts';
 import { AddSchemSupportToEditor } from './monaco/schemLanguage';
-import { Schem, filterRecursively } from './schem/schem';
 import { readStr } from './schem/reader';
-import { SchemType, SchemVector, SchemList } from './schem/types';
+import { filterRecursively, Schem } from './schem/schem';
+import { SchemList, SchemString, SchemType } from './schem/types';
 const example = require('!raw-loader!./schemScripts/example.schem');
 
 window.onload = () => {
+
+  const editorEnv: {[symbol: string]: SchemType} = {
+    'alert': async (msg: SchemString) => {
+      return requestTabAction('alert', {msg: msg.stringValueOf});
+    },
+    'set-attribute': async (qualifiedName: SchemString, value: SchemString) => {
+      return requestTabAction('set-attribute', {qualifiedName: qualifiedName.stringValueOf, value: value.stringValueOf});
+    },
+    'set-text-content': async (selector: SchemString, value: SchemString) => {
+      return requestTabAction('set-text-content', {selector: selector.stringValueOf, value: value.stringValueOf});
+    }
+  };
+
   let interpreter = new Schem();
   let ast: SchemType;
   AddSchemSupportToEditor(interpreter);
@@ -17,7 +31,6 @@ window.onload = () => {
   });
 
   editor.focus();
-
 
   // remove evalViews and decorations when buffer changes
   editor.getModel().onDidChangeContent((e) => {
@@ -43,7 +56,7 @@ window.onload = () => {
         resultDomNode.className = 'evalResultViewZone';
         resultDomNode.textContent = '...evaluating...';
 
-        interpreter.arep(sourceOfInnermostCollection).then((result) => {
+        interpreter.arep(sourceOfInnermostCollection, editorEnv).then((result) => {
           resultDomNode.textContent = result;
         }).catch(error => {
           resultDomNode.className = 'evalErrorViewZone';
@@ -87,8 +100,6 @@ window.onload = () => {
       if ('metadata' in element && element.metadata !== undefined &&
           'sourceIndexStart' in element.metadata && typeof element.metadata.sourceIndexStart === 'number' &&
           'sourceIndexEnd' in element.metadata && typeof element.metadata.sourceIndexEnd === 'number') {
-        console.log(element);
-
         return (element.metadata.sourceIndexStart < cursorIndex + 1 &&
                 element.metadata.sourceIndexEnd > cursorIndex - 1);
       } else {
@@ -119,3 +130,10 @@ window.onload = () => {
   }
 };
 
+
+async function requestTabAction(action: string, args?: any) {
+
+  const result = await browser.runtime.sendMessage({action: 'tab-action', data : {action: action, args: args }});
+  console.log(result);
+  return new SchemList(...result.map((e: any) => new SchemString(e.toString())));
+}

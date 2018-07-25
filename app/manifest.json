@@ -31,21 +31,7 @@
   "omnibox": {
     "keyword": "golem"
   },
-  "content_scripts": [
-    {
-      "matches": [
-        "<all_urls>"
-      ],
-      "css": [
-        "styles/contentscript.css"
-      ],
-      "js": [
-        "scripts/contentscript.js"
-      ],
-      "run_at": "document_end",
-      "all_frames": false
-    }
-  ],
+
   "commands": {
     "go-go-golem" : {
       "suggested_key": {
