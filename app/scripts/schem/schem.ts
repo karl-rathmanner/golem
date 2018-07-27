@@ -3,7 +3,7 @@ import { coreFunctions } from './core';
 import { Env, EnvSetupMap } from './env';
 import { pr_str } from './printer';
 import { readStr } from './reader';
-import { isCallable, isSequential, LazyVector, SchemAtom, SchemBoolean, SchemFunction, SchemList, SchemMap, SchemMapKey, SchemNil, SchemString, SchemSymbol, SchemType, SchemVector, isValidKeyType, SchemMetadata } from './types';
+import { isCallable, isSequential, LazyVector, SchemAtom, SchemBoolean, SchemFunction, SchemList, SchemMap, SchemMapKey, SchemNil, SchemString, SchemSymbol, SchemType, SchemVector, isValidKeyType, SchemMetadata, isSequable, Sequable, isSchemType, toSchemMapKey, SchemKeyword, isSchemCollection } from './types';
 
 export class Schem {
 
@@ -274,7 +274,7 @@ export class Schem {
                 const options = await this.evalAST(ast[1], env);
                 if (!(options instanceof SchemMap)) throw `(set-interpreter-options options) options must be a map`;
 
-                options.forEach((value, key) => {
+                options.forEach((key, value) => {
                   if (key instanceof SchemString && value instanceof SchemBoolean && key.valueOf() in this.debug) {
                     (this.debug as any)[key.valueOf()] = value.valueOf();  // typecost is necessary, because the debug options literal lacks a string indexer – but we allready checked if the object has that key, so it's all good
                   }
@@ -483,4 +483,69 @@ export function filterRecursively(ast: SchemType, predicate: (element: SchemType
   }
 
   return results;
+}
+
+/** Returns a stringifiable javascript object based on the schem value/collection.
+ * The "dropColonForKeywords" option is convenient for SchemMaps that contain only keyword keys but it may result loosing values due to colliding keys! e.g.:
+ *
+ * using includeTypePrefix:  
+ * `{1 1, "1" 2, :1 3}` -> `{n1: 1, s1: 2, k1: 3}`  
+ * using noPrefix:  
+ * `{1 1, "1" 2, :1 3}` -> `{1: 3}`
+ *
+ * @param {object} options Indicates how map keys should be handled.
+*/
+export function schemToJs(schemObject: SchemType | null, options: {keySerialization: 'includeTypePrefix' | 'noPrefix'} = {keySerialization: 'includeTypePrefix'}): any | null {
+  let jsObject: any;
+
+  // maps turn into objects
+  if (schemObject instanceof SchemMap) {
+    jsObject = {};
+    schemObject.forEach((key, value) => {
+      let jsKey, jsValue;
+
+      if (options.keySerialization === 'includeTypePrefix') {
+        jsKey = toSchemMapKey(key);
+      } else {
+        if (key instanceof SchemKeyword) {
+          jsKey = key.name;
+        } else {
+          jsKey = key.getStringRepresentation();
+        }
+      }
+
+      if (isSchemCollection(schemObject)) {
+        jsValue = schemToJs(value, options);
+      } else {
+        jsValue = value.valueOf();
+      }
+
+      jsObject[jsKey] = jsValue;
+    });
+
+  // list and vectors turn into arrays
+  } else if (isSequable(schemObject)) {
+    jsObject = [];
+
+    // iterate over collection
+    while (schemObject != null && isSequable(schemObject)) {
+      const firstElement = schemObject.first();
+      if (firstElement != null) {
+        if (isSchemCollection(firstElement)) {
+          // add nested collection
+          jsObject.push(schemToJs(firstElement, options));
+        } else {
+          // ad atomic value
+          jsObject.push(firstElement.valueOf());
+        }
+
+      }
+      schemObject = schemObject.next();
+    }
+
+  } else if (isSchemType(schemObject)) {
+    jsObject = schemObject.valueOf();
+  }
+
+  return jsObject;
 }

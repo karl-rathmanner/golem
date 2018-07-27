@@ -2,22 +2,43 @@ import * as monaco from 'monaco-editor';
 import { browser } from '../../node_modules/webextension-polyfill-ts';
 import { AddSchemSupportToEditor } from './monaco/schemLanguage';
 import { readStr } from './schem/reader';
-import { filterRecursively, Schem } from './schem/schem';
-import { SchemList, SchemString, SchemType } from './schem/types';
+import { filterRecursively, Schem, schemToJs } from './schem/schem';
+import { SchemList, SchemString, SchemType, SchemMap, SchemContext, SchemSymbol, SchemVector } from './schem/types';
+import { stringify } from 'querystring';
 const example = require('!raw-loader!./schemScripts/example.schem');
 
 window.onload = () => {
 
   const editorEnv: {[symbol: string]: SchemType} = {
-    'alert': async (msg: SchemString) => {
-      return requestTabAction('alert', {msg: msg.stringValueOf});
+    'alert': async (context: SchemContext, msg: SchemString) => {
+      return context.invokeProcedure(SchemSymbol.from('alert'), new SchemVector(msg));
     },
     'set-attribute': async (qualifiedName: SchemString, value: SchemString) => {
-      return requestTabAction('set-attribute', {qualifiedName: qualifiedName.stringValueOf, value: value.stringValueOf});
+      return requestTabAction('set-attribute', {qualifiedName: qualifiedName.toString, value: value.toString});
     },
     'set-text-content': async (selector: SchemString, value: SchemString) => {
-      return requestTabAction('set-text-content', {selector: selector.stringValueOf, value: value.stringValueOf});
-    }
+      return requestTabAction('set-text-content', {selector: selector.toString, value: value.toString});
+    },
+    'context-accessor': async (queryInfo: SchemMap) => {
+      const ca = new SchemContext();
+
+      ca.invokeProcedure = async (action: SchemSymbol, args: SchemType) => {
+        const stringifiableArgs = schemToJs(args);
+        const result = await browser.runtime.sendMessage(
+          {
+            action: 'tab-action',
+            data : {
+              action: action.name,
+              args: stringifiableArgs,
+              queryInfo: schemToJs(queryInfo, {keySerialization: 'noPrefix'})
+            }
+          }
+        );
+        console.log(result);
+        return new SchemList(...result.map((e: any) => new SchemString(e.toString())));
+      };
+      return ca;
+    },
   };
 
   let interpreter = new Schem();
@@ -130,9 +151,7 @@ window.onload = () => {
   }
 };
 
-
 async function requestTabAction(action: string, args?: any) {
-
   const result = await browser.runtime.sendMessage({action: 'tab-action', data : {action: action, args: args }});
   console.log(result);
   return new SchemList(...result.map((e: any) => new SchemString(e.toString())));

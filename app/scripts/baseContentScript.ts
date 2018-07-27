@@ -31,7 +31,7 @@ import { browser, Runtime } from 'webextension-polyfill-ts';
         }
         break;
       case 'alert':
-        window.alert(message.args.message);
+        window.alert(message.args[0]);
         return Promise.resolve('did alert');
     }
     return Promise.reject(new Error(`content script was unable to handle the action (${message.action})`));

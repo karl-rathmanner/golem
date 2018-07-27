@@ -173,9 +173,9 @@ $.when($.ready).then(() => {
         autocompleteSuggestions = [];
         suggestions.map((s, i) => {
           if (s instanceof SchemSymbol || s instanceof SchemString || s instanceof SchemKeyword) {
-            autocompleteSuggestions.push(s.stringValueOf());
+            autocompleteSuggestions.push(s.getStringRepresentation());
 
-            $('#autocompleteSuggestions').append(`<span class="${(i === selectedSuggestion) ? 'highlightedSuggestion' : 'acSuggestion'}">${s.stringValueOf()}</span>`);
+            $('#autocompleteSuggestions').append(`<span class="${(i === selectedSuggestion) ? 'highlightedSuggestion' : 'acSuggestion'}">${s.getStringRepresentation()}</span>`);
             if (i < suggestions.length - 1) {
               $('#autocompleteSuggestions').append('<span class="acDivider">|</span>');
             }

@@ -21,7 +21,7 @@ browser.runtime.onMessage.addListener(async (message: {action: string, data: any
       return true;
     }
     case 'tab-action':
-      const tabs = await browser.tabs.query(/*message.data.query*/ {});
+      const tabs = await browser.tabs.query(message.data.queryInfo);
       const resultsAndReasons = Promise.all(
         tabs.map(async tab => {
           if (typeof tab.id !== 'undefined') {

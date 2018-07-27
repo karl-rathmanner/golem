@@ -1,4 +1,4 @@
-import { SchemType, SchemNumber, SchemNil, SchemSymbol, SchemList, SchemString, SchemBoolean, SchemFunction, SchemVector, SchemMap, SchemKeyword, SchemAtom, SchemRegExp, LazyVector } from './types';
+import { SchemType, SchemNumber, SchemNil, SchemSymbol, SchemList, SchemString, SchemBoolean, SchemFunction, SchemVector, SchemMap, SchemKeyword, SchemAtom, SchemRegExp, LazyVector, SchemContext } from './types';
 
 export async function pr_str(ast: SchemType, escapeStrings: boolean = true): Promise<string> {
   if (ast instanceof SchemBoolean) {
@@ -8,7 +8,7 @@ export async function pr_str(ast: SchemType, escapeStrings: boolean = true): Pro
   } else if (ast instanceof SchemNil) {
     return 'nil';
   } else if (ast instanceof SchemSymbol || ast instanceof SchemKeyword || ast instanceof SchemRegExp) {
-    return ast.stringValueOf();
+    return ast.getStringRepresentation();
   } else if (ast instanceof SchemList) {
     return '(' + (await ast.amap(e => pr_str(e, escapeStrings))).join(' ') + ')';
   } else if (ast instanceof SchemVector) {
@@ -37,9 +37,11 @@ export async function pr_str(ast: SchemType, escapeStrings: boolean = true): Pro
     }
   } else if (ast instanceof SchemAtom) {
     return `#object [atom ${JSON.stringify(ast.value)}]`;
+  } else if (ast instanceof SchemContext) {
+    return '#object [executionContext {}]';
   } else {
-    console.warn(`pr_str doesn't know how to handle ${ast}`);
-    return '';
+    // attempt to stringify object, because it's not a SchemType after all
+    return JSON.stringify(ast);
   }
 }
 

@@ -3,6 +3,7 @@ import { browser } from 'webextension-polyfill-ts';
 import { prettyPrint, pr_str } from './printer';
 import { readStr } from './reader';
 import { isSequential, LazyVector, SchemAtom, SchemBoolean, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemNil, SchemNumber, SchemRegExp, SchemString, SchemSymbol, SchemType, SchemVector, isValidKeyType } from './types';
+import { schemToJs } from './schem';
 
 export const coreFunctions: {[symbol: string]: SchemType} = {
   '+': (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue: SchemNumber, currentIndex: number) => {
@@ -232,7 +233,7 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     }
   },
   'score-string-similarity': (needle: SchemString, haystack: SchemString) => {
-    return new SchemNumber(computeSimpleStringSimilarityScore(needle.stringValueOf(), haystack.stringValueOf()));
+    return new SchemNumber(computeSimpleStringSimilarityScore(needle.toString(), haystack.toString()));
   },
   'sort-and-filter-by-string-similarity' : (needle: SchemString, haystack: SchemList | SchemVector, scoreThreshold: SchemNumber = new SchemNumber(1)) => {
 
@@ -251,7 +252,7 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     }).sort((a, b) => {
       // sort the remaining entries by score, then alphabetically
       if (a[0] === b[0]) {
-        return a[1].stringValueOf().localeCompare(b[1].stringValueOf());
+        return a[1].getStringRepresentation().localeCompare(b[1].getStringRepresentation());
       } else {
         return b[0] - a[0];
       }
@@ -268,7 +269,7 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     return new SchemString(await prettyPrint(m, true, {indentSize: indent.valueOf()}));
   },
   'prompt': (message: SchemString = new SchemString(''), defaultValue: SchemString = new SchemString('')) => {
-    let input = window.prompt(message.stringValueOf(), defaultValue.stringValueOf());
+    let input = window.prompt(message.toString(), defaultValue.getStringRepresentation());
     return new SchemString(input);
 
   },
@@ -277,9 +278,9 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     return await fn.invoke(...argList);
   },
   're-pattern': async (pattern: SchemString) => {
-    const matches = /(?:\(\?(.*)?\))?(.+)/.exec(pattern.stringValueOf());
+    const matches = /(?:\(\?(.*)?\))?(.+)/.exec(pattern.getStringRepresentation());
     if (matches === null) {
-      throw `invalid regular expression: ${pattern.stringValueOf()}`;
+      throw `invalid regular expression: ${pattern.getStringRepresentation()}`;
     }
     const [, flags, rest] = matches;
     if (typeof flags !== 'undefined') {
@@ -288,7 +289,7 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     return new SchemRegExp(rest);
   },
   're-find': async (rex: SchemRegExp, str: SchemString) => {
-    const matches = rex.exec(str.stringValueOf());
+    const matches = rex.exec(str.getStringRepresentation());
     if (matches !== null) {
       return new SchemVector(...matches.map(m => new SchemString(m)));
     } else {
@@ -316,6 +317,9 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
   'console-log': (value: any) => {
     console.log(value);
     return SchemNil.instance;
+  },
+  'to-jso': (value: SchemType, options?: SchemMap) => {
+    return schemToJs(value, options != null ? schemToJs(options, {keySerialization: 'noPrefix'}) : {keySerialization: 'noPrefix'});
   }
 };
 

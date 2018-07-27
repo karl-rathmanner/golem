@@ -15,10 +15,14 @@ export interface Reducible {
 }
 
 export interface Sequable {
-  first(): SchemType;
-  next(): Sequable;
+  /** returns the first element of the collecton or null */
+  first(): SchemType | null;
+  /** returns a collection containing the second to last elements of the collection - or null if there are no more elements*/
+  next(): Sequable | null;
+  /** returns a collection containing the second to last elements of the collection - or empty an collection if there are no more elements*/
   rest(): Sequable;
-  cons(): Sequable;
+  /** returns a collection beginning with the passed element followed by the rest of this collection */
+  cons(element: SchemType): Sequable;
 }
 
 export interface Countable {
@@ -32,7 +36,7 @@ export interface Metadatable {
 
 // types
 
-export type SchemType = SchemList | SchemVector| SchemMap | SchemNumber | SchemSymbol | SchemKeyword | SchemNil | SchemString | SchemRegExp | SchemFunction | SchemBoolean | SchemAtom;
+export type SchemType = SchemList | SchemVector| SchemMap | SchemNumber | SchemSymbol | SchemKeyword | SchemNil | SchemString | SchemRegExp | SchemFunction | SchemBoolean | SchemAtom | SchemContext;
 export type SchemMapKey = SchemSymbol | SchemKeyword | SchemString | SchemNumber;
 
 export type SchemMetadata = {
@@ -80,7 +84,7 @@ export class SchemFunction implements Callable, Metadatable {
 
 // classes - Schem collection types
 
-export class SchemList extends Array<SchemType> implements Reducible, Countable, Indexable, Metadatable {
+export class SchemList extends Array<SchemType> implements Reducible, Countable, Indexable, Metadatable, Sequable {
   static isCollection = true;
   metadata: SchemMetadata;
 
@@ -103,9 +107,27 @@ export class SchemList extends Array<SchemType> implements Reducible, Countable,
   nth(index: number) {
     return this[index];
   }
+
+  first(): SchemType | null {
+    return (this[0] != null) ? this[0] : null;
+  }
+
+  next() {
+    return (this.length > 1) ? new SchemList(...this.slice(1)) : null;
+  }
+
+  rest() {
+    return (this.length > 1) ? new SchemList(...this.slice(1)) : new SchemList();
+  }
+
+  cons(element: SchemType) {
+    return new SchemList(element, ...this);
+  }
+
+
 }
 
-export class SchemVector extends Array<SchemType> implements Callable, Indexable, Countable, Metadatable {
+export class SchemVector extends Array<SchemType> implements Callable, Indexable, Countable, Metadatable, Sequable {
   static isCollection = true;
   metadata: SchemMetadata;
 
@@ -135,6 +157,22 @@ export class SchemVector extends Array<SchemType> implements Callable, Indexable
     }
     throw `index ${index} out of bounds`;
   }
+
+  first(): SchemType | null {
+    return (this[0] != null) ? this[0] : null;
+  }
+
+  next() {
+    return (this.length > 1) ? new SchemVector(...this.slice(1)) : null;
+  }
+
+  rest() {
+    return (this.length > 1) ? new SchemVector(...this.slice(1)) : new SchemVector();
+  }
+
+  cons(element: SchemType) {
+    return new SchemVector(element, ...this);
+  }
 }
 
 export class SchemMap implements Callable, Reducible, Countable, Metadatable {
@@ -148,7 +186,7 @@ export class SchemMap implements Callable, Reducible, Countable, Metadatable {
   public flatten(): SchemList {
     return new SchemList(...Array.from(this.nativeMap.keys()).reduce(
       (acc: SchemType[], currentKey: string) => {
-        acc.push(this.createSchemTypeForKeyString(currentKey));
+        acc.push(fromSchemMapKey(currentKey));
         acc.push(this.nativeMap.get(currentKey)!);
         return acc;
       }, []));
@@ -170,15 +208,7 @@ export class SchemMap implements Callable, Reducible, Countable, Metadatable {
     return keyString;
   }
 
-  private createSchemTypeForKeyString(keyString: string): SchemMapKey {
-    switch (keyString[0]) {
-      case 's': return new SchemString(keyString.slice(1));
-      case 'n': return new SchemNumber(parseFloat(keyString.slice(1)));
-      case 'k': return SchemKeyword.from(keyString.slice(1));
-      case 'y': return SchemSymbol.from(keyString.slice(1));
-    }
-    throw `unexpected keyString "${keyString}" appeared in Map ${this}`;
-  }
+
   // private getOriginalKeyObject
 
   set(key: SchemMapKey, value: SchemType ): void {
@@ -209,15 +239,15 @@ export class SchemMap implements Callable, Reducible, Countable, Metadatable {
     let newMap = new SchemMap();
 
     this.nativeMap.forEach((value, key) => {
-      newMap.set(this.createSchemTypeForKeyString(key), callbackFn(value));
+      newMap.set(fromSchemMapKey(key), callbackFn(value));
     });
 
     return newMap;
   }
 
-  forEach(callbackFn: (value: SchemType, key: SchemMapKey) => void) {
+  forEach(callbackFn: (key: SchemMapKey, value: SchemType) => void) {
     this.nativeMap.forEach((value: SchemType, key: string) => {
-      callbackFn(value, this.createSchemTypeForKeyString(key));
+      callbackFn(fromSchemMapKey(key), value);
     });
   }
 
@@ -325,15 +355,23 @@ export class SchemNumber extends Number implements Callable {
       throw `integers can only be invoked with lists or vectors as parameters`;
     }
   }
+
+  getStringRepresentation(): string {
+    return this.valueOf().toString();
+  }
 }
 
 export class SchemString extends String {
   isValidKeyType = true;
-  stringValueOf = this.valueOf;
+
+  // can't hide toString()
+  getStringRepresentation(): string {
+    return this.valueOf();
+  }
 }
 
 export class SchemRegExp extends RegExp {
-  stringValueOf() {
+  getStringRepresentation() {
     if (this.flags.length > 0) {
       return `#"(?${this.flags})${this.source}"`;
     }
@@ -374,7 +412,7 @@ export class SchemSymbol implements Metadatable {
     }
   }
 
-  stringValueOf() {
+  getStringRepresentation() {
     return this.name;
   }
 }
@@ -382,7 +420,8 @@ export class SchemSymbol implements Metadatable {
 
 export class SchemKeyword implements Callable {
   isValidKeyType = true;
-  stringValueOf() {
+
+  getStringRepresentation() {
     return ':' + this.name;
   }
 
@@ -416,6 +455,29 @@ export class SchemKeyword implements Callable {
   }
 }
 
+export class SchemContext {
+  locator: any;
+
+
+  async setBinding(symbol: SchemSymbol, value: SchemType): Promise<SchemType> {
+    // inject/set stuff
+    throw new Error('setBinding is not implemented');
+  }
+
+  async getBinding(symbol: SchemSymbol): Promise<SchemType> {
+    throw new Error('getBinding is not implemented');
+  }
+
+  async invokeProcedure(symbol: SchemSymbol, args: SchemType): Promise<SchemType>  {
+    throw new Error('invokeProcedure is not implemented');
+  }
+
+  async evalSchem(ast: SchemType | string): Promise<SchemType> {
+    // eval stuff
+    throw new Error('evalSchem is not implemented');
+  }
+}
+
 /// classes - other Schem types
 
 export class SchemAtom {
@@ -429,34 +491,67 @@ export function isSequential(object: SchemType): object is SchemList | SchemVect
   return (object instanceof SchemList || object instanceof SchemVector);
 }
 
-export function isSchemType(object: any): object is SchemType {
-  return (object instanceof SchemList ||
-          object instanceof SchemVector ||
-          object instanceof SchemMap ||
-          object instanceof SchemNumber ||
-          object instanceof SchemSymbol ||
-          object instanceof SchemKeyword ||
-          object instanceof SchemNil ||
-          object instanceof SchemString ||
-          object instanceof SchemRegExp ||
-          object instanceof SchemFunction ||
-          object instanceof SchemBoolean ||
-          object instanceof SchemAtom);
+export function isSchemType(o: any): o is SchemType {
+  return (o instanceof SchemList ||
+          o instanceof SchemVector ||
+          o instanceof SchemMap ||
+          o instanceof SchemNumber ||
+          o instanceof SchemSymbol ||
+          o instanceof SchemKeyword ||
+          o instanceof SchemNil ||
+          o instanceof SchemString ||
+          o instanceof SchemRegExp ||
+          o instanceof SchemFunction ||
+          o instanceof SchemBoolean ||
+          o instanceof SchemAtom);
+}
+
+export function isSchemCollection(o: any): boolean {
+  return (o instanceof SchemList ||
+          o instanceof SchemVector ||
+          o instanceof SchemMap ||
+          o instanceof LazyVector);
 }
 
 export function isCallable(o: any): o is Callable {
   return (typeof o.invoke === 'function');
 }
 
-export function isValidKeyType(object: any): object is SchemMapKey {
-  return (object instanceof SchemKeyword ||
-          object instanceof SchemNumber ||
-          object instanceof SchemString);
+export function isValidKeyType(o: any): o is SchemMapKey {
+  return (o instanceof SchemKeyword ||
+          o instanceof SchemNumber ||
+          o instanceof SchemString);
 }
 
-export function isSequable(o: any) {
+export function isSequable(o: any): o is Sequable {
   return (typeof o.first === 'function' &&
           typeof o.next === 'function' &&
           typeof o.rest === 'function' &&
           typeof o.cons === 'function');
+}
+
+// type conversion
+
+export function toSchemMapKey(key: SchemMapKey): string {
+  if (key instanceof SchemString) {
+    return 's'  + key.valueOf();
+  } else if (key instanceof SchemNumber) {
+    return 'n'  + key.valueOf();
+  } else if (key instanceof SchemKeyword) {
+    return 'k' + key.name;
+  } else if (key instanceof SchemSymbol) {
+    return 'y' + key.name;
+  } else {
+    throw `invalid key type ${key}`;
+  }
+}
+
+export function fromSchemMapKey(key: string): SchemMapKey {
+  switch (key[0]) {
+    case 's': return new SchemString(key.slice(1));
+    case 'n': return new SchemNumber(parseFloat(key.slice(1)));
+    case 'k': return SchemKeyword.from(key.slice(1));
+    case 'y': return SchemSymbol.from(key.slice(1));
+  }
+  throw `key "${key}" starts with unknown type prefix`;
 }
