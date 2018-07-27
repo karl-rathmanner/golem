@@ -21,7 +21,7 @@ gulp.task('scripts', (cb) => {
     .pipe(gulpWebpack({
       devtool: args.sourcemaps ? 'inline-source-map' : false,
       watch: args.watch,
-      mode: 'development',
+      mode: args.production ? 'production' : 'development',
       output : {
         publicPath: '/scripts/' // the MonacoWebpackPlugin needs this
       },
@@ -35,10 +35,10 @@ gulp.task('scripts', (cb) => {
           // features: ['bracketMatching', 'suggest'], <-- TODO: pick and choose features?
           languages: ['json']
         })
-        ].concat(args.production ? [
-        // new webpack.optimize.UglifyJsPlugin(),  <- TODO: reenable later. (doesn't like es6?)
+      ]/*.concat(args.production ? [
+        new webpack.optimize.UglifyJsPlugin(), // <- TODO: reenable later. (doesn't like es6?)
         new webpack.optimize.ModuleConcatenationPlugin()
-      ] : []),
+      ] : [])*/,
       module: {
         rules: [
           {
