@@ -35,10 +35,7 @@ gulp.task('scripts', (cb) => {
           // features: ['bracketMatching', 'suggest'], <-- TODO: pick and choose features?
           languages: ['json']
         })
-      ]/*.concat(args.production ? [
-        new webpack.optimize.UglifyJsPlugin(), // <- TODO: reenable later. (doesn't like es6?)
-        new webpack.optimize.ModuleConcatenationPlugin()
-      ] : [])*/,
+      ],
       module: {
         rules: [
           {
