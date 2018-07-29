@@ -1,4 +1,7 @@
-(alert "meh")
+(def contexts (create-contexts {:title "*derStandard*"}))
+(invoke-context-procedure contexts 'alert "mäh")
+(invoke-js-procedure contexts 'alert "muh")
+(set-js-property contexts 'window.document.body.style.cssText "color: #2F2")
 
 (defn fizz-buzz (start end)
   (subvec 

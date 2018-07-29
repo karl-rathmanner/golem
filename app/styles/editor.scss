@@ -1,15 +1,43 @@
 #monacoContainer {
   height: 42rem;
-  width: 80rem;
+  width: 42rem;
   margin: 4rem auto;
 }
 
+.evalViewZone {
+  width: 90%;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  z-index: 9001;
+}
+
+.evalViewZone:hover {
+  white-space: normal;
+}
+
+.evalViewZone div {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background-color: inherit;
+  padding-left: .2rem;
+}
+
+.evalViewZone div:hover {
+  max-height: 10rem;
+  padding-bottom: .2rem;
+}
+
+
 .evalResultViewZone {
-  background-color: #242;
+  background-color: rgb(27, 70, 27);
 }
 
 .evalErrorViewZone {
-  background-color: '#622';
+  background-color: #622;
+}
+
+.evalWaitingForResultViewZone {
+  background-color: rgb(42, 42, 42);
 }
 
 .evalMarginViewZone {
@@ -17,9 +45,8 @@
 }
 
 .evaluatedSourceDecoration {
-  text-decoration: underline dotted #242;
+  text-decoration: underline solid  rgb(27, 70, 27);
 }
-
 
 body {
   background-color: #28292c;

@@ -455,16 +455,24 @@ export class SchemKeyword implements Callable {
   }
 }
 
-export class SchemContext {
-  locator: any;
+export type SchemContextDetails = {
+  contextId: number,
+  windowId: number,
+  tabId: number,
+  frameId: number,
+};
 
+export class SchemContext {
+  // TODO: add properties describing the context's capabilities - available procedures, atoms, hasInterpreter etc.
+  constructor(details: SchemContextDetails) {
+  }
 
   async setBinding(symbol: SchemSymbol, value: SchemType): Promise<SchemType> {
     // inject/set stuff
     throw new Error('setBinding is not implemented');
   }
 
-  async getBinding(symbol: SchemSymbol): Promise<SchemType> {
+  async getBoundValue(symbol: SchemSymbol): Promise<SchemType> {
     throw new Error('getBinding is not implemented');
   }
 

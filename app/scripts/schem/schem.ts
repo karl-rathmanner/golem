@@ -457,6 +457,7 @@ export class Schem {
 }
 
 /** Returns all elements in an indexed & possibly nested SchemCollection as a flat array. Searches depth first. */
+// TODO: use isCollection, first and next instead of for loop
 export function filterRecursively(ast: SchemType, predicate: (element: SchemType) => boolean): SchemType[] {
   let results = Array<SchemType>();
   let currentElement: SchemType;
@@ -487,14 +488,15 @@ export function filterRecursively(ast: SchemType, predicate: (element: SchemType
 
 /** Returns a stringifiable javascript object based on the schem value/collection.
  * The "dropColonForKeywords" option is convenient for SchemMaps that contain only keyword keys but it may result loosing values due to colliding keys! e.g.:
- *
- * using includeTypePrefix:  
- * `{1 1, "1" 2, :1 3}` -> `{n1: 1, s1: 2, k1: 3}`  
- * using noPrefix:  
- * `{1 1, "1" 2, :1 3}` -> `{1: 3}`
- *
+ ```
+ // using includeTypePrefix:
+ {1 1, "1" 2, :1 3} -> {n1: 1, s1: 2, k1: 3}
+ // using noPrefix:
+ {1 1, "1" 2, :1 3} -> {1: 3}
+ ```
  * @param {object} options Indicates how map keys should be handled.
 */
+// TODO: as isSerializable check and throw error when trying to convert a schemObject that isn't
 export function schemToJs(schemObject: SchemType | null, options: {keySerialization: 'includeTypePrefix' | 'noPrefix'} = {keySerialization: 'includeTypePrefix'}): any | null {
   let jsObject: any;
 

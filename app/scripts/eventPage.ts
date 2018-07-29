@@ -1,38 +1,118 @@
-// Enable chromereload by uncommenting this line:
 import 'chromereload/devonly';
-import { browser, Runtime, Tabs } from 'webextension-polyfill-ts';
-import { Settings } from './options';
-import { Schem } from './schem/schem';
-import { SchemBoolean, SchemNil, SchemString, SchemType } from './schem/types';
-
-// import almaKeywords from '!raw-loader!./schemScripts/almaKeywords.schem';
-const almaKeywords = require('!raw-loader!./schemScripts/almaKeywords.schem');
-const demoKeyBindings = require('!raw-loader!./schemScripts/demoKeyBindings.schem');
+import { browser, Tabs } from 'webextension-polyfill-ts';
+import { SchemContextDetails } from './schem/types';
 const baseContentScript = require('!raw-loader!./baseContentScript');
-
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('previousVersion', details.previousVersion);
 });
 
-browser.runtime.onMessage.addListener(async (message: {action: string, data: any}, sender) => {
+let lastContextID = 0;
+
+browser.runtime.onMessage.addListener(async (message: {action: string, data: any}, sender): Promise<any> => {
   switch (message.action) {
     case 'notify': {
       notify(message.data.message);
       return true;
     }
-    case 'tab-action':
-      const tabs = await browser.tabs.query(message.data.queryInfo);
-      const resultsAndReasons = Promise.all(
-        tabs.map(async tab => {
-          if (typeof tab.id !== 'undefined') {
-            await browser.tabs.executeScript(tab.id, {file: 'scripts/baseContentScript.js'}).catch(e => e); // turn error into resolved promise
-            return browser.tabs.sendMessage(tab.id!, {action: message.data.action, args: message.data.args}).catch(e => e);
+    case 'create-contexts': {
+      // data may contain a queryInfo object and a frameId value
+      const queryInfo: Tabs.QueryQueryInfoType = message.data.queryInfo;
+      const frameId = (typeof message.data.frameId === 'number') ? message.data.frameId : 0;
+
+      let tabs;
+
+      try {
+        tabs = await browser.tabs.query(queryInfo);
+      } catch (e) {
+        // *resolve* with a plain object - the actual value of 'e' can't be jsonified, I guess. (at least it won't work for *some* reason...)
+        return Promise.resolve({error: {message: e.message}});
+      }
+
+      const contextDetails = await tabs.map(async (tab): Promise<SchemContextDetails> => {
+        if (typeof tab.id !== 'undefined') {
+
+          const newContextID = lastContextID++;
+          if (!Number.isInteger(newContextID)) {
+            throw new Error(`I don't think this could ever happen, but I'm paranoid about script injection and this check won't hurt anyone.`);
           }
-          return Promise.resolve(Error('no valid tab specified'));
+
+          // add and initialize global golem object that content scripts can share
+          await browser.tabs.executeScript(tab.id, {
+            code: `
+              var golem = {contextId: ${newContextID}};
+              golem.injectedProcedures = new Map();
+              `,
+            frameId: frameId
+          }).catch(e => {
+            return new Error(`Failed to inject content script!`);
+          });
+          // inject actual content script
+          // TODO: modularize content scripts and inject specific parts only when needed
+          await browser.tabs.executeScript(tab.id, {file: 'scripts/baseContentScript.js', frameId: frameId}).catch(e => e); // turn error into resolved promise
+          await browser.tabs.executeScript(tab.id, {file: 'scripts/demoContentScript.js', frameId: frameId}).catch(e => e); // turn error into resolved promise
+          return {
+            contextId: newContextID,
+            windowId: typeof tab.windowId !== 'undefined' ? tab.windowId : -1,
+            tabId: typeof tab.id !== 'undefined' ? tab.id : -1,
+            frameId: frameId
+          };
+        }
+        return Promise.reject(`Provided a context with an illegal tabId: ${tab.id}`);
+      });
+
+      return Promise.all(contextDetails);
+    }
+
+    case 'invoke-context-procedure': {
+      const tabIds: Array<number> = message.data.contexts.map((context: SchemContextDetails) => context.tabId);
+      const resultsAndReasons = await Promise.all(
+        tabIds.map(async tabId => {
+          return browser.tabs.sendMessage(tabId, {
+            action: 'invoke-context-procedure',
+            data: {
+              procedureName: message.data.procedureName,
+              args: message.data.args
+            }
+          }).catch(e => e);
         }
       ));
       console.log(resultsAndReasons);
       return resultsAndReasons;
+    }
+
+    case 'invoke-js-procedure-in-contexts': {
+      const tabIds: Array<number> = message.data.contexts.map((context: SchemContextDetails) => context.tabId);
+      const resultsAndReasons = await Promise.all(
+        tabIds.map(async tabId => {
+          return browser.tabs.sendMessage(tabId, {
+            action: 'invoke-javascript-procedure',
+            data: {
+              qualifiedProcedureName: message.data.qualifiedProcedureName,
+              args: message.data.args
+            }
+          }).catch(e => e);
+        }
+      ));
+      console.log(resultsAndReasons);
+      return resultsAndReasons;
+    }
+
+    case 'set-js-property-in-contexts': {
+      const tabIds: Array<number> = message.data.contexts.map((context: SchemContextDetails) => context.tabId);
+      const resultsAndReasons = await Promise.all(
+        tabIds.map(async tabId => {
+          return browser.tabs.sendMessage(tabId, {
+            action: 'set-javascript-property',
+            data: {
+              qualifiedPropertyName: message.data.qualifiedPropertyName,
+              value: message.data.value
+            }
+          }).catch(e => e);
+        }
+      ));
+      console.log(resultsAndReasons);
+      return resultsAndReasons;
+    }
 
     default: {
       console.warn(`unknown message received`);
@@ -41,6 +121,8 @@ browser.runtime.onMessage.addListener(async (message: {action: string, data: any
     }
   }
 });
+
+
 
 function notify(message: string) {
   browser.notifications.create('noty', {
@@ -58,138 +140,9 @@ function injectCSS(tabId: number, css: string) {
 browser.tabs.onUpdated.addListener((id, changeInfo, tab) => {
 });
 
-
-let portForAlmaTab: Runtime.Port;
-const interpreterInstances: Map<number, Schem> = new Map<number, Schem>();
-
-browser.runtime.onConnect.addListener((port: Runtime.Port) => {
-  portForAlmaTab = port;
-  if (typeof port.sender === 'undefined') throw `sender mustn't be undefined!`;
-  if (typeof port.sender!.tab! === 'undefined') throw `tab mustn't be undefined!`;
-
-  /** Always returns the same Schem instance for a specific tab. Creates one, if necessary.*/
-  async function getInterpreterForTab(tab: Tabs.Tab): Promise<Schem> {
-    if (!tab.id) throw `tab.id was undefined`;
-
-    if (interpreterInstances.has(tab.id)) {
-      // stuff that changes a tab's state has to be called again on reloads & navigation (only the schem environment survives them)
-      // TODO: implement proper event handling, so the interpreter itself could react to this situation
-      const interpreter = interpreterInstances.get(tab.id)!;
-      interpreter.arep(demoKeyBindings);
-      return interpreter;
-    } else {
-      // Create and setup a new interpreter instance
-      const interpreter = new Schem();
-      interpreter.replEnv.addMap(coreGolemFunctions);
-
-      await Settings.loadSettings().then(s => {
-        interpreter.arep(s.configScript);
-      });
-
-      await interpreter.arep(almaKeywords);
-      interpreterInstances.set(tab.id, interpreter);
-      return interpreter;
-    }
-  }
-  // look at dis: https://stackoverflow.com/questions/20077487/chrome-extension-message-passing-response-not-sent?rq=1
-  // and dis: https://developer.mozilla.org/en-US/Add-ons/WebExtensions/API/runtime/onMessage
-  // sendresponse will be removed
-
-  // use plain messages instead of ports?
-  portForAlmaTab.onMessage.addListener((msg, port) => {
-      return (async (schemExpression) => {
-        const interpreter = await getInterpreterForTab(port.sender!.tab!);
-        const result = await interpreter.arep(schemExpression);
-        (port.postMessage as any)(result);
-        return result;
-      })(msg.schemExpression);
-  });
-
-  function postMessageToAlmaTab(msg: any) {
-    (portForAlmaTab.postMessage as any)(msg);
-  }
-
-  const coreGolemFunctions: {[symbol: string]: SchemType} = {
-    'set-val': (selector: SchemString, value: SchemString) => {
-      postMessageToAlmaTab({
-        action: 'set-val',
-        data: {
-          selector: selector.valueOf(),
-          value: value.valueOf()
-        }
-      });
-      return SchemBoolean.true;
-    },
-    'set-html': (selector: SchemString, html: SchemString) => {
-      postMessageToAlmaTab({
-        action: 'set-html',
-        data: {
-          selector: selector.valueOf(),
-          html: html.valueOf()
-        }
-      });
-      return SchemBoolean.true;
-    },
-    'click': (selector: SchemString) => {
-      postMessageToAlmaTab({
-        action: 'click',
-        data: {
-          selector: selector.valueOf()
-        }
-      });
-      return SchemBoolean.true;
-    },
-    'set-css': (selector: SchemString, property: SchemString, value: SchemString) => {
-      postMessageToAlmaTab({
-        action: 'set-css',
-        data: {
-          selector: selector.valueOf(),
-          property: property.valueOf(),
-          value: value.valueOf()
-        }
-      });
-      return SchemBoolean.true;
-    },
-    'inject-css': (css: SchemString) => {
-      injectCSS(port.sender!.tab!.id!, css.valueOf());
-      return SchemBoolean.true;
-    },
-    'get-bib': async (mmsId: SchemString) => {
-      // $.get(`https://api-na.hosted.exlibrisgroup.com/almaws/v1/bibs/${mmsId.valueOf()}?apikey=${bibApiKey}`).then(result => console.log(result));
-      return SchemNil.instance;
-    },
-    'bind-key': (key: SchemString, schemExpression: SchemString) => {
-      postMessageToAlmaTab({
-        action: 'bind-key',
-        data: {
-          key: key.valueOf(),
-          schemExpression: schemExpression.valueOf()
-        }
-      });
-      return SchemBoolean.true;
-    },
-    'add-event-listener': (selector: SchemString, events: SchemString, schemExpression: SchemString) => {
-      postMessageToAlmaTab({
-        action: 'add-event-listener',
-        data: {
-          selector: selector.valueOf(),
-          events: events.valueOf(),
-          schemExpression: schemExpression.valueOf()
-        }
-      });
-      return SchemBoolean.true;
-    }
-  };
-
-  // initializes tab. TODO: restructure all of this
-  getInterpreterForTab(port.sender!.tab!);
-
-});
-
 browser.commands.onCommand.addListener(function(command) {
   switch (command) {
     case 'go-go-golem': {
-
       browser.tabs.query({active: true, currentWindow: true}).then((tabs) => {
         browser.windows.getCurrent().then((window) => {
           if (window.id) browser.windows.update(window.id, {state: 'maximized', focused: true});
@@ -198,13 +151,6 @@ browser.commands.onCommand.addListener(function(command) {
         for (let tab of tabs) {
           if (tab && tab.id && !/pdsHandleLogin/.test(tab.url!)) {
             browser.tabs.sendMessage(tab.id, {action: 'showGolemInput'});
-
-            /* random example
-            browser.tabs.sendMessage(tab.id, {msg: 'mo color?', color: '#' + Math.floor(Math.random() * 16777215).toString(16) })
-            .then((v) => console.log(v))
-            .catch((e) => {
-              console.log(e);
-            }); */
           }
         }
       });
@@ -215,7 +161,7 @@ browser.commands.onCommand.addListener(function(command) {
       break;
 
     case 'open-editor':
-      browser.tabs.create({url: './pages/editor.html'});
+      browser.windows.create({url: './pages/editor.html'});
       break;
 
     case 'advanceSchemInterpreter':
