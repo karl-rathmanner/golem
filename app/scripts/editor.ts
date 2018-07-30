@@ -1,7 +1,7 @@
 import * as monaco from 'monaco-editor';
 import { browser, Tabs } from '../../node_modules/webextension-polyfill-ts';
 import { AddSchemSupportToEditor } from './monaco/schemLanguage';
-import { readStr } from './schem/reader';
+import { readStr, unescape as schemUnescape } from './schem/reader';
 import { filterRecursively, Schem, schemToJs } from './schem/schem';
 import { SchemContextDetails, SchemList, SchemMap, SchemNumber, SchemString, SchemSymbol, SchemType, SchemNil } from './schem/types';
 import { EventPageMessage, EventPageActionName } from './eventPage';
@@ -60,12 +60,13 @@ window.onload = () => {
         action: 'inject-interpreter'
       }));
     },
-    'arep-in-contexts': async (contexts: SchemList, code: SchemString) => {
+    'arep-in-contexts': async (contexts: SchemList, code: SchemString, options?: SchemType) => {
       return new SchemList(...await requestContextAction({
         contexts: schemToJs(contexts),
         action: 'arep-in-contexts',
         args: {
-            code: code
+            code: code,
+            options: options
           }
       }));
     }
@@ -106,7 +107,7 @@ window.onload = () => {
       addEvaluationViewZone(viewZoneAfterLineNumber, '...evaluating...', 'evalWaitingForResultViewZone');
 
       interpreter.arep(sourceOfInnermostCollection, editorEnv).then((result) => {
-        addEvaluationViewZone(viewZoneAfterLineNumber, result, 'evalResultViewZone');
+        addEvaluationViewZone(viewZoneAfterLineNumber, schemUnescape(result), 'evalResultViewZone');
       }).catch(error => {
         addEvaluationViewZone(viewZoneAfterLineNumber, error, 'evalErrorViewZone');
       });
@@ -217,7 +218,7 @@ async function requestContextCreation(queryInfo: Tabs.QueryQueryInfoType, frameI
 }
 
 async function requestContextAction(message: EventPageMessage) {
-  const result = await browser.runtime.sendMessage(message);
+  let result = await browser.runtime.sendMessage(message);
   console.log(`result of context action `, result);
   return new SchemList(...result);
 }

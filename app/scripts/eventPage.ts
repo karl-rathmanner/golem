@@ -90,7 +90,7 @@ browser.runtime.onMessage.addListener(async (message: EventPageMessage, sender):
               action: 'invoke-context-procedure',
               args: {
                 procedureName: 'arep',
-                procedureArgs: [message.args.code]
+                procedureArgs: [message.args.code, message.args.options]
               }
             }).catch(e => e);
           }

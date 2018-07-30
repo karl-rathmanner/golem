@@ -166,11 +166,11 @@ function readAtom(reader: Reader) {
   } else if (/^-?\d*\.\d+$/.test(token.value)) {
     return new SchemNumber(parseFloat(token.value));
   } else if (token.value[0] === '"') {
-    const value = token.value.substr(1, token.value.length - 2)
+    /*const value = token.value.substr(1, token.value.length - 2)
       .replace(/\\"/g, '"')
       .replace(/\\n/g, '\n')
-      .replace(/\\\\/g, '\\');
-    return new SchemString(value);
+      .replace(/\\\\/g, '\\');*/
+    return new SchemString(unescape(token.value));
   } else if (token.value[0] === ':') {
     return SchemKeyword.from(token.value.slice(1));
   } else switch (token.value) {
@@ -272,4 +272,13 @@ export function tokenize(input: string, withMetadata = false): token[] {
     }
   }
   return tokens;
+}
+
+/** Removes the two outermost double quotes, turns escaped quotes, newlines and slashes into their literal counterpart */
+export function unescape(str: string) {
+  return str.replace(/^"/, '')
+            .replace(/"$/, '')
+            .replace(/\\"/g, '"')
+            .replace(/\\n/g, '\n')
+            .replace(/\\\\/g, '\\');
 }
