@@ -3,25 +3,59 @@ import { browser, Tabs } from '../../node_modules/webextension-polyfill-ts';
 import { AddSchemSupportToEditor } from './monaco/schemLanguage';
 import { readStr } from './schem/reader';
 import { filterRecursively, Schem, schemToJs } from './schem/schem';
-import { SchemContextDetails, SchemList, SchemMap, SchemNumber, SchemString, SchemSymbol, SchemType } from './schem/types';
+import { SchemContextDetails, SchemList, SchemMap, SchemNumber, SchemString, SchemSymbol, SchemType, SchemNil } from './schem/types';
+import { EventPageMessage, EventPageActionName } from './eventPage';
 const example = require('!raw-loader!./schemScripts/example.schem');
 
 window.onload = () => {
 
-  const editorEnv: {[symbol: string]: SchemType} = {
+  const editorEnv: {[symbolName in EventPageActionName]?: SchemType} = {
     'create-contexts': async (queryInfo: SchemMap, frameId?: SchemNumber) => {
       return requestContextCreation(schemToJs(queryInfo, {keySerialization: 'noPrefix'}), frameId ? frameId.valueOf() : 0).then(contextsOrError => {
         return new SchemList(...contextsOrError);
       });
     },
-    'invoke-context-procedure': async (contexts: SchemList, procedureName: SchemSymbol, ...args: SchemType[]) => {
-      return new SchemList(...await requestProcedureInvokation(schemToJs(contexts), procedureName.name, args.map(arg => schemToJs(arg))));
+    'invoke-context-procedure': async (contexts: SchemList, procedureName: SchemSymbol, ...procedureArgs: SchemType[]) => {
+      return new SchemList(...await requestContextAction({
+        contexts: schemToJs(contexts),
+        action: 'forward-context-action',
+        contextMessage: {
+          action: 'invoke-context-procedure',
+          args : {
+            procedureName : procedureName.name,
+            procedureArgs: procedureArgs.map(arg => schemToJs(arg))
+          }
+        }
+      }));
     },
-    'invoke-js-procedure': async (contexts: SchemList, procedureName: SchemSymbol, ...args: SchemType[]) => {
-      return new SchemList(...await requestJSProcedureInvokation(schemToJs(contexts), procedureName.name, args.map(arg => schemToJs(arg))));
+    'invoke-js-procedure': async (contexts: SchemList, qualifiedProcedureName: SchemSymbol, ...procedureArgs: SchemType[]) => {
+      return new SchemList(...await requestContextAction({
+        contexts: schemToJs(contexts),
+        action: 'forward-context-action',
+        contextMessage: {
+          action: 'invoke-js-procedure',
+          args : {
+            qualifiedProcedureName : qualifiedProcedureName.name,
+            procedureArgs: procedureArgs.map(arg => schemToJs(arg))
+          }
+        }
+      }));
     },
     'set-js-property': async (contexts: SchemList, qualifiedPropertyName: SchemSymbol, value: SchemType) => {
-      return new SchemList(...await requestJSPropertyUpdate(schemToJs(contexts), qualifiedPropertyName.name, schemToJs(value)));
+      return new SchemList(...await requestContextAction({
+        contexts: schemToJs(contexts),
+        action: 'forward-context-action',
+        contextMessage: {
+          action: 'set-js-property',
+          args : {
+            qualifiedPropertyName : qualifiedPropertyName.name,
+            value: schemToJs(value)
+          }
+        }
+      }));
+    },
+    'inject-interpreter': async (contexts: SchemList, importsOrOptionsOrSomething: SchemType) => {
+      // TODO: implement me
     }
   };
 
@@ -160,7 +194,7 @@ async function requestContextCreation(queryInfo: Tabs.QueryQueryInfoType, frameI
   return browser.runtime.sendMessage({
     action: 'create-contexts',
     recipient: 'backgroundPage',
-    data: {queryInfo: queryInfo, frameId: frameId}}).then(value => {
+    args: {queryInfo: queryInfo, frameId: frameId}}).then(value => {
       if ('error' in value) {
         // messaging worked, but something happened during context creation
         return Promise.reject(value.error.message);
@@ -170,46 +204,8 @@ async function requestContextCreation(queryInfo: Tabs.QueryQueryInfoType, frameI
     });
 }
 
-async function requestProcedureInvokation(contexts: Array<SchemContextDetails>, procedureName: string, args?: any) {
-  const result = await browser.runtime.sendMessage({
-    recipient: 'backgroundPage',
-    action: 'invoke-context-procedure',
-    data: {
-      contexts: contexts,
-      procedureName: procedureName,
-      args: args
-    }
-  });
-  console.log(result);
-  return new SchemList(...result.map((e: any) => new SchemString(JSON.stringify(e))));
-}
-// MEMO: not DRY.
-async function requestJSProcedureInvokation(contexts: Array<SchemContextDetails>, qualifiedProcedureName: string, args?: any) {
-  const result = await browser.runtime.sendMessage({
-    recipient: 'backgroundPage',
-    action: 'invoke-js-procedure-in-contexts',
-    data: {
-      contexts: contexts,
-      qualifiedProcedureName: qualifiedProcedureName,
-      args: args
-    }
-  });
-
-  console.log(result);
-  return new SchemList(...result.map((e: any) => new SchemString(JSON.stringify(e))));
-}
-
-async function requestJSPropertyUpdate(contexts: Array<SchemContextDetails>, qualifiedPropertyName: string, value: any) {
-  const result = await browser.runtime.sendMessage({
-    recipient: 'backgroundPage',
-    action: 'set-js-property-in-contexts',
-    data: {
-      contexts: contexts,
-      qualifiedPropertyName: qualifiedPropertyName,
-      value: value
-    }
-  });
-
-  console.log(result);
+async function requestContextAction(message: EventPageMessage) {
+  const result = await browser.runtime.sendMessage(message);
+  console.log(`result of context action `, result);
   return new SchemList(...result);
 }

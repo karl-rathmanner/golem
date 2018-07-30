@@ -1,23 +1,31 @@
 import 'chromereload/devonly';
 import { browser, Tabs } from 'webextension-polyfill-ts';
 import { SchemContextDetails } from './schem/types';
-const baseContentScript = require('!raw-loader!./baseContentScript');
+import { ContextMessage } from './baseContentScript';
+
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('previousVersion', details.previousVersion);
 });
 
 let lastContextID = 0;
 
-browser.runtime.onMessage.addListener(async (message: {action: string, data: any}, sender): Promise<any> => {
+export type EventPageActionName = 'create-contexts' | 'forward-context-action' | 'invoke-context-procedure' | 'invoke-js-procedure' | 'set-js-property' | 'inject-interpreter' | 'notify';
+
+export type EventPageMessage = {
+  action: EventPageActionName,
+  args?: any
+  contexts?: Array<SchemContextDetails>,
+  contextMessage?: ContextMessage
+};
+
+
+browser.runtime.onMessage.addListener(async (message: EventPageMessage, sender): Promise<any> => {
+
   switch (message.action) {
-    case 'notify': {
-      notify(message.data.message);
-      return true;
-    }
     case 'create-contexts': {
       // data may contain a queryInfo object and a frameId value
-      const queryInfo: Tabs.QueryQueryInfoType = message.data.queryInfo;
-      const frameId = (typeof message.data.frameId === 'number') ? message.data.frameId : 0;
+      const queryInfo: Tabs.QueryQueryInfoType = message.args.queryInfo;
+      const frameId = (typeof message.args.frameId === 'number') ? message.args.frameId : 0;
 
       let tabs;
 
@@ -63,61 +71,32 @@ browser.runtime.onMessage.addListener(async (message: {action: string, data: any
       return Promise.all(contextDetails);
     }
 
-    case 'invoke-context-procedure': {
-      const tabIds: Array<number> = message.data.contexts.map((context: SchemContextDetails) => context.tabId);
-      const resultsAndReasons = await Promise.all(
-        tabIds.map(async tabId => {
-          return browser.tabs.sendMessage(tabId, {
-            action: 'invoke-context-procedure',
-            data: {
-              procedureName: message.data.procedureName,
-              args: message.data.args
-            }
-          }).catch(e => e);
-        }
-      ));
-      console.log(resultsAndReasons);
-      return resultsAndReasons;
+    case 'forward-context-action': {
+      if (message.contexts != null && message.contextMessage != null) {
+        // forward the message to the appropriate contexts
+        const tabIds: Array<number> = message.contexts.map((context: SchemContextDetails) => context.tabId);
+        const resultsAndReasons = await Promise.all(
+          tabIds.map(async tabId => {
+            return browser.tabs.sendMessage(tabId, {
+              action: message.contextMessage!.action,
+              args: message.contextMessage!.args
+            }).catch(e => e);
+          }
+        ));
+        console.log(resultsAndReasons);
+        return resultsAndReasons;
+      }
     }
 
-    case 'invoke-js-procedure-in-contexts': {
-      const tabIds: Array<number> = message.data.contexts.map((context: SchemContextDetails) => context.tabId);
-      const resultsAndReasons = await Promise.all(
-        tabIds.map(async tabId => {
-          return browser.tabs.sendMessage(tabId, {
-            action: 'invoke-javascript-procedure',
-            data: {
-              qualifiedProcedureName: message.data.qualifiedProcedureName,
-              args: message.data.args
-            }
-          }).catch(e => e);
-        }
-      ));
-      console.log(resultsAndReasons);
-      return resultsAndReasons;
-    }
-
-    case 'set-js-property-in-contexts': {
-      const tabIds: Array<number> = message.data.contexts.map((context: SchemContextDetails) => context.tabId);
-      const resultsAndReasons = await Promise.all(
-        tabIds.map(async tabId => {
-          return browser.tabs.sendMessage(tabId, {
-            action: 'set-javascript-property',
-            data: {
-              qualifiedPropertyName: message.data.qualifiedPropertyName,
-              value: message.data.value
-            }
-          }).catch(e => e);
-        }
-      ));
-      console.log(resultsAndReasons);
-      return resultsAndReasons;
+    case 'notify': {
+      notify(message.args.message);
+      return true;
     }
 
     default: {
       console.warn(`unknown message received`);
       console.warn(message);
-      return 'idk';
+      return `event page can't handle the action`;
     }
   }
 });
@@ -161,7 +140,12 @@ browser.commands.onCommand.addListener(function(command) {
       break;
 
     case 'open-editor':
-      browser.windows.create({url: './pages/editor.html'});
+      browser.windows.getCurrent().then(currentWindow => {
+        const halfHorizontalResolution = window.screen.width / 2;
+        currentWindow.width = halfHorizontalResolution;
+        currentWindow.left = 0;
+        browser.windows.create({url: './pages/editor.html', left: halfHorizontalResolution, width: halfHorizontalResolution});
+      });
       break;
 
     case 'advanceSchemInterpreter':

@@ -1,6 +1,6 @@
 import { readStr } from './reader';
 import { Schem } from './schem';
-import { SchemFunction, SchemList, SchemSymbol, SchemType, SchemNumber } from './types';
+import { SchemFunction, SchemList, SchemSymbol, SchemType, SchemNumber, isSchemType } from './types';
 
 /** This allows concevient initialization of environments when using Env.addMap()
  *
@@ -11,7 +11,10 @@ import { SchemFunction, SchemList, SchemSymbol, SchemType, SchemNumber } from '.
  * }
  */
 export abstract class EnvSetupMap {
-  [symbol: string]: SchemType
+  // I'm allowing the map to have undefined entries to defining EnvSetupMaps that contain a subset of a string literal type. e.g.:
+  // const editorEnv: {[symbolName in EventPageActionName]?: SchemType} = {...}
+  // If the above index signature wasn't nullable, only maps containing keys for *all* string literals would be accepted.
+  [symbol: string]: any | undefined
 }
 
 /**  Environments map symbols to values
@@ -70,9 +73,11 @@ export class Env {
     for (const symbol in map) {
       if (!overwrite && this.symbolValueMap.has(Symbol.for(symbol))) {
         throw `Tried to modify existing symbol ${symbol} while overwrite flag is set to false.`;
-      } else { // hope for the best that it's a SchemType
-        // TODO: add a way of checking the union type Schemtype at runtime
-        this.set(SchemSymbol.from(symbol), map[symbol]);
+      } else {
+        const value = map[symbol];
+        if (typeof value !== 'undefined') {
+          this.set(SchemSymbol.from(symbol), value);
+        }
       }
     }
   }
