@@ -9,7 +9,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 let lastContextID = 0;
 
-export type EventPageActionName = 'create-contexts' | 'forward-context-action' | 'invoke-context-procedure' | 'invoke-js-procedure' | 'set-js-property' | 'inject-interpreter' | 'notify';
+export type EventPageActionName = 'create-contexts' | 'forward-context-action' | 'invoke-context-procedure' | 'invoke-js-procedure' | 'set-js-property' | 'inject-interpreter' | 'arep-in-contexts' | 'notify';
 
 export type EventPageMessage = {
   action: EventPageActionName,
@@ -57,7 +57,7 @@ browser.runtime.onMessage.addListener(async (message: EventPageMessage, sender):
           // inject actual content script
           // TODO: modularize content scripts and inject specific parts only when needed
           await browser.tabs.executeScript(tab.id, {file: 'scripts/baseContentScript.js', frameId: frameId}).catch(e => e); // turn error into resolved promise
-          await browser.tabs.executeScript(tab.id, {file: 'scripts/demoContentScript.js', frameId: frameId}).catch(e => e); // turn error into resolved promise
+          await browser.tabs.executeScript(tab.id, {file: 'scripts/demoContentScript.js', frameId: frameId}).catch(e => e);
           return {
             contextId: newContextID,
             windowId: typeof tab.windowId !== 'undefined' ? tab.windowId : -1,
@@ -69,6 +69,36 @@ browser.runtime.onMessage.addListener(async (message: EventPageMessage, sender):
       });
 
       return Promise.all(contextDetails);
+    }
+
+    case 'inject-interpreter': {
+      if (message.contexts != null) {
+        return Promise.all(message.contexts.map(async context => {
+          await browser.tabs.executeScript(context.tabId, {file: 'scripts/localInterpreterCS.js', frameId: context.frameId}).catch(e => e);
+        }));
+      } else {
+        return Promise.reject('no context supplied to inject-interpreter');
+      }
+    }
+
+    case 'arep-in-contexts': {
+      if (message.contexts != null && message.args.code != null) {
+        const tabIds: Array<number> = message.contexts.map((context: SchemContextDetails) => context.tabId);
+        const resultsAndReasons = await Promise.all(
+          tabIds.map(async tabId => {
+            return browser.tabs.sendMessage(tabId, {
+              action: 'invoke-context-procedure',
+              args: {
+                procedureName: 'arep',
+                procedureArgs: [message.args.code]
+              }
+            }).catch(e => e);
+          }
+        ));
+        console.log(resultsAndReasons);
+        return resultsAndReasons;
+
+      }
     }
 
     case 'forward-context-action': {

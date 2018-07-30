@@ -3,7 +3,7 @@ import { browser, Runtime } from 'webextension-polyfill-ts';
 import { Schem } from './schem/schem';
 
 export type ContextMessage = {
-  action: 'invoke-context-procedure' | 'invoke-js-procedure' | 'set-js-property',
+  action: 'invoke-context-procedure' | 'invoke-js-procedure' | 'set-js-property' | 'arep',
   args: any
 };
 

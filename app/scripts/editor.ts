@@ -55,7 +55,19 @@ window.onload = () => {
       }));
     },
     'inject-interpreter': async (contexts: SchemList, importsOrOptionsOrSomething: SchemType) => {
-      // TODO: implement me
+      return new SchemList(...await requestContextAction({
+        contexts: schemToJs(contexts),
+        action: 'inject-interpreter'
+      }));
+    },
+    'arep-in-contexts': async (contexts: SchemList, code: SchemString) => {
+      return new SchemList(...await requestContextAction({
+        contexts: schemToJs(contexts),
+        action: 'arep-in-contexts',
+        args: {
+            code: code
+          }
+      }));
     }
   };
 

@@ -3,6 +3,17 @@
 (invoke-js-procedure contexts 'alert "muh")
 (set-js-property contexts 'window.document.body.style.cssText "color: #2F2")
 
+(inject-interpreter contexts)
+(arep-in-contexts contexts "(+ 1 2)")
+
+(do
+  (def contexts (create-contexts {:title "*derStandard*"}))
+  (inject-interpreter contexts)
+  (def name "Alice")
+  (arep-in-contexts contexts (pr-str `(prn (str "Yo, " ~name "!")))))
+
+
+
 (defn fizz-buzz (start end)
   (subvec 
     (lazy-vector 
