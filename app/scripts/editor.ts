@@ -1,10 +1,11 @@
-import * as monaco from 'monaco-editor';
+import * as monaco from  'monaco-editor';
 import { browser, Tabs } from '../../node_modules/webextension-polyfill-ts';
 import { AddSchemSupportToEditor } from './monaco/schemLanguage';
 import { readStr, unescape as schemUnescape } from './schem/reader';
 import { filterRecursively, Schem, schemToJs } from './schem/schem';
 import { SchemContextDetails, SchemList, SchemMap, SchemNumber, SchemString, SchemSymbol, SchemType, SchemNil } from './schem/types';
 import { EventPageMessage, EventPageActionName } from './eventPage';
+import { getHTMLElementById } from './utils/domManipulation';
 const example = require('!raw-loader!./schemScripts/example.schem');
 
 window.onload = () => {
@@ -83,7 +84,11 @@ window.onload = () => {
     theme: 'vs-dark'
   });
 
+  window.addEventListener('resize', () => { updateEditorLayout(editor); });
+  updateEditorLayout(editor);
   editor.focus();
+
+
 
   // remove evalViews and decorations when buffer changes
   editor.getModel().onDidChangeContent((e) => {
@@ -221,4 +226,10 @@ async function requestContextAction(message: EventPageMessage) {
   let result = await browser.runtime.sendMessage(message);
   console.log(`result of context action `, result);
   return new SchemList(...result);
+}
+
+function updateEditorLayout(editor: monaco.editor.IStandaloneCodeEditor) {
+  getHTMLElementById('monacoContainer').style.height = `${window.innerHeight}px`;
+  getHTMLElementById('monacoContainer').style.width = `${window.innerWidth}px`;
+  editor.layout();
 }

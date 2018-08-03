@@ -172,9 +172,21 @@ browser.commands.onCommand.addListener(function(command) {
     case 'open-editor':
       browser.windows.getCurrent().then(currentWindow => {
         const halfHorizontalResolution = window.screen.width / 2;
-        currentWindow.width = halfHorizontalResolution;
-        currentWindow.left = 0;
-        browser.windows.create({url: './pages/editor.html', left: halfHorizontalResolution, width: halfHorizontalResolution});
+        const currentWindowWidth = currentWindow.width ? currentWindow.width : 100;
+        let editorWindowWidth = currentWindow.width;
+        let editorWindowLeft = currentWindow.left;
+
+        // put current window and editor window in a split layout, if the current window is smaller than about half the screen resolution
+        if (currentWindowWidth < halfHorizontalResolution + 20) {
+          currentWindow.width = editorWindowWidth = halfHorizontalResolution;
+          currentWindow.left = 0;
+          editorWindowLeft = halfHorizontalResolution;
+        }
+        browser.windows.create({
+          url: './pages/editor.html',
+          top: currentWindow.top, left: editorWindowLeft,
+          height: currentWindow.height, width: editorWindowWidth
+        });
       });
       break;
 
