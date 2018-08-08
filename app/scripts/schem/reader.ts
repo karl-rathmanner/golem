@@ -1,4 +1,4 @@
-import {SchemType, SchemList, SchemNumber, SchemSymbol, SchemNil, SchemString, SchemBoolean, SchemVector, SchemMap, SchemKeyword, isSchemType, isSequential, SchemMapKey} from './types';
+import {SchemType, SchemList, SchemNumber, SchemSymbol, SchemNil, SchemString, SchemBoolean, SchemVector, SchemMap, SchemKeyword, isSchemType, isSequential, SchemMapKey, SchemContextSymbol} from './types';
 
 
 type token = {
@@ -161,24 +161,29 @@ function readParen(reader: Reader, openParen: string): SchemType {
 function readAtom(reader: Reader) {
   const token = reader.next();
 
+  // integers consist only of numbers but they might start with a minus sign
   if (/^-?\d+$/.test(token.value)) {
     return new SchemNumber(parseInt(token.value));
-  } else if (/^-?\d*\.\d+$/.test(token.value)) {
+  // floats work like integers but they contain a decimal point (note that you can ommit the fractional part if you explicitly want to create a float with an integer value)
+  } else if (/^-?\d*\.\d*$/.test(token.value)) {
     return new SchemNumber(parseFloat(token.value));
+  // strings starts with double quotes
   } else if (token.value[0] === '"') {
-    /*const value = token.value.substr(1, token.value.length - 2)
-      .replace(/\\"/g, '"')
-      .replace(/\\n/g, '\n')
-      .replace(/\\\\/g, '\\');*/
     return new SchemString(unescape(token.value));
+  // keywords start with a colon
   } else if (token.value[0] === ':') {
     return SchemKeyword.from(token.value.slice(1));
+  // context symbols end with a colon
+  } else if (token.value[token.value.length - 1] === ':') {
+      return SchemContextSymbol.from(token.value.substr(0, token.value.length - 1));
+  // true, false and nil are straight forward
   } else switch (token.value) {
     case 'true': return SchemBoolean.true;
     case 'false': return SchemBoolean.false;
     case 'nil': return SchemNil.instance;
   }
 
+  // symbols must comply with the rules that are defined in from()
   let returnValue = SchemSymbol.from(token.value);
   returnValue.metadata = {sourceIndexStart: token.index};
 
@@ -252,7 +257,7 @@ function expandFnShorthand(reader: Reader) {
 }
 
 export function tokenize(input: string, withMetadata = false): token[] {
-  const regex = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)/g;
+  const regex = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|:?[^\s\[\]{}('"`,;):/]*[:/]?)/g;
   let matches: RegExpExecArray | null;
   let tokens: token[] = new Array<token>();
 

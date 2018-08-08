@@ -190,7 +190,7 @@ describe('blackbox tests', function() {
 
   // Invoking callable values
   expectSchem('({:a 42 :b 13} :a)', '42');
-  expectSchem('({a: "meh" b: "bleh"} :c "default")', '"default"');
+  expectSchem('({:a "meh" :b "bleh"} :c "default")', '"default"');
   expectSchem('(:inner ({:outer {:inner 42}} :outer))', '42');
   expectSchem('([:a :b :c] 2)', ':c');
 
