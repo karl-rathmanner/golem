@@ -546,7 +546,8 @@ export function schemToJs(schemObject: SchemType | null, options: {keySerializat
     }
 
   } else if (isSchemType(schemObject)) {
-    jsObject = schemObject.valueOf();
+    // getStringRepresentation is preferable to valueOf because it returns values that look like their Schem representation (e.g. ":keyword" instead of "keyword")
+    jsObject = ('getStringRepresentation' in schemObject) ? schemObject.getStringRepresentation() : schemObject.valueOf();
   }
 
   return jsObject;

@@ -265,7 +265,7 @@ export class SchemMap implements Callable, Reducible, Countable, Metadatable {
 
   invoke(...args: SchemType[]) {
     let key = args[0];
-    if ('isValidKeyType' in key) {
+    if (isValidKeyType(key)) {
       return this.get(key, args[1]);
     } else {
       throw `type of ${key} is not of a key for maps`;
@@ -341,8 +341,6 @@ export class SchemBoolean extends Boolean {
 }
 
 export class SchemNumber extends Number implements Callable {
-  isValidKeyType = true;
-
   invoke(...args: SchemType[]) {
     const i = this.valueOf();
     const sequential = args[0];
@@ -362,7 +360,6 @@ export class SchemNumber extends Number implements Callable {
 }
 
 export class SchemString extends String {
-  isValidKeyType = true;
 
   // can't hide toString()
   getStringRepresentation(): string {
@@ -379,79 +376,114 @@ export class SchemRegExp extends RegExp {
   }
 }
 
-export class SchemSymbol implements Metadatable {
-  static isValidKeyType = true;
-  metadata: SchemMetadata;
+// This implementation is naïve and the symbol registry has no purpose as of yet.
+// TODO: check if the overhead is necessary
+class SymbolicType {
+  static symbolRegistry: Set<string>;
 
-  static registeredSymbols: Map<symbol, SchemSymbol> = new Map<symbol, SchemSymbol>();
-
-  private constructor(public name: string) {
+  protected constructor(public name: string) {
   }
 
-  static from(name: string | SchemString, environmentName?: string): SchemSymbol {
-    const indexOfPointyBracket = name.indexOf('>');
-
-    // split name and environmentSymbol if necessary
-    if (indexOfPointyBracket === 0) {
-      new Error(`Symbols can't start with ">".`);
-    } else if (indexOfPointyBracket > 0) {
-      environmentName = name.slice(0, indexOfPointyBracket);
-      name = name.slice(indexOfPointyBracket + 1);
+  static from(name: string | SchemString) {
+    if (name instanceof SchemString) {
+      name = name.valueOf();
     }
 
-    // Creates symbols using the global symbol registry, so the same name maps to the same symbol
-    const key = Symbol.for(name.valueOf());
-
-    if (this.registeredSymbols.has(key) &&
-        typeof environmentName === 'undefined') {
-      return this.registeredSymbols.get(key)!;
-    } else {
-      const newSchemSymbol = new SchemSymbol(name.valueOf());
-      this.registeredSymbols.set(key, newSchemSymbol);
-      return newSchemSymbol;
-    }
+    this.symbolRegistry.add(name);
+    return new SymbolicType(name);
   }
 
+  /** Always returns the plain name of a symbolic type */
+  valueOf() {
+    return this.name;
+  }
+
+  /** Might return something other than just the name in derived classes (such as ":name" for keywords) */
   getStringRepresentation() {
     return this.name;
   }
 }
 
+export class SchemSymbol extends SymbolicType implements Metadatable {
+  metadata: SchemMetadata;
 
-export class SchemKeyword implements Callable {
-  isValidKeyType = true;
+  // static registeredSymbols: Map<symbol, SchemSymbol> = new Map<symbol, SchemSymbol>();
 
+  private constructor(name: string) {
+    super(name);
+  }
+
+  static from(name: string | SchemString) {
+    if (name instanceof SchemString) {
+      name = name.valueOf();
+    }
+
+    if (name.length === 0) {
+      throw new Error(`Zero-lenght symbols are not allowed.`);
+    }
+
+    if (name.length > 1 && /[:/]/.test(name)) {
+      throw new Error(`Symbols mustn't contain the characters ':' or '/'. Those are reserved!`);
+    }
+
+    return new SchemSymbol(name);
+  }
+}
+
+
+export class SchemKeyword extends SymbolicType implements Callable {
+  static registeredSymbols: Map<symbol, SchemKeyword> = new Map<symbol, SchemKeyword>();
+
+  static from(name: string | SchemString): SchemKeyword {
+    if (name instanceof SchemString) {
+      name = name.valueOf();
+    }
+
+    if (name.length === 0) {
+      throw new Error(`Zero-lenght keywords are not allowed. (':' by itself looks far too lonely)`);
+    }
+
+    if (/[:/]/.test(name)) {
+      throw new Error(`Keywords' names mustn't contain the characters ':' or '/'. (Yes, keywords begin with ':' but the name is the part after the colon.)`);
+    }
+
+    return new SchemKeyword(name);
+  }
+
+  /** Returns the name of the keyword prefixed with ":" */
   getStringRepresentation() {
     return ':' + this.name;
   }
 
-  static registeredSymbols: Map<symbol, SchemKeyword> = new Map<symbol, SchemKeyword>();
-
-  static from(name: string | SchemString): SchemKeyword {
-    // Creates symbols using the global symbol registry, so the same name maps to the same symbol
-    const jsSym: symbol = Symbol.for(name.valueOf());
-
-    if (this.registeredSymbols.has(jsSym)) {
-      return this.registeredSymbols.get(jsSym)!;
-    } else {
-      const newSchemSymbol = new SchemKeyword(name.valueOf());
-      this.registeredSymbols.set(jsSym, newSchemSymbol);
-      return newSchemSymbol;
-    }
-  }
-
-  private constructor(public name: string) {
-  }
-
+  /** Returns the value that is associated with this keyword in the provided collection */
   invoke(...args: SchemType[]) {
     if (args.length === 0) {
-      throw `Keywords aren't functions.`;
+      throw `Tried to invoke a keywords without passing a collection. Did you accidentally put it in the head position of a form that wasn't supposed to be evaluated?`;
     }
     if (args[0] instanceof SchemMap) {
       return (args[0] as SchemMap).get(this, args[1]);
     } else {
       throw 'First argument to keyword lookup must be a map';
     }
+  }
+}
+
+export class SchemContextSymbol extends SymbolicType {
+  static from(name: string | SchemString): SchemContextSymbol {
+    if (name instanceof SchemString) {
+      name = name.valueOf();
+    }
+
+    if (/[:/]/.test(name)) {
+      throw new Error(`A context name mustn't contain the characters ':' or '/'. (The name is the part before the colon at the end of a context symbol.)`);
+    }
+
+    return new SchemContextSymbol(name);
+  }
+
+  /** Returns the name of the context suffixed with ":" */
+  getStringRepresentation() {
+    return this.name + ':';
   }
 }
 
@@ -505,6 +537,7 @@ export function isSchemType(o: any): o is SchemType {
           o instanceof SchemMap ||
           o instanceof SchemNumber ||
           o instanceof SchemSymbol ||
+          o instanceof SchemContextSymbol ||
           o instanceof SchemKeyword ||
           o instanceof SchemNil ||
           o instanceof SchemString ||

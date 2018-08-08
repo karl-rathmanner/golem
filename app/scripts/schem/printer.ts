@@ -1,4 +1,4 @@
-import { SchemType, SchemNumber, SchemNil, SchemSymbol, SchemList, SchemString, SchemBoolean, SchemFunction, SchemVector, SchemMap, SchemKeyword, SchemAtom, SchemRegExp, LazyVector, SchemContext } from './types';
+import { SchemType, SchemNumber, SchemNil, SchemSymbol, SchemList, SchemString, SchemBoolean, SchemFunction, SchemVector, SchemMap, SchemKeyword, SchemAtom, SchemRegExp, LazyVector, SchemContext, SchemContextSymbol } from './types';
 
 export async function pr_str(ast: SchemType, escapeStrings: boolean = true): Promise<string> {
   if (ast instanceof SchemBoolean) {
@@ -7,7 +7,7 @@ export async function pr_str(ast: SchemType, escapeStrings: boolean = true): Pro
     return ast.toString();
   } else if (ast instanceof SchemNil) {
     return 'nil';
-  } else if (ast instanceof SchemSymbol || ast instanceof SchemKeyword || ast instanceof SchemRegExp) {
+  } else if (ast instanceof SchemSymbol || ast instanceof SchemKeyword || ast instanceof SchemRegExp || ast instanceof SchemContextSymbol) {
     return ast.getStringRepresentation();
   } else if (ast instanceof SchemList) {
     return '(' + (await ast.amap(e => pr_str(e, escapeStrings))).join(' ') + ')';
@@ -31,17 +31,17 @@ export async function pr_str(ast: SchemType, escapeStrings: boolean = true): Pro
     }
   } else if (ast instanceof SchemFunction) {
     if (ast.isMacro) {
-      return `#object [macroFunction ${JSON.stringify(ast.metadata)}]`;
+      return `#macroFunction [${JSON.stringify(ast.metadata)}]`;
     } else {
-      return `#object [function ${JSON.stringify(ast.metadata)}]`;
+      return `#function [${JSON.stringify(ast.metadata)}]`;
     }
   } else if (ast instanceof SchemAtom) {
-    return `#object [atom ${JSON.stringify(ast.value)}]`;
+    return `#atom [${JSON.stringify(ast.value)}]`;
   } else if (ast instanceof SchemContext) {
-    return '#object [executionContext {}]';
+    return `#context [${JSON.stringify(ast)}]`;
   } else {
     // attempt to stringify object, because it's not a SchemType after all
-    return JSON.stringify(ast);
+    return `#jsObject [${JSON.stringify(ast)}]`;
   }
 }
 
