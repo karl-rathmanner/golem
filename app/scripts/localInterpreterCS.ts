@@ -1,8 +1,5 @@
-
-import { browser, Runtime } from 'webextension-polyfill-ts';
-import { ContextMessage } from './baseContentScript';
-import { Schem } from './schem/schem';
 import { unescape } from './schem/reader';
+import { Schem } from './schem/schem';
 
 (function addSomeDemoProcedures() {
   const interpreter = new Schem();

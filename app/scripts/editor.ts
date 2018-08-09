@@ -1,77 +1,15 @@
-import * as monaco from  'monaco-editor';
-import { browser, Tabs } from '../../node_modules/webextension-polyfill-ts';
+import * as monaco from 'monaco-editor';
+import { EventPageActionName, eventPageMessagingSchemFunctions } from './eventPageMessaging';
 import { AddSchemSupportToEditor } from './monaco/schemLanguage';
 import { readStr, unescape as schemUnescape } from './schem/reader';
-import { filterRecursively, Schem, schemToJs } from './schem/schem';
-import { SchemContextDetails, SchemList, SchemMap, SchemNumber, SchemString, SchemSymbol, SchemType, SchemNil } from './schem/types';
-import { EventPageMessage, EventPageActionName } from './eventPage';
+import { filterRecursively, Schem } from './schem/schem';
+import { SchemList, SchemType } from './schem/types';
 import { getHTMLElementById } from './utils/domManipulation';
 const example = require('!raw-loader!./schemScripts/example.schem');
 
 window.onload = () => {
 
-  const editorEnv: {[symbolName in EventPageActionName]?: SchemType} = {
-    'create-contexts': async (queryInfo: SchemMap, frameId?: SchemNumber) => {
-      return requestContextCreation(schemToJs(queryInfo, {keySerialization: 'noPrefix'}), frameId ? frameId.valueOf() : 0).then(contextsOrError => {
-        return new SchemList(...contextsOrError);
-      });
-    },
-    'invoke-context-procedure': async (contexts: SchemList, procedureName: SchemSymbol, ...procedureArgs: SchemType[]) => {
-      return new SchemList(...await requestContextAction({
-        contexts: schemToJs(contexts),
-        action: 'forward-context-action',
-        contextMessage: {
-          action: 'invoke-context-procedure',
-          args : {
-            procedureName : procedureName.name,
-            procedureArgs: procedureArgs.map(arg => schemToJs(arg))
-          }
-        }
-      }));
-    },
-    'invoke-js-procedure': async (contexts: SchemList, qualifiedProcedureName: SchemSymbol, ...procedureArgs: SchemType[]) => {
-      return new SchemList(...await requestContextAction({
-        contexts: schemToJs(contexts),
-        action: 'forward-context-action',
-        contextMessage: {
-          action: 'invoke-js-procedure',
-          args : {
-            qualifiedProcedureName : qualifiedProcedureName.name,
-            procedureArgs: procedureArgs.map(arg => schemToJs(arg))
-          }
-        }
-      }));
-    },
-    'set-js-property': async (contexts: SchemList, qualifiedPropertyName: SchemSymbol, value: SchemType) => {
-      return new SchemList(...await requestContextAction({
-        contexts: schemToJs(contexts),
-        action: 'forward-context-action',
-        contextMessage: {
-          action: 'set-js-property',
-          args : {
-            qualifiedPropertyName : qualifiedPropertyName.name,
-            value: schemToJs(value)
-          }
-        }
-      }));
-    },
-    'inject-interpreter': async (contexts: SchemList, importsOrOptionsOrSomething: SchemType) => {
-      return new SchemList(...await requestContextAction({
-        contexts: schemToJs(contexts),
-        action: 'inject-interpreter'
-      }));
-    },
-    'arep-in-contexts': async (contexts: SchemList, code: SchemString, options?: SchemType) => {
-      return new SchemList(...await requestContextAction({
-        contexts: schemToJs(contexts),
-        action: 'arep-in-contexts',
-        args: {
-            code: code,
-            options: options
-          }
-      }));
-    }
-  };
+  const editorEnv: {[symbolName in EventPageActionName]?: SchemType} = eventPageMessagingSchemFunctions;
 
   let interpreter = new Schem();
   interpreter.replEnv.addMap(editorEnv);
@@ -88,8 +26,6 @@ window.onload = () => {
   updateEditorLayout(editor);
   editor.focus();
 
-
-
   // remove evalViews and decorations when buffer changes
   editor.getModel().onDidChangeContent((e) => {
     evalDecoration = editor.deltaDecorations(evalDecoration, []);
@@ -102,7 +38,7 @@ window.onload = () => {
   let evalZoneId: number;
   let evalDecoration = Array<string>();
 
-  let myBinding = editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.KEY_E, function() {
+  let myKeyBinding = editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.KEY_E, function() {
 
     editor.changeViewZones(function(changeAccessor) {
       let collectionRanges = getRangesOfSchemCollectionsAroundCursor();
@@ -207,26 +143,6 @@ window.onload = () => {
     }
   }
 };
-
-async function requestContextCreation(queryInfo: Tabs.QueryQueryInfoType, frameId: number): Promise<Array<SchemContextDetails>> {
-  return browser.runtime.sendMessage({
-    action: 'create-contexts',
-    recipient: 'backgroundPage',
-    args: {queryInfo: queryInfo, frameId: frameId}}).then(value => {
-      if ('error' in value) {
-        // messaging worked, but something happened during context creation
-        return Promise.reject(value.error.message);
-      } else {
-        return Promise.resolve(value);
-      }
-    });
-}
-
-async function requestContextAction(message: EventPageMessage) {
-  let result = await browser.runtime.sendMessage(message);
-  console.log(`result of context action `, result);
-  return new SchemList(...result);
-}
 
 function updateEditorLayout(editor: monaco.editor.IStandaloneCodeEditor) {
   getHTMLElementById('monacoContainer').style.height = `${window.innerHeight}px`;

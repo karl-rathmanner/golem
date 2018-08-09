@@ -3,7 +3,8 @@ import { coreFunctions } from './core';
 import { Env, EnvSetupMap } from './env';
 import { pr_str } from './printer';
 import { readStr } from './reader';
-import { isCallable, isSequential, LazyVector, SchemAtom, SchemBoolean, SchemFunction, SchemList, SchemMap, SchemMapKey, SchemNil, SchemString, SchemSymbol, SchemType, SchemVector, isValidKeyType, SchemMetadata, isSequable, Sequable, isSchemType, toSchemMapKey, SchemKeyword, isSchemCollection } from './types';
+import { isCallable, isSequential, LazyVector, SchemAtom, SchemBoolean, SchemFunction, SchemList, SchemMap, SchemMapKey, SchemNil, SchemString, SchemSymbol, SchemType, SchemVector, isValidKeyType, SchemMetadata, isSequable, Sequable, isSchemType, toSchemMapKey, SchemKeyword, isSchemCollection, SchemContextDetails } from './types';
+import { createContext } from 'vm';
 
 export class Schem {
 
@@ -154,6 +155,13 @@ export class Schem {
                 } else {
                   throw `first argument of 'def' must be a symbol`;
                 }
+              /** (defcontext example: {:url "*example.com*"})
+               * Binds a context definition (or a list of realized cotexts?) to a context symbol
+              */
+              case 'defcontext': {
+                const [, csym, val] = ast;
+                // env.set(csym, val);
+              }
               /** (let (symbol1 value1 symbol2 value2 ...) expression) or (let [symbol1 value1 symbol2 value2 ...] expression)
                * Creates a new child environment and binds a list of symbols and values, the following expression is evaluated in that environment
                */

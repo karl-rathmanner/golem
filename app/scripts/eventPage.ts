@@ -1,23 +1,13 @@
 import 'chromereload/devonly';
 import { browser, Tabs } from 'webextension-polyfill-ts';
 import { SchemContextDetails } from './schem/types';
-import { ContextMessage } from './baseContentScript';
+import { EventPageMessage } from './eventPageMessaging';
 
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('previousVersion', details.previousVersion);
 });
 
 let lastContextID = 0;
-
-export type EventPageActionName = 'create-contexts' | 'forward-context-action' | 'invoke-context-procedure' | 'invoke-js-procedure' | 'set-js-property' | 'inject-interpreter' | 'arep-in-contexts' | 'notify';
-
-export type EventPageMessage = {
-  action: EventPageActionName,
-  args?: any
-  contexts?: Array<SchemContextDetails>,
-  contextMessage?: ContextMessage
-};
-
 
 browser.runtime.onMessage.addListener(async (message: EventPageMessage, sender): Promise<any> => {
 
