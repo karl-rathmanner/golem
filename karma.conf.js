@@ -5,6 +5,7 @@ module.exports = function (config) {
     frameworks: ['mocha', 'sinon-chrome', 'chai'],
     // list of files to load
     files: [
+      //'app/scripts/**/*.ts',
       'test/**/*.spec.ts'
     ],
     // preprocessors (https://www.npmjs.com/search?q=keywords:karma-preprocessor)
@@ -27,7 +28,7 @@ module.exports = function (config) {
         rules: [
           {
             test: /\.ts$/,
-            loader: 'ts-loader',
+            loader: 'awesome-typescript-loader',
             exclude: /node_modules/,
             options: {
               configFile: 'tsconfig.spec.json' // use this config

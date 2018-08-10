@@ -1,7 +1,6 @@
 
 import { Schem } from '../../../app/scripts/schem/schem';
 import { expect } from 'chai';
-import { EnvSetupMap } from '../../../app/scripts/schem/env';
 import { SchemNil, SchemType, SchemFunction } from '../../../app/scripts/schem/types';
 import { pr_str } from '../../../app/scripts/schem/printer';
 
