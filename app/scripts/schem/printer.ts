@@ -1,4 +1,4 @@
-import { SchemType, SchemNumber, SchemNil, SchemSymbol, SchemList, SchemString, SchemBoolean, SchemFunction, SchemVector, SchemMap, SchemKeyword, SchemAtom, SchemRegExp, LazyVector, SchemContext, SchemContextSymbol } from './types';
+import { SchemType, SchemNumber, SchemNil, SchemSymbol, SchemList, SchemString, SchemBoolean, SchemFunction, SchemVector, SchemMap, SchemKeyword, SchemAtom, SchemRegExp, LazyVector, SchemContextInstance, SchemContextSymbol } from './types';
 
 export async function pr_str(ast: SchemType, escapeStrings: boolean = true): Promise<string> {
   if (ast instanceof SchemBoolean) {
@@ -37,7 +37,7 @@ export async function pr_str(ast: SchemType, escapeStrings: boolean = true): Pro
     }
   } else if (ast instanceof SchemAtom) {
     return `#atom [${JSON.stringify(ast.value)}]`;
-  } else if (ast instanceof SchemContext) {
+  } else if (ast instanceof SchemContextInstance) {
     return `#context [${JSON.stringify(ast)}]`;
   } else {
     // attempt to stringify object, because it's not a SchemType after all

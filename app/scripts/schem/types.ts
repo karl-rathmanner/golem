@@ -36,7 +36,7 @@ export interface Metadatable {
 
 // types
 
-export type SchemType = SchemList | SchemVector| SchemMap | SchemNumber | SchemSymbol | SchemKeyword | SchemNil | SchemString | SchemRegExp | SchemFunction | SchemBoolean | SchemAtom | SchemContext;
+export type SchemType = SchemList | SchemVector| SchemMap | SchemNumber | SchemSymbol | SchemKeyword | SchemNil | SchemString | SchemRegExp | SchemFunction | SchemBoolean | SchemAtom | SchemContextInstance;
 export type SchemMapKey = SchemSymbol | SchemKeyword | SchemString | SchemNumber;
 
 export type SchemMetadata = {
@@ -487,34 +487,39 @@ export class SchemContextSymbol extends SymbolicType {
   }
 }
 
-export type SchemContextDetails = {
+/** Serializable description of a SchemContext. A definition allows the event page to instatiate and setup a new context that fits the description. Definitions also allow Schem scripts to reason about what a given context might be able to do.
+ * In theory.
+ */
+export type SchemContextDefinition = {
   contextId: number,
   windowId: number,
   tabId: number,
-  frameId: number,
+  frameId?: number,
+  lifetime: 'inject-once' | 'persist-navigation',
+  features?: ['interpreter', 'dom-manipulation'],
+  runAt?: 'document_start' | 'document_end' | 'document_idle'
 };
 
-export class SchemContext {
+/** These can't be passed around as messages. Contains... callbacks, information about what was already injected and stuff that's necessary for context persistence? I think only the event page will need to handle instances of contexts. */
+export class SchemContextInstance {
+  baseContentScriptIsLoaded: boolean = false;
+  activeFeatures: Set<SchemContextDefinition['features']>;
+
   // TODO: add properties describing the context's capabilities - available procedures, atoms, hasInterpreter etc.
-  constructor(details: SchemContextDetails) {
+  constructor(public definition: SchemContextDefinition) {
   }
 
-  async setBinding(symbol: SchemSymbol, value: SchemType): Promise<SchemType> {
-    // inject/set stuff
-    throw new Error('setBinding is not implemented');
-  }
+  /** Called after context injection. */
+  public onLoad?: Function;
+  /** Called before Page unload. */
+  public onUnload?: Function;
+  /** Called when a context is explicitly destroyed. */
+  public onDestroy?: Function;
 
-  async getBoundValue(symbol: SchemSymbol): Promise<SchemType> {
-    throw new Error('getBinding is not implemented');
-  }
-
-  async invokeProcedure(symbol: SchemSymbol, args: SchemType): Promise<SchemType>  {
-    throw new Error('invokeProcedure is not implemented');
-  }
-
-  async evalSchem(ast: SchemType | string): Promise<SchemType> {
-    // eval stuff
-    throw new Error('evalSchem is not implemented');
+  public destroy() {
+    if (this.onDestroy != null) {
+      this.onDestroy();
+    }
   }
 }
 

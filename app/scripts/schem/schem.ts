@@ -1,11 +1,9 @@
-import { browser } from 'webextension-polyfill-ts';
+import { browser, Tabs } from 'webextension-polyfill-ts';
 import { coreFunctions } from './core';
 import { Env, EnvSetupMap } from './env';
 import { pr_str } from './printer';
 import { readStr } from './reader';
-import { isCallable, isSequential, LazyVector, SchemAtom, SchemBoolean, SchemFunction, SchemList, SchemMap, SchemMapKey, SchemNil, SchemString, SchemSymbol, SchemType, SchemVector, isValidKeyType, SchemMetadata, isSequable, Sequable, isSchemType, toSchemMapKey, SchemKeyword, isSchemCollection, SchemContextDetails } from './types';
-import { createContext } from 'vm';
-
+import { isCallable, isSchemCollection, isSchemType, isSequable, isSequential, isValidKeyType, LazyVector, SchemAtom, SchemBoolean, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemString, SchemSymbol, SchemType, SchemVector, toSchemMapKey, SchemContextDefinition, SchemNumber } from './types';
 export class Schem {
 
   private coreLoaded: boolean;
@@ -17,6 +15,8 @@ export class Schem {
     logEnvironmentInfo : false,
     pauseEvaluation: false
   };
+
+  private privilegedFunctions: any;
 
   constructor() {
     this.replEnv.addMap(coreFunctions);
@@ -42,6 +42,11 @@ export class Schem {
       SchemSymbol.from('def'), SchemSymbol.from('defmacro'), SchemSymbol.from('macroexpand'), SchemSymbol.from('macroexpand-all'), SchemSymbol.from('let'), SchemSymbol.from('do'),
       SchemSymbol.from('if'), SchemSymbol.from('quote'), SchemSymbol.from('quasiquote'), SchemSymbol.from('set-interpreter-options')
     )));
+
+    if (browser.extension != null) {
+      this.privilegedFunctions = true;
+    }
+
   }
 
   async evalAST(ast: SchemType, env: Env): Promise<SchemType> {
@@ -159,7 +164,19 @@ export class Schem {
                * Binds a context definition (or a list of realized cotexts?) to a context symbol
               */
               case 'defcontext': {
-                const [, csym, val] = ast;
+                const [, contextSymbol, contextDefinition] = ast;
+                if (browser.extension != null && browser.extension.getBackgroundPage() != null) {
+                  const priviledgedContext = browser.extension.getBackgroundPage().golem.priviledgedContext;
+                  if (typeof priviledgedContext === 'undefined') {
+                    throw new Error(`priviledged context is not set up`);
+                  }
+                  const jsContextDefinition = schemToJs(contextDefinition, {keySerialization: 'noPrefix'});
+                  const contexts = await priviledgedContext.contextManager.createContexts(jsContextDefinition.queryInfo, jsContextDefinition.frameId);
+                  contexts.forEach(c => priviledgedContext.contextManager.injectBaseContentScript(c));
+                  return new SchemList(...contexts.map(c => new SchemNumber(c)));
+                } else {
+                  throw new Error(`defcontext can only be called by an interpreter instance that is running in a privileged javascript context (such as the event page)`);
+                }
                 // env.set(csym, val);
               }
               /** (let (symbol1 value1 symbol2 value2 ...) expression) or (let [symbol1 value1 symbol2 value2 ...] expression)

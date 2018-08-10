@@ -1,5 +1,5 @@
 import { browser, Tabs } from '../../node_modules/webextension-polyfill-ts';
-import { SchemContextDetails, SchemMap, SchemNumber, SchemList, SchemSymbol, SchemType, SchemString } from './schem/types';
+import { SchemContextDefinition, SchemMap, SchemNumber, SchemList, SchemSymbol, SchemType, SchemString } from './schem/types';
 import { schemToJs } from './schem/schem';
 import { ContextMessage } from './contentScriptMessaging';
 
@@ -10,13 +10,13 @@ export type EventPageActionName = 'create-contexts' | 'forward-context-action' |
 export type EventPageMessage = {
   action: EventPageActionName,
   args?: any
-  contexts?: Array<SchemContextDetails>,
+  contexts?: Array<SchemContextDefinition>,
   contextMessage?: ContextMessage
 };
 
 /// messaging functions
 
-async function requestContextCreation(queryInfo: Tabs.QueryQueryInfoType, frameId: number): Promise<Array<SchemContextDetails>> {
+async function requestContextCreation(queryInfo: Tabs.QueryQueryInfoType, frameId: number): Promise<Array<SchemContextDefinition>> {
   return browser.runtime.sendMessage({
     action: 'create-contexts',
     recipient: 'backgroundPage',

@@ -6,6 +6,8 @@
 (inject-interpreter contexts)
 (arep-in-contexts contexts "(+ 1 2)")
 
+(defcontext c: {:queryInfo {:title "*derStandard*"}})
+
 (do
   (def contexts (create-contexts {:title "*derStandard*"}))
   (inject-interpreter contexts)

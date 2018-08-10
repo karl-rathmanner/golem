@@ -1,13 +1,24 @@
 import 'chromereload/devonly';
 import { browser, Tabs } from 'webextension-polyfill-ts';
-import { SchemContextDetails } from './schem/types';
+import { SchemContextDefinition, SchemContextInstance } from './schem/types';
 import { EventPageMessage } from './eventPageMessaging';
+import { SchemContextManager } from './contextManager';
 
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('previousVersion', details.previousVersion);
 });
 
 let lastContextID = 0;
+
+
+
+
+window.golem = {
+  contextId: 0,
+  priviledgedContext: {
+    contextManager: new SchemContextManager()
+  }
+};
 
 browser.runtime.onMessage.addListener(async (message: EventPageMessage, sender): Promise<any> => {
 
@@ -26,7 +37,7 @@ browser.runtime.onMessage.addListener(async (message: EventPageMessage, sender):
         return Promise.resolve({error: {message: e.message}});
       }
 
-      const contextDetails = await tabs.map(async (tab): Promise<SchemContextDetails> => {
+      const contextDetails = await tabs.map(async (tab): Promise<SchemContextDefinition> => {
         if (typeof tab.id !== 'undefined') {
 
           const newContextID = lastContextID++;
@@ -52,7 +63,8 @@ browser.runtime.onMessage.addListener(async (message: EventPageMessage, sender):
             contextId: newContextID,
             windowId: typeof tab.windowId !== 'undefined' ? tab.windowId : -1,
             tabId: typeof tab.id !== 'undefined' ? tab.id : -1,
-            frameId: frameId
+            frameId: frameId,
+            lifetime: 'inject-once'
           };
         }
         return Promise.reject(`Provided a context with an illegal tabId: ${tab.id}`);
@@ -73,7 +85,7 @@ browser.runtime.onMessage.addListener(async (message: EventPageMessage, sender):
 
     case 'arep-in-contexts': {
       if (message.contexts != null && message.args.code != null) {
-        const tabIds: Array<number> = message.contexts.map((context: SchemContextDetails) => context.tabId);
+        const tabIds: Array<number> = message.contexts.map((context: SchemContextDefinition) => context.tabId);
         const resultsAndReasons = await Promise.all(
           tabIds.map(async tabId => {
             return browser.tabs.sendMessage(tabId, {
@@ -94,7 +106,7 @@ browser.runtime.onMessage.addListener(async (message: EventPageMessage, sender):
     case 'forward-context-action': {
       if (message.contexts != null && message.contextMessage != null) {
         // forward the message to the appropriate contexts
-        const tabIds: Array<number> = message.contexts.map((context: SchemContextDetails) => context.tabId);
+        const tabIds: Array<number> = message.contexts.map((context: SchemContextDefinition) => context.tabId);
         const resultsAndReasons = await Promise.all(
           tabIds.map(async tabId => {
             return browser.tabs.sendMessage(tabId, {
@@ -184,3 +196,4 @@ browser.commands.onCommand.addListener(function(command) {
       browser.runtime.sendMessage({action: 'advanceSchemInterpreter'});
   }
 });
+
