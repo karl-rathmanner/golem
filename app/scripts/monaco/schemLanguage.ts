@@ -90,7 +90,7 @@ function setMonarchTokensProvider() {
       whitespace: [
         [/[ \t\r\n]+/, 'white'],
         [/\(comment/, 'comment', '@comment'],
-        [/;;.*$/, 'comment'],
+        [/;.*$/, 'comment'],
       ],
       strings: [
         [/"$/, 'string', '@popall'],
