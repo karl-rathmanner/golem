@@ -1,4 +1,4 @@
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
+import * as monaco from 'monaco-editor';
 import ILanguage = monaco.languages.IMonarchLanguage;
 import { Schem } from '../schem/schem';
 import { SchemList, SchemSymbol } from '../schem/types';

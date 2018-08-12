@@ -1,4 +1,4 @@
-import { browser, Tabs } from '../../node_modules/webextension-polyfill-ts';
+import { browser, Tabs } from 'webextension-polyfill-ts';
 import { SchemContextDefinition, SchemMap, SchemNumber, SchemList, SchemSymbol, SchemType, SchemString } from './schem/types';
 import { schemToJs } from './schem/schem';
 import { GolemContextMessage } from './contentScriptMessaging';

@@ -1,9 +1,11 @@
-import { browser, Tabs } from 'webextension-polyfill-ts';
+import { browser } from 'webextension-polyfill-ts';
+import { invokeJsProcedure } from '../javascriptInterop';
 import { coreFunctions } from './core';
 import { Env, EnvSetupMap } from './env';
 import { pr_str } from './printer';
 import { readStr } from './reader';
-import { isCallable, isSchemCollection, isSchemType, isSequable, isSequential, isValidKeyType, LazyVector, SchemAtom, SchemBoolean, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemString, SchemSymbol, SchemType, SchemVector, toSchemMapKey, SchemContextDefinition, SchemNumber, SchemContextSymbol } from './types';
+import { isCallable, isSchemCollection, isSchemType, isSequable, isSequential, isValidKeyType, LazyVector, SchemAtom, SchemBoolean, SchemContextDefinition, SchemContextSymbol, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemString, SchemSymbol, SchemType, SchemVector, toSchemMapKey } from './types';
+
 export class Schem {
 
   private coreLoaded: boolean;
@@ -301,6 +303,12 @@ export class Schem {
                 return SchemNil.instance;
 
             }
+
+            // symbol contains a dot -> do interop stuff
+            if ('name' in first && first.name.indexOf('.') !== -1) {
+              let[, ...rest] = ast;
+              return invokeJsProcedure(first.name, rest);
+            }
           /** (contextSymbol: (form))
            * execute (form) in any context matching the definition bound to contextSymbol:
           */
@@ -360,8 +368,13 @@ export class Schem {
               ast = f.invoke(...args);
               continue fromTheTop;
             }
+          // don't give up just yet: the symbol could still refer to a js procedure instead of a schem function
+          } else if ('name' in f && f.name.indexOf('.') !== -1) {
+            let[, ...rest] = ast;
+            return invokeJsProcedure(f.name, rest);
           } else {
-            throw `Invalid form: first element is not callable`;
+            console.log(first);
+            throw new Error(`Invalid form: first element "${first}" is not callable`);
           }
         }
       }

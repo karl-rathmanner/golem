@@ -1,6 +1,6 @@
 import { Env } from './env';
 import { Schem, schemToJs } from './schem';
-import { Tabs } from '../../../node_modules/webextension-polyfill-ts';
+import { Tabs } from 'webextension-polyfill-ts';
 
 // interfaces
 export interface Callable {

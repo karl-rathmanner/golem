@@ -1,10 +1,10 @@
 import { SchemContextInstance, SchemContextDefinition, SchemType } from './schem/types';
-import { browser, Tabs } from '../../node_modules/webextension-polyfill-ts';
+import { browser, Tabs } from 'webextension-polyfill-ts';
 import { GolemContextMessage } from './contentScriptMessaging';
 import { objectPatternMatch } from './utils/utilities';
 
 
-export type AvailableSchemContextFeatures = 'schem-interpreter' | 'demo-functions' |'dom-manipulation';
+export type AvailableSchemContextFeatures = 'schem-interpreter' | 'js-interop' | 'demo-functions' |'dom-manipulation';
 
 export class SchemContextManager {
   activeContextInstances = new Array<SchemContextInstance>();
@@ -183,6 +183,28 @@ export class SchemContextManager {
       }
     ));
     console.log(resultsAndReasons);
+    return resultsAndReasons;
+  }
+
+  async invokeJsProcedure(contextIds: number[], qualifiedProcedureName: string, ...procedureArgs: any[]) {
+    // DRY!
+    const contexts = contextIds.map(id => this.getContextInstance(id));
+    // inject interpreter where necessary
+    await Promise.all(contexts.map(async context => this.injectFeatureIfNecessary(context, 'js-interop')));
+
+    const tabIds: Array<number> = contextIds.map((contextId: number) => this.getContextInstance(contextId)!.tabId);
+    const resultsAndReasons = await Promise.all(
+      tabIds.map(async tabId => {
+        return browser.tabs.sendMessage(tabId, {
+          action: 'invoke-js-procedure',
+          args : {
+            qualifiedProcedureName : qualifiedProcedureName,
+            procedureArgs: procedureArgs
+          }
+        });
+      })
+    );
+
     return resultsAndReasons;
   }
 

@@ -9,6 +9,10 @@
 (defcontext c: {:tabQuery {:url "*://*/*"}})
 (c: (prn (+ 41 1)))
 
+(window.alert "This works.")
+(def al 'window.alert)
+(al "This works too. whoo!")
+
 (do
   (def contexts (create-contexts {:title "*derStandard*"}))
   (inject-interpreter contexts)

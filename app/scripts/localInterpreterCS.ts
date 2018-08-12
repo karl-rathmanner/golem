@@ -1,7 +1,7 @@
 import { unescape } from './schem/reader';
 import { Schem } from './schem/schem';
 
-(function addSomeDemoProcedures() {
+(function addInterpreter() {
   const interpreter = new Schem();
   window.golem.interpreter = interpreter;
   window.golem.features.push('schem-interpreter');
