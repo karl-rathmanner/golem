@@ -303,11 +303,16 @@ export class Schem {
                 return SchemNil.instance;
 
             }
-
-            // symbol contains a dot -> do interop stuff
+            /** (window.example a b &c)
+             * If a symbol contains dots, treat it as a javascrip procedure that should be invoked with the provided arguments.
+             * (arguments are evaluated before being passed to the procedure)
+            */
             if ('name' in first && first.name.indexOf('.') !== -1) {
-              let[, ...rest] = ast;
-              return invokeJsProcedure(first.name, rest);
+              const [, ...rest] = ast;
+              let evaluatedArguments: any = await this.evalAST(new SchemVector(...rest), env);
+              evaluatedArguments = schemToJs(evaluatedArguments);
+              ast = invokeJsProcedure(first.name, evaluatedArguments);
+              continue fromTheTop;
             }
           /** (contextSymbol: (form))
            * execute (form) in any context matching the definition bound to contextSymbol:
@@ -328,6 +333,7 @@ export class Schem {
               console.log('bare arep results:');
               console.log(results);
               return new SchemList(...results.map(r => readStr(r)));
+              // or do tco? -> "continue fromTheTop;"
             } else {
               throw new Error(`defcontext can only be called by an interpreter instance that is running in a privileged javascript context (such as the event page)`);
             }
@@ -368,10 +374,10 @@ export class Schem {
               ast = f.invoke(...args);
               continue fromTheTop;
             }
-          // don't give up just yet: the symbol could still refer to a js procedure instead of a schem function
+          // Symbols that are bound to anther symbol that contains dots are treated like an alias to a javacript procedure call.
+          // (let [x 'window.example] (x args)) <- invokes window.example with args
           } else if ('name' in f && f.name.indexOf('.') !== -1) {
-            let[, ...rest] = ast;
-            return invokeJsProcedure(f.name, rest);
+            return invokeJsProcedure(f.name, args);
           } else {
             console.log(first);
             throw new Error(`Invalid form: first element "${first}" is not callable`);

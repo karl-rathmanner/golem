@@ -13,13 +13,14 @@
 (def al 'window.alert)
 (al "This works too. whoo!")
 
+(al (prompt "Does this work too?"))
+(console.log (+ 41 1) "yay for n-arity" (c: (prompt "How about this?")))
+
 (do
   (def contexts (create-contexts {:title "*derStandard*"}))
   (inject-interpreter contexts)
   (def name "Alice")
   (arep-in-contexts contexts (pr-str `(prn (str "Yo, " ~name "!")))))
-
-
 
 (defn fizz-buzz (start end)
   (subvec 
