@@ -3,26 +3,27 @@ import { browser, Tabs } from 'webextension-polyfill-ts';
 import { SchemContextDefinition, SchemContextInstance } from './schem/types';
 import { EventPageMessage } from './eventPageMessaging';
 import { SchemContextManager } from './contextManager';
+import { Golem } from './golem';
 
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('previousVersion', details.previousVersion);
 });
 
-let lastContextID = 0;
-
-
-
-
 window.golem = {
   contextId: 0,
+  features: [],
   priviledgedContext: {
     contextManager: new SchemContextManager()
   }
 };
 
+const contextManager = window.golem.priviledgedContext!.contextManager;
+
 browser.runtime.onMessage.addListener(async (message: EventPageMessage, sender): Promise<any> => {
 
   switch (message.action) {
+
+    /*
     case 'create-contexts': {
       // data may contain a queryInfo object and a frameId value
       const queryInfo: Tabs.QueryQueryInfoType = message.args.queryInfo;
@@ -71,12 +72,13 @@ browser.runtime.onMessage.addListener(async (message: EventPageMessage, sender):
       });
 
       return Promise.all(contextDetails);
-    }
+    }*/
 
     case 'inject-interpreter': {
-      if (message.contexts != null) {
-        return Promise.all(message.contexts.map(async context => {
-          await browser.tabs.executeScript(context.tabId, {file: 'scripts/localInterpreterCS.js', frameId: context.frameId}).catch(e => e);
+      if (message.contextIds != null) {
+        return Promise.all(message.contextIds.map(async contextId => {
+          const contextInstance = contextManager.getContextInstance(contextId)!;
+          await browser.tabs.executeScript(contextInstance.tabId, {file: 'scripts/localInterpreterCS.js', frameId: contextInstance.definition.frameId}).catch(e => e);
         }));
       } else {
         return Promise.reject('no context supplied to inject-interpreter');
@@ -84,8 +86,8 @@ browser.runtime.onMessage.addListener(async (message: EventPageMessage, sender):
     }
 
     case 'arep-in-contexts': {
-      if (message.contexts != null && message.args.code != null) {
-        const tabIds: Array<number> = message.contexts.map((context: SchemContextDefinition) => context.tabId);
+      if (message.contextIds != null && message.args.code != null) {
+        const tabIds: Array<number> = message.contextIds.map((contextId: number) => contextId);
         const resultsAndReasons = await Promise.all(
           tabIds.map(async tabId => {
             return browser.tabs.sendMessage(tabId, {
@@ -99,14 +101,13 @@ browser.runtime.onMessage.addListener(async (message: EventPageMessage, sender):
         ));
         console.log(resultsAndReasons);
         return resultsAndReasons;
-
       }
     }
 
     case 'forward-context-action': {
-      if (message.contexts != null && message.contextMessage != null) {
+      if (message.contextIds != null && message.contextMessage != null) {
         // forward the message to the appropriate contexts
-        const tabIds: Array<number> = message.contexts.map((context: SchemContextDefinition) => context.tabId);
+        const tabIds = message.contextIds.map((contextId) => contextManager.getContextInstance(contextId)!.tabId);
         const resultsAndReasons = await Promise.all(
           tabIds.map(async tabId => {
             return browser.tabs.sendMessage(tabId, {
@@ -132,8 +133,6 @@ browser.runtime.onMessage.addListener(async (message: EventPageMessage, sender):
     }
   }
 });
-
-
 
 function notify(message: string) {
   browser.notifications.create('noty', {

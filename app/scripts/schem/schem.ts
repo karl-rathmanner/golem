@@ -3,7 +3,7 @@ import { coreFunctions } from './core';
 import { Env, EnvSetupMap } from './env';
 import { pr_str } from './printer';
 import { readStr } from './reader';
-import { isCallable, isSchemCollection, isSchemType, isSequable, isSequential, isValidKeyType, LazyVector, SchemAtom, SchemBoolean, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemString, SchemSymbol, SchemType, SchemVector, toSchemMapKey, SchemContextDefinition, SchemNumber } from './types';
+import { isCallable, isSchemCollection, isSchemType, isSequable, isSequential, isValidKeyType, LazyVector, SchemAtom, SchemBoolean, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemString, SchemSymbol, SchemType, SchemVector, toSchemMapKey, SchemContextDefinition, SchemNumber, SchemContextSymbol } from './types';
 export class Schem {
 
   private coreLoaded: boolean;
@@ -160,24 +160,17 @@ export class Schem {
                 } else {
                   throw `first argument of 'def' must be a symbol`;
                 }
-              /** (defcontext example: {:url "*example.com*"})
-               * Binds a context definition (or a list of realized cotexts?) to a context symbol
+              /** (defcontext example: {:tabQuery {:url "*example.com*"})
+               * Binds a context definition to a context symbol
               */
               case 'defcontext': {
-                const [, contextSymbol, contextDefinition] = ast;
-                if (browser.extension != null && browser.extension.getBackgroundPage() != null) {
-                  const priviledgedContext = browser.extension.getBackgroundPage().golem.priviledgedContext;
-                  if (typeof priviledgedContext === 'undefined') {
-                    throw new Error(`priviledged context is not set up`);
-                  }
-                  const jsContextDefinition = schemToJs(contextDefinition, {keySerialization: 'noPrefix'});
-                  const contexts = await priviledgedContext.contextManager.createContexts(jsContextDefinition.queryInfo, jsContextDefinition.frameId);
-                  contexts.forEach(c => priviledgedContext.contextManager.injectBaseContentScript(c));
-                  return new SchemList(...contexts.map(c => new SchemNumber(c)));
-                } else {
-                  throw new Error(`defcontext can only be called by an interpreter instance that is running in a privileged javascript context (such as the event page)`);
+                const [, contextSymbol, contextDefinitionMap] = ast;
+
+                if (contextSymbol instanceof SchemContextSymbol && contextDefinitionMap instanceof SchemMap) {
+                  env.set(contextSymbol, SchemContextDefinition.fromSchemMap(contextDefinitionMap));
                 }
-                // env.set(csym, val);
+
+                return SchemBoolean.true;
               }
               /** (let (symbol1 value1 symbol2 value2 ...) expression) or (let [symbol1 value1 symbol2 value2 ...] expression)
                * Creates a new child environment and binds a list of symbols and values, the following expression is evaluated in that environment
@@ -307,6 +300,28 @@ export class Schem {
                 });
                 return SchemNil.instance;
 
+            }
+          /** (contextSymbol: (form))
+           * execute (form) in any context matching the definition bound to contextSymbol:
+          */
+          } else if (first instanceof SchemContextSymbol) {
+            if (browser.extension != null && browser.extension.getBackgroundPage() != null) {
+              // get reference to the priviledged javascript context
+              const priviledgedContext = browser.extension.getBackgroundPage().golem.priviledgedContext;
+              if (typeof priviledgedContext === 'undefined') {
+                throw new Error(`priviledged context is not set up`);
+              }
+
+              const contextDef = env.getContextSymbol(first);
+
+              // get/realize contexts
+              const contextIds = await priviledgedContext.contextManager.prepareContexts(contextDef.tabQuery, contextDef.frameId);
+              let results = await priviledgedContext.contextManager.arepInContexts(contextIds, await pr_str(ast[1]), ast[2]);
+              console.log('bare arep results:');
+              console.log(results);
+              return new SchemList(...results.map(r => readStr(r)));
+            } else {
+              throw new Error(`defcontext can only be called by an interpreter instance that is running in a privileged javascript context (such as the event page)`);
             }
           }
 

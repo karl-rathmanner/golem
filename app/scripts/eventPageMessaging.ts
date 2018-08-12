@@ -1,7 +1,7 @@
 import { browser, Tabs } from '../../node_modules/webextension-polyfill-ts';
 import { SchemContextDefinition, SchemMap, SchemNumber, SchemList, SchemSymbol, SchemType, SchemString } from './schem/types';
 import { schemToJs } from './schem/schem';
-import { ContextMessage } from './contentScriptMessaging';
+import { GolemContextMessage } from './contentScriptMessaging';
 
 /// message type definitions
 
@@ -10,8 +10,8 @@ export type EventPageActionName = 'create-contexts' | 'forward-context-action' |
 export type EventPageMessage = {
   action: EventPageActionName,
   args?: any
-  contexts?: Array<SchemContextDefinition>,
-  contextMessage?: ContextMessage
+  contextIds?: Array<number>,
+  contextMessage?: GolemContextMessage
 };
 
 /// messaging functions
@@ -39,6 +39,8 @@ async function requestContextAction(message: EventPageMessage) {
 /// Schem functions
 
 /** All of these functions send some kind of request to the event page (which in turn might relay the request to another context) */
+/// ...AND ALL OF THESE ARE BROKEN IN THIS COMMIT!
+/// TODO: fix later.
 export const eventPageMessagingSchemFunctions = {
   'create-contexts': async (queryInfo: SchemMap, frameId?: SchemNumber) => {
     return requestContextCreation(schemToJs(queryInfo, {keySerialization: 'noPrefix'}), frameId ? frameId.valueOf() : 0).then(contextsOrError => {
@@ -47,7 +49,7 @@ export const eventPageMessagingSchemFunctions = {
   },
   'invoke-context-procedure': async (contexts: SchemList, procedureName: SchemSymbol, ...procedureArgs: SchemType[]) => {
     return new SchemList(...await requestContextAction({
-      contexts: schemToJs(contexts),
+      contextIds: schemToJs(contexts),
       action: 'forward-context-action',
       contextMessage: {
         action: 'invoke-context-procedure',
@@ -60,7 +62,7 @@ export const eventPageMessagingSchemFunctions = {
   },
   'invoke-js-procedure': async (contexts: SchemList, qualifiedProcedureName: SchemSymbol, ...procedureArgs: SchemType[]) => {
     return new SchemList(...await requestContextAction({
-      contexts: schemToJs(contexts),
+      contextIds: schemToJs(contexts),
       action: 'forward-context-action',
       contextMessage: {
         action: 'invoke-js-procedure',
@@ -73,7 +75,7 @@ export const eventPageMessagingSchemFunctions = {
   },
   'set-js-property': async (contexts: SchemList, qualifiedPropertyName: SchemSymbol, value: SchemType) => {
     return new SchemList(...await requestContextAction({
-      contexts: schemToJs(contexts),
+      contextIds: schemToJs(contexts),
       action: 'forward-context-action',
       contextMessage: {
         action: 'set-js-property',
@@ -86,13 +88,13 @@ export const eventPageMessagingSchemFunctions = {
   },
   'inject-interpreter': async (contexts: SchemList, importsOrOptionsOrSomething: SchemType) => {
     return new SchemList(...await requestContextAction({
-      contexts: schemToJs(contexts),
+      contextIds: schemToJs(contexts),
       action: 'inject-interpreter'
     }));
   },
   'arep-in-contexts': async (contexts: SchemList, code: SchemString, options?: SchemType) => {
     return new SchemList(...await requestContextAction({
-      contexts: schemToJs(contexts),
+      contextIds: schemToJs(contexts),
       action: 'arep-in-contexts',
       args: {
           code: code,

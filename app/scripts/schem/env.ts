@@ -1,6 +1,6 @@
 import { readStr } from './reader';
 import { Schem } from './schem';
-import { SchemFunction, SchemList, SchemSymbol, SchemType, SchemNumber, isSchemType } from './types';
+import { SchemFunction, SchemList, SchemSymbol, SchemType, SchemNumber, isSchemType, SchemContextSymbol, SchemContextDefinition } from './types';
 
 /** This allows concevient initialization of environments when using Env.addMap()
  *
@@ -23,7 +23,8 @@ export abstract class EnvSetupMap {
  * When a symbol can't be found in an Env, its outer Envs are searched recursively. This means, 'lokal' symbols can hide outer symbols.
  */
 export class Env {
-  private symbolValueMap: Map<symbol, SchemType> = new Map<symbol, SchemType>();
+  private symbolValueMap = new Map<symbol, SchemType>();
+  private contextSymbolMap = new Map<string, SchemContextDefinition>();
   name: string;
 
   constructor(public outer?: Env, binds: SchemSymbol[] = [], exprs: SchemType[] = [], logDebugMessages = false) {
@@ -46,7 +47,15 @@ export class Env {
   }
 
   /** Binds a symbol to a value */
-  set(key: SchemSymbol | string, value: SchemType, metadata?: SchemFunction['metadata']): SchemType {
+  set(key: SchemSymbol | string | SchemContextSymbol, value: SchemType | SchemContextDefinition, metadata?: SchemFunction['metadata']): SchemType {
+
+    if (key instanceof SchemContextSymbol) {
+      if (value instanceof SchemContextDefinition) {
+        this.contextSymbolMap.set(key.name, value);
+        return value;
+      }
+      throw new Error('Only context definitions may be bound to context symbols');
+    }
 
     if (key instanceof SchemSymbol) {
       key = key.name;
@@ -88,12 +97,13 @@ export class Env {
   }
 
   /** Returns the environment cotaining a symbol or undefined if the symbol can't be found */
-  find(symbol: SchemSymbol): Env | undefined {
-    if (this.symbolValueMap.has(Symbol.for(symbol.name))) {
+  find(sym: SchemSymbol | SchemContextSymbol): Env | undefined {
+    if (sym instanceof SchemSymbol && this.symbolValueMap.has(Symbol.for(sym.name)) ||
+        sym instanceof SchemContextSymbol && this.contextSymbolMap.has(sym.name)) {
       return this;
     } else {
       if (this.outer) {
-        return this.outer.find(symbol);
+        return this.outer.find(sym);
       } else {
         return void 0; // undefined can be overwritten and is considered unsafe
                        // https://stackoverflow.com/questions/19369023/should-i-be-using-void-0-or-undefined-in-javascript
@@ -102,10 +112,21 @@ export class Env {
   }
 
   /** Resolves a symbol to its value */
-  get(sym: SchemSymbol): SchemType {
+  get(sym: SchemSymbol | SchemContextSymbol): SchemType {
+
     const env = this.find(sym);
     if (!env) throw `${sym.name} not found`;
-    return env.symbolValueMap.get(Symbol.for(sym.name))!;
+
+    if (sym instanceof SchemSymbol) {
+      return env.symbolValueMap.get(Symbol.for(sym.name))!;
+    } else {
+      return env.contextSymbolMap.get(sym.name)!;
+    }
+
+  }
+
+  getContextSymbol(sym: SchemContextSymbol): SchemContextDefinition {
+    return (this.get(sym) as SchemContextDefinition);
   }
 
   /** Returns all symbols defined in this and all outer environments */

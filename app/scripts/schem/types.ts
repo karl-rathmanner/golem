@@ -1,5 +1,6 @@
 import { Env } from './env';
-import { Schem } from './schem';
+import { Schem, schemToJs } from './schem';
+import { Tabs } from '../../../node_modules/webextension-polyfill-ts';
 
 // interfaces
 export interface Callable {
@@ -36,7 +37,7 @@ export interface Metadatable {
 
 // types
 
-export type SchemType = SchemList | SchemVector| SchemMap | SchemNumber | SchemSymbol | SchemKeyword | SchemNil | SchemString | SchemRegExp | SchemFunction | SchemBoolean | SchemAtom | SchemContextInstance;
+export type SchemType = SchemList | SchemVector| SchemMap | SchemNumber | SchemSymbol | SchemKeyword | SchemNil | SchemString | SchemRegExp | SchemFunction | SchemBoolean | SchemAtom | SchemContextSymbol | SchemContextInstance;
 export type SchemMapKey = SchemSymbol | SchemKeyword | SchemString | SchemNumber;
 
 export type SchemMetadata = {
@@ -490,15 +491,22 @@ export class SchemContextSymbol extends SymbolicType {
 /** Serializable description of a SchemContext. A definition allows the event page to instatiate and setup a new context that fits the description. Definitions also allow Schem scripts to reason about what a given context might be able to do.
  * In theory.
  */
-export type SchemContextDefinition = {
-  contextId: number,
-  windowId: number,
-  tabId: number,
-  frameId?: number,
-  lifetime: 'inject-once' | 'persist-navigation',
-  features?: ['interpreter', 'dom-manipulation'],
-  runAt?: 'document_start' | 'document_end' | 'document_idle'
-};
+export class SchemContextDefinition {
+  frameId?: number;
+  features?: ['interpreter', 'dom-manipulation'];
+  runAt?: 'document_start' | 'document_end' | 'document_idle';
+
+  constructor(public tabQuery: Tabs.QueryQueryInfoType, public lifetime: 'inject-once' | 'persist-navigation') {
+  }
+
+  static fromSchemMap(initializationMap: SchemMap): SchemContextDefinition {
+    const jso = schemToJs(initializationMap, {keySerialization: 'noPrefix'});
+    if (jso.tabQuery != null) {
+      return new SchemContextDefinition(jso.tabQuery, 'inject-once');
+    }
+    throw new Error(`missing value for :tabQuery`);
+  }
+}
 
 /** These can't be passed around as messages. Contains... callbacks, information about what was already injected and stuff that's necessary for context persistence? I think only the event page will need to handle instances of contexts. */
 export class SchemContextInstance {
@@ -506,7 +514,7 @@ export class SchemContextInstance {
   activeFeatures: Set<SchemContextDefinition['features']>;
 
   // TODO: add properties describing the context's capabilities - available procedures, atoms, hasInterpreter etc.
-  constructor(public definition: SchemContextDefinition) {
+  constructor(public id: number, public tabId: number, public windowId: number, public definition: SchemContextDefinition, public frameId?: number) {
   }
 
   /** Called after context injection. */

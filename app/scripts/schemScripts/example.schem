@@ -1,12 +1,13 @@
-(def contexts (create-contexts {:title "*derStandard*"}))
-(invoke-context-procedure contexts 'alert "mäh")
-(invoke-js-procedure contexts 'alert "muh")
-(set-js-property contexts 'window.document.body.style.cssText "color: #2F2")
+; (def contexts (create-contexts {:title "*derStandard*"}))
+; (invoke-context-procedure contexts 'alert "mäh")
+; (invoke-js-procedure contexts 'alert "muh")
+; (set-js-property contexts 'window.document.body.style.cssText "color: #2F2")
 
-(inject-interpreter contexts)
-(arep-in-contexts contexts "(+ 1 2)")
+; (inject-interpreter contexts)
+; (arep-in-contexts contexts "(+ 1 2)")
 
-(defcontext c: {:queryInfo {:title "*derStandard*"}})
+(defcontext c: {:tabQuery {:url "*://*/*"}})
+(c: (prn (+ 41 1)))
 
 (do
   (def contexts (create-contexts {:title "*derStandard*"}))

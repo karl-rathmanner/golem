@@ -1,42 +1,49 @@
-import { SchemContextInstance, SchemContextDefinition } from './schem/types';
+import { SchemContextInstance, SchemContextDefinition, SchemType } from './schem/types';
 import { browser, Tabs } from '../../node_modules/webextension-polyfill-ts';
+import { GolemContextMessage } from './contentScriptMessaging';
+import { objectPatternMatch } from './utils/utilities';
+
+
+export type AvailableSchemContextFeatures = 'schem-interpreter' | 'demo-functions' |'dom-manipulation';
 
 export class SchemContextManager {
   activeContextInstances = new Array<SchemContextInstance>();
+  private static featureNameToContentScriptPath = new Map<AvailableSchemContextFeatures, string>([
+    ['schem-interpreter', 'scripts/localInterpreterCS.js'],
+    ['demo-functions', 'scripts/demoContentScript.js']
+  ]);
 
   constructor() {
   }
 
   /** Basic content script setup - creates the global golem object and enables listening for messages. */
-  async injectBaseContentScript(contextId: number): Promise<boolean> {
-    let contextInstance = this.getContextInstanceById(contextId);
+  async injectBaseContentScript(contextOrContextId: number | SchemContextInstance): Promise<boolean> {
+    let contextInstance = (typeof contextOrContextId === 'number') ? this.getContextInstance(contextOrContextId) : contextOrContextId;
 
     if (contextInstance === null) {
       return Promise.reject('invalid contextId!');
     }
 
-    if (contextInstance.baseContentScriptIsLoaded) {
-      console.log('context was already setup.', contextInstance.definition);
-      return Promise.resolve(true);
-    }
-
     // inject a global golem object that content scripts can share
-    await browser.tabs.executeScript(contextInstance.definition.tabId, {
+    await browser.tabs.executeScript(contextInstance.tabId, {
       code: `
-        var golem = {contextId: ${contextId}};
+        var golem = {contextId: ${contextInstance.id}};
         golem.injectedProcedures = new Map();
         `,
-      frameId: contextInstance.definition.frameId
+      // frameId: contextInstance.definition.frameId
     }).catch(e => {
       console.error(e);
-      return Promise.reject(`Couldn't inject base content script`);
+      return Promise.reject(`Couldn't inject golem object`);
     });
 
     // inject actual content script
-    // TODO: modularize content scripts and inject specific parts only when needed
-    await browser.tabs.executeScript(contextInstance.definition.tabId, {file: 'scripts/baseContentScript.js', frameId: contextInstance.definition.frameId}).catch(e => {
-      console.error(e);
-      Promise.reject(`Couldn't inject base content script`);
+    await browser.tabs.executeScript(contextInstance.tabId,
+      {
+        file: 'scripts/baseContentScript.js',
+        // frameId: contextInstance.definition.frameId
+      }).catch(e => {
+        console.error(e);
+        Promise.reject(`Couldn't inject base content script`);
     });
 
     contextInstance.baseContentScriptIsLoaded = true;
@@ -46,7 +53,7 @@ export class SchemContextManager {
   }
 
   /** Creates new context instances if necessary, adds them to the registry and returns their ids */
-  async createContexts(queryInfo: Tabs.QueryQueryInfoType, frameId: number): Promise<number[]> {
+  async prepareContexts(queryInfo: Tabs.QueryQueryInfoType, frameId?: number): Promise<number[]> {
 
     let tabs;
 
@@ -57,26 +64,37 @@ export class SchemContextManager {
       return Promise.reject({error: {message: e.message}});
     }
 
-    return tabs.map(tab => {
+    // get contexts that match the description, create new ones as necessary
+    const contexts = tabs.map(tab => {
+      const windowId = typeof tab.windowId !== 'undefined' ? tab.windowId : -1;
+      const tabId = typeof tab.id !== 'undefined' ? tab.id : -1;
 
-      const newContextDefinition: SchemContextDefinition = {
-        contextId: this.getNewContextId(),
-        windowId: typeof tab.windowId !== 'undefined' ? tab.windowId : -1,
-        tabId: typeof tab.id !== 'undefined' ? tab.id : -1,
-        frameId: frameId,
-        lifetime: 'inject-once'
-      };
-
-      // instantiate new context only if none of the active ones matched the definition
-      const matchingContextIndex = this.findIndexOfContextInstance(newContextDefinition, ['contextId']);
+      // instantiate new context only if the frame>tab>window doesn't already have one matching the definition
+      const matchingContextIndex = this.indexOfContextInstanceMatchingPattern({frameId: frameId, tabId: tabId, windowId: windowId, tabQuery: queryInfo});
 
       if (matchingContextIndex < 0) {
-        this.activeContextInstances.push(new SchemContextInstance(newContextDefinition));
-        return newContextDefinition.contextId;
+        const newContext = new SchemContextInstance(this.getNewContextId(), tabId, windowId, {tabQuery: queryInfo, frameId: frameId, lifetime: 'inject-once'});
+        this.activeContextInstances.push(newContext);
+        return newContext;
       } else {
-        return this.activeContextInstances[matchingContextIndex].definition.contextId;
+        return this.activeContextInstances[matchingContextIndex];
       }
     });
+
+    const contextIds = Promise.all(contexts.map(async context => {
+      if (await this.hasActiveBaseContentScript(context)) {
+        return context.id;
+      }
+
+      if (await this.injectBaseContentScript(context) === true) {
+        return context.id;
+      } else {
+        throw new Error(`couldn't inject base content script into context ${context.id}`);
+      }
+
+    }));
+
+    return contextIds;
   }
 
   /** Get a pseudo-random integer that isn't currently used as a context ID */
@@ -84,35 +102,88 @@ export class SchemContextManager {
     let candidateId: number;
     do {
       candidateId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
-    } while (this.getContextInstanceById(candidateId) != null);
+    } while (this.hasContextInstance(candidateId));
     return candidateId;
   }
 
-  findIndexOfContextInstance(contextDefinitionNeedle: any, ignorePropertiesNamed: string[] = []) {
-    const needleProperties = Object.getOwnPropertyNames(contextDefinitionNeedle);
-
+  indexOfContextInstanceMatchingPattern(pattern: any, ignorePropertiesNamed: string[] = []) {
     return this.activeContextInstances.findIndex(context => {
-      const invertedMatch = needleProperties.findIndex(needleProperty => {
-        // don't check for ignored properties
-        if (ignorePropertiesNamed.length > 0 && ignorePropertiesNamed.indexOf(needleProperty) !== -1) {
-          return false;
-        }
-        // return true for the first two properties that don't match
-        return (!(needleProperty in context.definition) ||
-               ((context.definition as any)[needleProperty] !== (contextDefinitionNeedle as any)[needleProperty]));
-      });
-
-      // return true if none of the properties were unequal
-      // (meaning: keep on looking until you found an instance that matches all of the needle's properties)
-      return (invertedMatch === -1);
+      return objectPatternMatch(context, pattern);
     });
   }
 
-  getContextInstanceById(contextId: number): SchemContextInstance | null {
-    const index = this.findIndexOfContextInstance({contextId: contextId});
+  getContextInstance(contextId: number): SchemContextInstance {
+    const index = this.activeContextInstances.findIndex(instance => instance.id === contextId);
     if (index === -1) {
-      return null;
+      throw new Error(`no context found for id ${contextId}`);
     }
-    return this.activeContextInstances[this.findIndexOfContextInstance({contextId: contextId})];
+    return this.activeContextInstances[index];
   }
+
+  hasContextInstance(contextId: number): boolean {
+    try {
+      this.getContextInstance(contextId);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async injectFeature(context: SchemContextInstance, feature: AvailableSchemContextFeatures) {
+    return browser.tabs.executeScript(context.tabId, {file: SchemContextManager.featureNameToContentScriptPath.get(feature)}).then(result => {
+      console.log(result);
+      return true;
+    }).catch(e => e);
+  }
+
+  async hasActiveBaseContentScript(context: SchemContextInstance): Promise<boolean> {
+    const msg: GolemContextMessage = {action: 'has-base-content-script'};
+    return browser.tabs.sendMessage(context.tabId, msg).then(result => {
+      return result;
+    }).catch(reason => {
+      console.error(new Error(reason));
+      return false;
+    });
+  }
+
+  async checkFeature(context: SchemContextInstance, feature: AvailableSchemContextFeatures): Promise<boolean> {
+    const msg: GolemContextMessage = {action: 'has-feature', args: feature};
+    return browser.tabs.sendMessage(context.tabId, msg).then(result => {
+      console.log(`context ${context.id} ${result === true ? 'supports' : `doesn't support`} ${feature}`);
+      return result as boolean;
+    }).catch(reason => {
+      throw new Error(reason);
+    });
+  }
+
+  async injectFeatureIfNecessary(context: SchemContextInstance, feature: AvailableSchemContextFeatures) {
+    const hasFeature = await this.checkFeature(context, feature);
+    if (!hasFeature) {
+      return this.injectFeature(context, feature);
+    }
+    return true;
+  }
+
+  async arepInContexts(contextIds: number[], schemCode: string, options: any) {
+    const contexts = contextIds.map(id => this.getContextInstance(id));
+    // inject interpreter where necessary
+    await Promise.all(contexts.map(async context => this.injectFeatureIfNecessary(context, 'schem-interpreter')));
+
+    // send arep messages
+    const tabIds: Array<number> = contextIds.map((contextId: number) => this.getContextInstance(contextId)!.tabId);
+    const resultsAndReasons = await Promise.all(
+      tabIds.map(async tabId => {
+        return browser.tabs.sendMessage(tabId, {
+          action: 'invoke-context-procedure',
+          args: {
+            procedureName: 'arep',
+            procedureArgs: [schemCode, options]
+          }
+        }).catch(e => e);
+      }
+    ));
+    console.log(resultsAndReasons);
+    return resultsAndReasons;
+  }
+
 }
