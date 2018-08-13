@@ -4,6 +4,7 @@ import { prettyPrint, pr_str } from './printer';
 import { readStr } from './reader';
 import { isSequential, LazyVector, SchemAtom, SchemBoolean, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemNil, SchemNumber, SchemRegExp, SchemString, SchemSymbol, SchemType, SchemVector, isValidKeyType } from './types';
 import { schemToJs } from './schem';
+import { setJsProperty } from '../javascriptInterop';
 
 export const coreFunctions: {[symbol: string]: SchemType} = {
   '+': (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue: SchemNumber, currentIndex: number) => {
@@ -320,6 +321,13 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
   },
   'to-jso': (value: SchemType, options?: SchemMap) => {
     return schemToJs(value, options != null ? schemToJs(options, {keySerialization: 'noPrefix'}) : {keySerialization: 'noPrefix'});
+  },
+  'set!': (symbol: SchemSymbol, value: SchemType) => {
+    if (SchemSymbol.refersToJavascriptObject(symbol)) {
+      setJsProperty(symbol.name, schemToJs(value));
+    } else {
+      throw new Error(`You're not allowed to set Schem bindings to new values. Use atoms for mutable state.`);
+    }
   }
 };
 

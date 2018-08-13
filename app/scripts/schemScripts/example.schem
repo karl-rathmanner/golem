@@ -16,6 +16,10 @@
 (al (prompt "Does this work too?"))
 (console.log (+ 41 1) "yay for n-arity" (c: (prompt "How about this?")))
 
+(def title 'window.document.title)
+(set! title "neat")
+(window.alert window.document.title)
+
 (do
   (def contexts (create-contexts {:title "*derStandard*"}))
   (inject-interpreter contexts)

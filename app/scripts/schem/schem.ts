@@ -1,5 +1,5 @@
 import { browser } from 'webextension-polyfill-ts';
-import { invokeJsProcedure } from '../javascriptInterop';
+import { invokeJsProcedure, getJsProperty } from '../javascriptInterop';
 import { coreFunctions } from './core';
 import { Env, EnvSetupMap } from './env';
 import { pr_str } from './printer';
@@ -17,8 +17,7 @@ export class Schem {
     logEnvironmentInfo : false,
     pauseEvaluation: false
   };
-
-  private privilegedFunctions: any;
+  private hasAccessToPrivilegedAPI = false;
 
   constructor() {
     this.replEnv.addMap(coreFunctions);
@@ -46,13 +45,18 @@ export class Schem {
     )));
 
     if (browser.extension != null) {
-      this.privilegedFunctions = true;
+      this.hasAccessToPrivilegedAPI = true;
     }
 
   }
 
   async evalAST(ast: SchemType, env: Env): Promise<SchemType> {
     if (ast instanceof SchemSymbol) {
+      // js interop: evaluate to object value
+      if (SchemSymbol.refersToJavascriptObject(ast)) {
+        return getJsProperty(ast.name);
+      }
+
       if (typeof env.find(ast) === 'undefined') {
         throw `Symbol ${ast.name} is undefined`;
       } else {
@@ -307,7 +311,7 @@ export class Schem {
              * If a symbol contains dots, treat it as a javascrip procedure that should be invoked with the provided arguments.
              * (arguments are evaluated before being passed to the procedure)
             */
-            if ('name' in first && first.name.indexOf('.') !== -1) {
+            if (SchemSymbol.refersToJavascriptObject(first)) {
               const [, ...rest] = ast;
               let evaluatedArguments: any = await this.evalAST(new SchemVector(...rest), env);
               evaluatedArguments = schemToJs(evaluatedArguments);
@@ -376,7 +380,7 @@ export class Schem {
             }
           // Symbols that are bound to anther symbol that contains dots are treated like an alias to a javacript procedure call.
           // (let [x 'window.example] (x args)) <- invokes window.example with args
-          } else if ('name' in f && f.name.indexOf('.') !== -1) {
+          } else if (f instanceof SchemSymbol && SchemSymbol.refersToJavascriptObject(f)) {
             return invokeJsProcedure(f.name, args);
           } else {
             console.log(first);

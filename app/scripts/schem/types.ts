@@ -408,6 +408,10 @@ class SymbolicType {
 export class SchemSymbol extends SymbolicType implements Metadatable {
   metadata: SchemMetadata;
 
+  static refersToJavascriptObject(sym: SchemSymbol): boolean {
+    return (sym.name.indexOf('.') !== -1);
+  }
+
   // static registeredSymbols: Map<symbol, SchemSymbol> = new Map<symbol, SchemSymbol>();
 
   private constructor(name: string) {
