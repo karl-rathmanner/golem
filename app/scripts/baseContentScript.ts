@@ -7,7 +7,7 @@ import { AvailableSchemContextFeatures } from './contextManager';
   console.log('base content script injected');
   window.golem.features = [];
 
-  browser.runtime.onMessage.addListener((message: GolemContextMessage, sender: Runtime.MessageSender): Promise<any> => {
+  browser.runtime.onMessage.addListener(async (message: GolemContextMessage, sender: Runtime.MessageSender): Promise<any> => {
     switch (message.action) {
       case 'has-base-content-script': {
         return Promise.resolve(true);
@@ -21,8 +21,7 @@ import { AvailableSchemContextFeatures } from './contextManager';
         const procedureName = message.args.procedureName;
         if (window.golem != null && window.golem.injectedProcedures != null && window.golem.injectedProcedures.has(procedureName)) {
           console.log(`invoking procedure ${procedureName}`);
-          const result = window.golem.injectedProcedures.get(procedureName)!(...message.args.procedureArgs);
-          return Promise.resolve(result);
+          return window.golem.injectedProcedures.get(procedureName)!(...message.args.procedureArgs);
         } else {
           const reason = `tried to invoke procedure ${procedureName}, but it probably wasn't injected correctly`;
           return Promise.reject(reason);

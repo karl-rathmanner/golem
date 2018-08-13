@@ -4,13 +4,14 @@ import { GolemContextMessage } from './contentScriptMessaging';
 import { objectPatternMatch } from './utils/utilities';
 
 
-export type AvailableSchemContextFeatures = 'schem-interpreter' | 'js-interop' | 'demo-functions' |'dom-manipulation';
+export type AvailableSchemContextFeatures = 'schem-interpreter' | 'lightweight-js-interop' | 'demo-functions' |'dom-manipulation';
 
 export class SchemContextManager {
   activeContextInstances = new Array<SchemContextInstance>();
   private static featureNameToContentScriptPath = new Map<AvailableSchemContextFeatures, string>([
     ['schem-interpreter', 'scripts/localInterpreterCS.js'],
-    ['demo-functions', 'scripts/demoContentScript.js']
+    ['demo-functions', 'scripts/demoContentScript.js'],
+    ['lightweight-js-interop', 'scripts/lightweightJavascriptInterop.js']
   ]);
 
   constructor() {
@@ -140,8 +141,8 @@ export class SchemContextManager {
     const msg: GolemContextMessage = {action: 'has-base-content-script'};
     return browser.tabs.sendMessage(context.tabId, msg).then(result => {
       return result;
-    }).catch(reason => {
-      console.error(new Error(reason));
+    }).catch(r => {
+      // Sending the message will fail if there is no active content script in the adressed tab.
       return false;
     });
   }
@@ -152,7 +153,7 @@ export class SchemContextManager {
       console.log(`context ${context.id} ${result === true ? 'supports' : `doesn't support`} ${feature}`);
       return result as boolean;
     }).catch(reason => {
-      throw new Error(reason);
+      throw new Error(reason.message);
     });
   }
 
@@ -171,8 +172,7 @@ export class SchemContextManager {
 
     // send arep messages
     const tabIds: Array<number> = contextIds.map((contextId: number) => this.getContextInstance(contextId)!.tabId);
-    const resultsAndReasons = await Promise.all(
-      tabIds.map(async tabId => {
+    return await Promise.all(tabIds.map(async tabId => {
         return browser.tabs.sendMessage(tabId, {
           action: 'invoke-context-procedure',
           args: {
@@ -180,17 +180,17 @@ export class SchemContextManager {
             procedureArgs: [schemCode, options]
           }
         }).catch(e => e);
-      }
-    ));
-    console.log(resultsAndReasons);
-    return resultsAndReasons;
+      })
+    );
+
   }
 
+
   async invokeJsProcedure(contextIds: number[], qualifiedProcedureName: string, ...procedureArgs: any[]) {
-    // DRY!
+    // NOT DRY!
     const contexts = contextIds.map(id => this.getContextInstance(id));
     // inject interpreter where necessary
-    await Promise.all(contexts.map(async context => this.injectFeatureIfNecessary(context, 'js-interop')));
+    await Promise.all(contexts.map(async context => this.injectFeatureIfNecessary(context, 'lightweight-js-interop')));
 
     const tabIds: Array<number> = contextIds.map((contextId: number) => this.getContextInstance(contextId)!.tabId);
     const resultsAndReasons = await Promise.all(
@@ -208,4 +208,22 @@ export class SchemContextManager {
     return resultsAndReasons;
   }
 
+  async getJsProperty(contextIds: number[], qualifiedPropertyName: string) {
+    // STILL NOT DRY!
+    const contexts = contextIds.map(id => this.getContextInstance(id));
+    // inject interpreter where necessary
+    await Promise.all(contexts.map(async context => this.injectFeatureIfNecessary(context, 'lightweight-js-interop')));
+
+    const tabIds: Array<number> = contextIds.map((contextId: number) => this.getContextInstance(contextId)!.tabId);
+    const resultsAndReasons = await Promise.all(
+      tabIds.map(async tabId => {
+        return browser.tabs.sendMessage(tabId, {
+          action: 'get-js-property',
+          args : [qualifiedPropertyName]
+        });
+      })
+    );
+
+    return resultsAndReasons;
+  }
 }

@@ -1,6 +1,12 @@
 import { unescape } from './schem/reader';
 import { Schem } from './schem/schem';
 
+export interface ContextArepResponse {
+  result?: string;
+  error?: string;
+  contextId: number;
+}
+
 (function addInterpreter() {
   const interpreter = new Schem();
   window.golem.interpreter = interpreter;
@@ -9,11 +15,19 @@ import { Schem } from './schem/schem';
   if (window.golem.injectedProcedures != null) {
     window.golem.injectedProcedures.set('evalSchem', interpreter.evalSchem);
     window.golem.injectedProcedures.set('arep', async (code: string, escape: boolean) => {
-      if (escape) {
-        return unescape(await interpreter.arep(code));
-      } else {
-        return interpreter.arep(code);
-      }
+      let resultOrError: ContextArepResponse = {
+        contextId: window.golem.contextId
+      };
+
+      await interpreter.arep(code).then(result => {
+        resultOrError.result = escape ? unescape(result) : result;
+      }).catch(reason => {
+        resultOrError.error = typeof reason === 'string' ? reason : JSON.stringify(reason);
+      });
+
+      console.log(resultOrError);
+
+      return resultOrError;
     });
   }
 })();

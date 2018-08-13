@@ -5,6 +5,7 @@ import { Env, EnvSetupMap } from './env';
 import { pr_str } from './printer';
 import { readStr } from './reader';
 import { isCallable, isSchemCollection, isSchemType, isSequable, isSequential, isValidKeyType, LazyVector, SchemAtom, SchemBoolean, SchemContextDefinition, SchemContextSymbol, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemString, SchemSymbol, SchemType, SchemVector, toSchemMapKey } from './types';
+import { SchemContextManager } from '../contextManager';
 
 export class Schem {
 
@@ -17,7 +18,8 @@ export class Schem {
     logEnvironmentInfo : false,
     pauseEvaluation: false
   };
-  private hasAccessToPrivilegedAPI = false;
+  private hasAccessToFullBrowserAPI = false;
+  private contextManager: SchemContextManager;
 
   constructor() {
     this.replEnv.addMap(coreFunctions);
@@ -45,7 +47,16 @@ export class Schem {
     )));
 
     if (browser.extension != null) {
-      this.hasAccessToPrivilegedAPI = true;
+
+      if (browser.extension.getBackgroundPage != null) {
+        this.hasAccessToFullBrowserAPI = true;
+        const priviledgedContext = browser.extension.getBackgroundPage().golem.priviledgedContext;
+        if (typeof priviledgedContext === 'undefined') {
+          throw new Error(`priviledged context is not set up`);
+        }
+
+        this.contextManager = priviledgedContext.contextManager;
+      }
     }
 
   }
@@ -318,26 +329,48 @@ export class Schem {
               ast = invokeJsProcedure(first.name, evaluatedArguments);
               continue fromTheTop;
             }
-          /** (contextSymbol: (form))
-           * execute (form) in any context matching the definition bound to contextSymbol:
-          */
           } else if (first instanceof SchemContextSymbol) {
-            if (browser.extension != null && browser.extension.getBackgroundPage() != null) {
-              // get reference to the priviledged javascript context
-              const priviledgedContext = browser.extension.getBackgroundPage().golem.priviledgedContext;
-              if (typeof priviledgedContext === 'undefined') {
-                throw new Error(`priviledged context is not set up`);
+            if (this.contextManager != null) {
+              const contextDef = env.getContextSymbol(first);
+              const contextIds = await this.contextManager.prepareContexts(contextDef.tabQuery, contextDef.frameId);
+
+              /** (contextSymbol: (form))
+              * execute (form) in any context matching the definition bound to contextSymbol:
+              */
+              if (ast[1] instanceof SchemList) {
+                // get/realize contexts
+                let resultsAndErrors = await this.contextManager.arepInContexts(contextIds, await pr_str(ast[1]), ast[2]);
+                return new SchemList(...resultsAndErrors.map(resultOrError => {
+                  if ('result' in resultOrError) {
+                    return readStr(resultOrError.result);
+                  } else {
+                    const m = new SchemMap();
+                    m.set( SchemKeyword.from('error'), new SchemString(resultOrError.error));
+                    return m;
+                  }
+                }));
+                // or do tco? -> "continue fromTheTop;"
+
+              /** (contextSymbol:js.symbol args)
+               * invoke a js function in its contexts
+              */
+              } else if (ast[1] instanceof SchemSymbol) {
+                const sym = ast[1] as SchemSymbol;
+                let results;
+                if (SchemSymbol.refersToJavascriptObject(sym)) {
+                  // no need to inject an interpreter if all you want to do is invoke a js function
+                  const v = new SchemVector(...ast.slice(2));
+                  const args = await this.evalAST(v, env);
+                  results = await this.contextManager.invokeJsProcedure(contextIds, sym.name, args);
+                  return new SchemList(...results.map(r => readStr(r)));
+                } else {
+                  throw new Error(`Syntax error. Can't directly invoke a function in a different context. You probably forgot some parens. Try (context:(function args)) instead of (context:function args)`);
+                  // TODO: golem.injectedProcedures actually can be invoked directly. Implement lightweight invoking mechanism.
+                }
+              } else {
+                throw new Error(`Syntax error. A context symbol must be followed by either a list or a qualified javacript name.`);
               }
 
-              const contextDef = env.getContextSymbol(first);
-
-              // get/realize contexts
-              const contextIds = await priviledgedContext.contextManager.prepareContexts(contextDef.tabQuery, contextDef.frameId);
-              let results = await priviledgedContext.contextManager.arepInContexts(contextIds, await pr_str(ast[1]), ast[2]);
-              console.log('bare arep results:');
-              console.log(results);
-              return new SchemList(...results.map(r => readStr(r)));
-              // or do tco? -> "continue fromTheTop;"
             } else {
               throw new Error(`defcontext can only be called by an interpreter instance that is running in a privileged javascript context (such as the event page)`);
             }

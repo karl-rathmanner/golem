@@ -20,6 +20,8 @@
 (set! title "neat")
 (window.alert window.document.title)
 
+(c:window.alert "meh")
+
 (do
   (def contexts (create-contexts {:title "*derStandard*"}))
   (inject-interpreter contexts)
