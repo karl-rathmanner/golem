@@ -48,7 +48,7 @@ export class Schem {
 
     if (browser.extension != null) {
 
-      if (browser.extension.getBackgroundPage != null) {
+      if (browser.extension.getBackgroundPage != null && browser.extension.getBackgroundPage() != null) {
         this.hasAccessToFullBrowserAPI = true;
         const priviledgedContext = browser.extension.getBackgroundPage().golem.priviledgedContext;
         if (typeof priviledgedContext === 'undefined') {
