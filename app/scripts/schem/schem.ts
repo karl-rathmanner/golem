@@ -326,7 +326,7 @@ export class Schem {
               const [, ...rest] = ast;
               let evaluatedArguments: any = await this.evalAST(new SchemVector(...rest), env);
               evaluatedArguments = schemToJs(evaluatedArguments);
-              ast = invokeJsProcedure(first.name, evaluatedArguments);
+              ast = await invokeJsProcedure(first.name, evaluatedArguments);
               continue fromTheTop;
             }
           } else if (first instanceof SchemContextSymbol) {
@@ -414,7 +414,7 @@ export class Schem {
           // Symbols that are bound to anther symbol that contains dots are treated like an alias to a javacript procedure call.
           // (let [x 'window.example] (x args)) <- invokes window.example with args
           } else if (f instanceof SchemSymbol && SchemSymbol.refersToJavascriptObject(f)) {
-            return invokeJsProcedure(f.name, args);
+            return await invokeJsProcedure(f.name, args);
           } else {
             console.log(first);
             throw new Error(`Invalid form: first element "${first}" is not callable`);

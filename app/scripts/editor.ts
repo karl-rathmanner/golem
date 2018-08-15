@@ -5,6 +5,7 @@ import { readStr, unescape as schemUnescape } from './schem/reader';
 import { filterRecursively, Schem } from './schem/schem';
 import { SchemList, SchemType } from './schem/types';
 import { getHTMLElementById } from './utils/domManipulation';
+
 const example = require('!raw-loader!./schemScripts/example.schem');
 
 window.onload = () => {
@@ -50,7 +51,9 @@ window.onload = () => {
       interpreter.arep(sourceOfInnermostCollection, editorEnv).then((result) => {
         addEvaluationViewZone(viewZoneAfterLineNumber, schemUnescape(result), 'evalResultViewZone');
       }).catch(error => {
-        addEvaluationViewZone(viewZoneAfterLineNumber, error, 'evalErrorViewZone');
+        console.error(error);
+        const errorMessage = (typeof error === 'string') ? error : error.message; // I still throw many plain strings as errors. This band-aid 'fixes' that.
+        addEvaluationViewZone(viewZoneAfterLineNumber, errorMessage, 'evalErrorViewZone');
       });
 
       // highlight evaluated source range

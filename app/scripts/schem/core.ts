@@ -5,6 +5,7 @@ import { readStr } from './reader';
 import { isSequential, LazyVector, SchemAtom, SchemBoolean, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemNil, SchemNumber, SchemRegExp, SchemString, SchemSymbol, SchemType, SchemVector, isValidKeyType } from './types';
 import { schemToJs, primitiveValueToSchemType } from './schem';
 import { setJsProperty, getJsProperty } from '../javascriptInterop';
+import { VirtualFileSystem } from '../virtualFilesystem';
 
 export const coreFunctions: {[symbol: string]: SchemType} = {
   '+': (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue: SchemNumber, currentIndex: number) => {
@@ -331,8 +332,28 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
   },
   'js->schem': async (value: SchemType) => {
     return primitiveValueToSchemType(value);
+  },
+  'storage-create': async (qualifiedObjectName: SchemString, value: SchemType) => {
+    return await VirtualFileSystem.createObject(qualifiedObjectName.valueOf(), schemToJs(value));
+  },
+  'storage-read': async (qualifiedObjectName: SchemString) => {
+    return await VirtualFileSystem.readObject(qualifiedObjectName.valueOf());
+  },
+  'storage-update': async (qualifiedObjectName: SchemString, value: SchemType) => {
+    await VirtualFileSystem.updateObject(qualifiedObjectName.valueOf(), schemToJs(value));
+    return value;
+  },
+  'storage-delete': async (qualifiedObjectName: SchemString) => {
+    await VirtualFileSystem.removeObject(qualifiedObjectName.valueOf());
+    return SchemNil.instance;
+  },
+  'storage-clear-all': async() => {
+    if (window.confirm('Do you really want to clear the local storage? This would deletes all objects.')) {
+      VirtualFileSystem.clearStorage();
+      return new SchemString('Local storage was cleared.');
+    }
+    return new SchemString('Clearing the storage was canceled.');
   }
-
 };
 
 

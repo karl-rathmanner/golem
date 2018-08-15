@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 type GolemSettings = {
   configScript: string;
-}
+};
 
 export class Settings {
   public static async loadSettings(): Promise<GolemSettings> {

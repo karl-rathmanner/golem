@@ -25,8 +25,6 @@ export interface ContextArepResponse {
         resultOrError.error = typeof reason === 'string' ? reason : JSON.stringify(reason);
       });
 
-      console.log(resultOrError);
-
       return resultOrError;
     });
   }
