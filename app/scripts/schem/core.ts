@@ -336,6 +336,9 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
   'storage-create': async (qualifiedObjectName: SchemString, value: SchemType) => {
     return await VirtualFileSystem.createObject(qualifiedObjectName.valueOf(), schemToJs(value));
   },
+  'storage-create-or-update': async (qualifiedObjectName: SchemString, value: SchemType) => {
+    return await VirtualFileSystem.createObject(qualifiedObjectName.valueOf(), schemToJs(value), true);
+  },
   'storage-read': async (qualifiedObjectName: SchemString) => {
     return await VirtualFileSystem.readObject(qualifiedObjectName.valueOf());
   },

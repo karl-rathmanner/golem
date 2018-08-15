@@ -3,17 +3,39 @@ import { EventPageActionName, eventPageMessagingSchemFunctions } from './eventPa
 import { AddSchemSupportToEditor } from './monaco/schemLanguage';
 import { readStr, unescape as schemUnescape } from './schem/reader';
 import { filterRecursively, Schem } from './schem/schem';
-import { SchemList, SchemType } from './schem/types';
+import { SchemList, SchemType, SchemString, SchemBoolean } from './schem/types';
 import { getHTMLElementById } from './utils/domManipulation';
+import { VirtualFileSystem } from './virtualFilesystem';
 
 const example = require('!raw-loader!./schemScripts/example.schem');
 
 window.onload = () => {
 
-  const editorEnv: {[symbolName in EventPageActionName]?: SchemType} = eventPageMessagingSchemFunctions;
+  const messagingWithEventPage: {[symbolName in EventPageActionName]?: SchemType} = eventPageMessagingSchemFunctions;
+  const editorManipulation = {
+    'editor-load-script': async (qualifiedFileName: SchemString) => {
+      let candidate = await VirtualFileSystem.readObject(qualifiedFileName.valueOf());
+      if (typeof candidate === 'string') {
+        editor.setValue(candidate);
+        return SchemBoolean.true;
+      } else {
+        throw new Error(`Can only load strings into the editor.`);
+      }
+    },
+    'editor-save-script': async (qualifiedFileName: SchemString) => {
+      const script = editor.getValue();
+      const result =  await VirtualFileSystem.createObject(qualifiedFileName.valueOf(), script, true)
+        .then(() => {
+          console.log('saved');
+          return new SchemString(`Successfully saved ${qualifiedFileName}.`);
+        }).catch(e => e);
+      return result;
+    }
+  };
 
   let interpreter = new Schem();
-  interpreter.replEnv.addMap(editorEnv);
+  interpreter.replEnv.addMap(messagingWithEventPage);
+  interpreter.replEnv.addMap(editorManipulation);
   let ast: SchemType;
   AddSchemSupportToEditor(interpreter);
 
@@ -48,7 +70,7 @@ window.onload = () => {
 
       addEvaluationViewZone(viewZoneAfterLineNumber, '...evaluating...', 'evalWaitingForResultViewZone');
 
-      interpreter.arep(sourceOfInnermostCollection, editorEnv).then((result) => {
+      interpreter.arep(sourceOfInnermostCollection, messagingWithEventPage).then((result) => {
         addEvaluationViewZone(viewZoneAfterLineNumber, schemUnescape(result), 'evalResultViewZone');
       }).catch(error => {
         console.error(error);

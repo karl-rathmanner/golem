@@ -13,8 +13,8 @@ type VFSObjectKeysNode = {
 */
 export class VirtualFileSystem {
 
-  public static async createObject(qualifiedObjectName: string, value: any) {
-    return this.crudObject('create', qualifiedObjectName, value);
+  public static async createObject(qualifiedObjectName: string, value: any, overwriteExistingObject = false) {
+    return this.crudObject('create', qualifiedObjectName, value, overwriteExistingObject);
   }
 
   public static async readObject(qualifiedObjectName: string) {
@@ -49,7 +49,7 @@ export class VirtualFileSystem {
 
   // private methods
 
-  private static async crudObject(action: 'create' | 'update' | 'read' | 'delete', qualifiedObjectName: string, value?: any): Promise<any> {
+  private static async crudObject(action: 'create' | 'update' | 'read' | 'delete', qualifiedObjectName: string, value?: any, overwriteExistingObject?: boolean): Promise<any> {
     // TODO: extract the tree traversal code and write a less overloaded method?
     let fqnTokens: string[] = qualifiedObjectName.split('/');
     const objectName = fqnTokens.pop();
@@ -91,14 +91,19 @@ export class VirtualFileSystem {
         if (value === null || typeof value === 'undefined') {
           throw new Error(`Value mustn't be empty when creating objects.`);
         }
+
+        // is there already an object with this name?
         if (currentFolder.objects[objectName] != null) {
-          throw new Error(`Creating ${qualifiedObjectName} failed because an object with that name already exists. Did you want to *update* it instead?`);
+          if (overwriteExistingObject === true) {
+            return this.crudObject('update', qualifiedObjectName, value);
+          }
+          throw new Error(`Creating ${qualifiedObjectName} failed because an object with that name already exists. (You might want to call create with the overwrite flag set or use the update action instead.)`);
         }
 
         // Create a unique, random, alphabetic key for the object
         let randomKey: string;
         do {
-          randomKey = Array.from('x').map(char => String.fromCharCode(65 + Math.random() * 2)).join('');
+          randomKey = Array.from('xxxxxxxxxx').map(char => String.fromCharCode(65 + Math.random() * 2)).join('');
           // fun fact: a key collision will, on average, occur once in a septillion
         } while ((await browser.storage.local.get(randomKey)).hasOwnProperty(randomKey));
 
