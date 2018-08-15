@@ -4,7 +4,7 @@ import { coreFunctions } from './core';
 import { Env, EnvSetupMap } from './env';
 import { pr_str } from './printer';
 import { readStr } from './reader';
-import { isCallable, isSchemCollection, isSchemType, isSequable, isSequential, isValidKeyType, LazyVector, SchemAtom, SchemBoolean, SchemContextDefinition, SchemContextSymbol, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemString, SchemSymbol, SchemType, SchemVector, toSchemMapKey } from './types';
+import { isCallable, isSchemCollection, isSchemType, isSequable, isSequential, isValidKeyType, LazyVector, SchemAtom, SchemBoolean, SchemContextDefinition, SchemContextSymbol, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemString, SchemSymbol, SchemType, SchemVector, toSchemMapKey, SchemNumber } from './types';
 import { SchemContextManager } from '../contextManager';
 
 export class Schem {
@@ -647,4 +647,13 @@ export function schemToJs(schemObject: SchemType | null, options: {keySerializat
   }
 
   return jsObject;
+}
+
+export function primitiveValueToSchemType(value: any) {
+  switch (typeof value) {
+    case 'string': return new SchemString(value);
+    case 'number': return new SchemNumber(value);
+    case 'boolean': return SchemBoolean.fromBoolean(value);
+    default: throw new Error(`can't convert ${typeof value} to SchemType`);
+  }
 }
