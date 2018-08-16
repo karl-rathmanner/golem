@@ -1,6 +1,7 @@
 import { Env } from './env';
 import { Schem, schemToJs } from './schem';
 import { Tabs } from 'webextension-polyfill-ts';
+import { AvailableSchemContextFeatures } from '../contextManager';
 
 // interfaces
 export interface Callable {
@@ -497,16 +498,19 @@ export class SchemContextSymbol extends SymbolicType {
  */
 export class SchemContextDefinition {
   frameId?: number;
-  features?: ['interpreter', 'dom-manipulation'];
+  features?: AvailableSchemContextFeatures[];
   runAt?: 'document_start' | 'document_end' | 'document_idle';
 
-  constructor(public tabQuery: Tabs.QueryQueryInfoType, public lifetime: 'inject-once' | 'persist-navigation') {
+  constructor(public tabQuery: Tabs.QueryQueryInfoType, public lifetime: 'inject-once' | 'persist-navigation', features?: AvailableSchemContextFeatures[]) {
+    if (features != null) {
+      this.features = features;
+    }
   }
 
   static fromSchemMap(initializationMap: SchemMap): SchemContextDefinition {
     const jso = schemToJs(initializationMap, {keySerialization: 'noPrefix'});
     if (jso.tabQuery != null) {
-      return new SchemContextDefinition(jso.tabQuery, 'inject-once');
+      return new SchemContextDefinition(jso.tabQuery, 'inject-once', jso.features);
     }
     throw new Error(`missing value for :tabQuery`);
   }

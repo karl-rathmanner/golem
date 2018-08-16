@@ -332,7 +332,8 @@ export class Schem {
           } else if (first instanceof SchemContextSymbol) {
             if (this.contextManager != null) {
               const contextDef = env.getContextSymbol(first);
-              const contextIds = await this.contextManager.prepareContexts(contextDef.tabQuery, contextDef.frameId);
+              const contextIds = await this.contextManager.prepareContexts(contextDef);
+
 
               /** (contextSymbol: (form))
               * execute (form) in any context matching the definition bound to contextSymbol:

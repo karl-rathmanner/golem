@@ -4,14 +4,15 @@ import { GolemContextMessage } from './contentScriptMessaging';
 import { objectPatternMatch } from './utils/utilities';
 
 
-export type AvailableSchemContextFeatures = 'schem-interpreter' | 'lightweight-js-interop' | 'demo-functions' |'dom-manipulation';
+export type AvailableSchemContextFeatures = 'schem-interpreter' | 'lightweight-js-interop' | 'demo-functions' | 'dom-manipulation';
 
 export class SchemContextManager {
   activeContextInstances = new Array<SchemContextInstance>();
   private static featureNameToContentScriptPath = new Map<AvailableSchemContextFeatures, string>([
     ['schem-interpreter', 'scripts/localInterpreterCS.js'],
     ['demo-functions', 'scripts/demoContentScript.js'],
-    ['lightweight-js-interop', 'scripts/lightweightJavascriptInterop.js']
+    ['lightweight-js-interop', 'scripts/lightweightJavascriptInterop.js'],
+    ['dom-manipulation', 'scripts/domManipulationSchemFunctions.js']
   ]);
 
   constructor() {
@@ -54,8 +55,10 @@ export class SchemContextManager {
   }
 
   /** Creates new context instances if necessary, adds them to the registry and returns their ids */
-  async prepareContexts(queryInfo: Tabs.QueryQueryInfoType, frameId?: number): Promise<number[]> {
-
+  async prepareContexts(contextDef: SchemContextDefinition): Promise<number[]> {
+    const queryInfo: Tabs.QueryQueryInfoType = contextDef.tabQuery;
+    const frameId: number | undefined = contextDef.frameId;
+    
     let tabs;
 
     try {
@@ -83,16 +86,19 @@ export class SchemContextManager {
     });
 
     const contextIds = Promise.all(contexts.map(async context => {
-      if (await this.hasActiveBaseContentScript(context)) {
-        return context.id;
+      if (! (await this.hasActiveBaseContentScript(context))) {
+        if (!(await this.injectBaseContentScript(context))) {
+          throw new Error(`couldn't inject base content script into context ${context.id}`);  
+        }
       }
 
-      if (await this.injectBaseContentScript(context) === true) {
-        return context.id;
-      } else {
-        throw new Error(`couldn't inject base content script into context ${context.id}`);
+      if (contextDef.features != null) {
+        await Promise.all(contextDef.features.map((feature) => {
+          this.injectFeatureIfNecessary(context, feature as AvailableSchemContextFeatures);
+        }));
       }
 
+      return context.id;
     }));
 
     return contextIds;
@@ -131,7 +137,8 @@ export class SchemContextManager {
   }
 
   async injectFeature(context: SchemContextInstance, feature: AvailableSchemContextFeatures) {
-    return browser.tabs.executeScript(context.tabId, {file: SchemContextManager.featureNameToContentScriptPath.get(feature)}).then(result => {
+    const contentScriptURL = SchemContextManager.featureNameToContentScriptPath.get(feature);
+    return browser.tabs.executeScript(context.tabId, {file: contentScriptURL}).then(result => {
       console.log(result);
       return true;
     }).catch(e => e);
