@@ -584,17 +584,18 @@ export function filterRecursively(ast: SchemType, predicate: (element: SchemType
 }
 
 /** Returns a stringifiable javascript object based on the schem value/collection.
- * The "dropColonForKeywords" option is convenient for SchemMaps that contain only keyword keys but it may result loosing values due to colliding keys! e.g.:
+ * By default the "noPrefix" option is active, because that's very convenient for js interop.
+ * Be aware that this will result in loosing values when the "values" of keys with different schem types collide in the js object! e.g.:
  ```
  // using includeTypePrefix:
  {1 1, "1" 2, :1 3} -> {n1: 1, s1: 2, k1: 3}
  // using noPrefix:
  {1 1, "1" 2, :1 3} -> {1: 3}
  ```
- * @param {object} options Indicates how map keys should be handled.
+ * @param {object} options Indicates how map keys should be handled. Choose wisely.
 */
 // TODO: as isSerializable check and throw error when trying to convert a schemObject that isn't
-export function schemToJs(schemObject: SchemType | null, options: {keySerialization: 'includeTypePrefix' | 'noPrefix'} = {keySerialization: 'includeTypePrefix'}): any | null {
+export function schemToJs(schemObject: SchemType | null, options: {keySerialization: 'includeTypePrefix' | 'noPrefix'} = {keySerialization: 'noPrefix'}): any | null {
   let jsObject: any;
 
   // maps turn into objects

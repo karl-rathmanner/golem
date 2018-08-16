@@ -508,7 +508,7 @@ export class SchemContextDefinition {
   }
 
   static fromSchemMap(initializationMap: SchemMap): SchemContextDefinition {
-    const jso = schemToJs(initializationMap, {keySerialization: 'noPrefix'});
+    const jso = schemToJs(initializationMap);
     if (jso.tabQuery != null) {
       return new SchemContextDefinition(jso.tabQuery, 'inject-once', jso.features);
     }
