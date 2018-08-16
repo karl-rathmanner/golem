@@ -1,30 +1,35 @@
-(storage-clear-all)
-(editor-load-script "code")
+; defining an execution context that matches any regular tab
+(defcontext anyTab: {:tabQuery {:url "*://*/*"}})
 
-(storage-create "test" "meh")
+; evaluating and printing something in a different context
+(anyTab:(prn (+ 41 1)))
 
-(defcontext c: {:tabQuery {:url "*://*/*"}})
-(c: (prn (+ 41 1)))
-
+; invoking a js function
 (window.alert "This works.")
-(def al 'window.alert)
-(al "This works too. whoo!")
 
-(al (prompt "Does this work too?"))
-(console.log (+ 41 1) "yay for n-arity" (c: (prompt "How about this?")))
+; aliasing a js function
+(let (anoy 'window.alert)
+  (anoy "This works too. Wohoo!"))
 
-(def title 'window.document.title)
-(set! title "neat")
+; logging a value from a different context in this context
+(console.log (schem->js (c: (prompt "How's it going over there?"))))
+
+; combining js function invocation and js property resolution
 (window.alert window.document.title)
 
-(c:window.alert "meh")
-
+; adding an event listener in foreign contexts (and local state)
 (do
-  (def contexts (create-contexts {:title "*derStandard*"}))
-  (inject-interpreter contexts)
-  (def name "Alice")
-  (arep-in-contexts contexts (pr-str `(prn (str "Yo, " ~name "!")))))
+  (defcontext x: {}
+    :tabQuery {:url "*://*.xkcd.com/*"}
+    :features ["schem-interpreter" "dom-manipulation"])
 
+  (x:(do)
+    (def count (atom 0))
+    (add-listener "click" "#ctitle" '(do)
+      (swap! count #(+ 1 %))
+      (window.alert (str "You clicked the title " (deref count) " times.")))))
+
+; implementing fizz-buzz using a lazy vector
 (defn fizz-buzz (start end)
   (subvec 
     (lazy-vector 
@@ -35,7 +40,23 @@
         :else %)) 
     start end))
 
+(fizz-buzz 0 100)
+
+; a simple example function and macro
 (defn add1 (x) (+ x 1))
 (defmacro executePostfix (fn (l) (cons (last l) (butlast l))))
 
+; just some output for whomever this file is loaded by
 "example functions/macros loaded"
+
+
+; clearing the local storage
+(storage-clear-all)
+
+; storing and retrieving objects in the virtual file system
+(storage-create "/folder/objectName" "an invaluable value")
+(storage-read "/folder/objectName")
+
+; reading and writing scripts from the editor
+(editor-load-script "code")
+(editor-save-script "code")
