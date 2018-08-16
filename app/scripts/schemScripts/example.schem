@@ -18,16 +18,19 @@
 (window.alert window.document.title)
 
 ; adding an event listener in foreign contexts (and local state)
-(do
-  (defcontext x: {}
-    :tabQuery {:url "*://*.xkcd.com/*"}
-    :features ["schem-interpreter" "dom-manipulation"])
+(chrome.tabs.create {:url "http://xkcd.com"})
 
-  (x:(do)
-    (def count (atom 0))
-    (add-listener "click" "#ctitle" '(do)
-      (swap! count #(+ 1 %))
-      (window.alert (str "You clicked the title " (deref count) " times.")))))
+(do
+  (defcontext xkcd: { :tabQuery {:url "*://*.xkcd.com/*"}
+                      :features ["schem-interpreter" "dom-manipulation"]})
+
+  (xkcd:
+    (do
+      (def count (atom 0))
+      (add-listener "click" "#ctitle")
+      '(do
+        (swap! count #(+ 1 %))
+        (window.alert (str "You clicked the title " (deref count) " times."))))))
 
 ; implementing fizz-buzz using a lazy vector
 (defn fizz-buzz (start end)
