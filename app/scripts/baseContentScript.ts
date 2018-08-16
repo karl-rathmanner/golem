@@ -44,7 +44,8 @@ import { AvailableSchemContextFeatures } from './contextManager';
           try {
             return Promise.resolve(parentObjectForProcedure[procedureName](message.args.procedureArgs));
           } catch (e) {
-            return Promise.reject('Js procedure invocation failed with message: ' + JSON.stringify(e));
+            console.error(e);
+            return Promise.reject('Js procedure invocation failed with message: ' + e.message);
           }
         }
       }
@@ -65,7 +66,8 @@ import { AvailableSchemContextFeatures } from './contextManager';
           try {
             return Promise.resolve(parentObjectForProperty[propertyName] = message.args.value);
           } catch (e) {
-            return Promise.reject('setting a JS property failed with message: ' + JSON.stringify(e));
+            console.error(e);
+            return Promise.reject('setting a JS property failed with message: ' + e);
           }
         }
       }

@@ -16,7 +16,8 @@ export async function invokeJsProcedure(qualifiedProcedureName: string, procedur
     try {
       return Promise.resolve(parentObjectForProcedure[procedureName](...procedureArgs));
     } catch (e) {
-      return Promise.reject('Js procedure invocation failed with message: ' + JSON.stringify(e));
+      console.error(e);
+      return Promise.reject('Js procedure invocation failed with message: ' + e.message);
     }
   }
 }
@@ -25,7 +26,8 @@ export async function getJsProperty(qualifiedPropertyName: string) {
   try {
     return Promise.resolve(getOrSetJSObject(qualifiedPropertyName));
   } catch (e) {
-    return Promise.reject(`Couldn't access JS object. ${JSON.stringify(e)}`);
+    console.error(e);
+    return Promise.reject(`Couldn't access JS object. ${e.message}`);
   }
 }
 
@@ -33,7 +35,8 @@ export async function setJsProperty(qualifiedPropertyName: string, value: any) {
   try {
     return Promise.resolve(getOrSetJSObject(qualifiedPropertyName, value));
   } catch (e) {
-    return Promise.reject(`Couldn't access JS object. ${JSON.stringify(e)}`);
+    console.error(e);
+    return Promise.reject(`Couldn't access JS object. ${e.message}`);
   }
 }
 

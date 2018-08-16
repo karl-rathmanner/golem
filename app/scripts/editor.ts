@@ -74,7 +74,10 @@ window.onload = () => {
         addEvaluationViewZone(viewZoneAfterLineNumber, schemUnescape(result), 'evalResultViewZone');
       }).catch(error => {
         console.error(error);
-        const errorMessage = (typeof error === 'string') ? error : error.message; // I still throw many plain strings as errors. This band-aid 'fixes' that.
+        let errorMessage = (typeof error === 'string') ? error : error.message; // I still throw many plain strings as errors. This band-aid 'fixes' that.
+        if (typeof errorMessage !== 'string') {
+          errorMessage = JSON.stringify(errorMessage); // And this is a band-aid for the band-aid.
+        }
         addEvaluationViewZone(viewZoneAfterLineNumber, errorMessage, 'evalErrorViewZone');
       });
 

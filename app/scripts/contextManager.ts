@@ -179,7 +179,7 @@ export class SchemContextManager {
             procedureName: 'arep',
             procedureArgs: [schemCode, options]
           }
-        }).catch(e => e);
+        });
       })
     );
 

@@ -1,4 +1,6 @@
 (storage-clear-all)
+(editor-load-script "code")
+
 (storage-create "test" "meh")
 
 (defcontext c: {:tabQuery {:url "*://*/*"}})
