@@ -1,5 +1,5 @@
 // load css as string
-import * as iFrameStyle from '!raw-loader!../styles/iFrame.css';
+import * as iFrameStyle from '!raw-loader!../styles/tinyRepl.css';
 import * as $ from 'jquery';
 import { browser, Runtime } from 'webextension-polyfill-ts';
 import { CommandHistory } from './utils/commandHistory';

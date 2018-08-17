@@ -1,10 +1,10 @@
-import { SchemContextInstance, SchemContextDefinition, SchemType } from './schem/types';
+import { SchemContextInstance, SchemContextDefinition } from './schem/types';
 import { browser, Tabs } from 'webextension-polyfill-ts';
 import { GolemContextMessage } from './contentScriptMessaging';
 import { objectPatternMatch } from './utils/utilities';
 
 
-export type AvailableSchemContextFeatures = 'schem-interpreter' | 'lightweight-js-interop' | 'demo-functions' | 'dom-manipulation';
+export type AvailableSchemContextFeatures = 'schem-interpreter' | 'lightweight-js-interop' | 'demo-functions' | 'dom-manipulation' | 'tiny-repl';
 
 export class SchemContextManager {
   activeContextInstances = new Array<SchemContextInstance>();
@@ -12,7 +12,8 @@ export class SchemContextManager {
     ['schem-interpreter', 'scripts/localInterpreterCS.js'],
     ['demo-functions', 'scripts/demoContentScript.js'],
     ['lightweight-js-interop', 'scripts/lightweightJavascriptInterop.js'],
-    ['dom-manipulation', 'scripts/domManipulationSchemFunctions.js']
+    ['dom-manipulation', 'scripts/domManipulationSchemFunctions.js'],
+    ['tiny-repl', 'scripts/tinyReplCS.js']
   ]);
 
   constructor() {
@@ -58,7 +59,7 @@ export class SchemContextManager {
   async prepareContexts(contextDef: SchemContextDefinition): Promise<number[]> {
     const queryInfo: Tabs.QueryQueryInfoType = contextDef.tabQuery;
     const frameId: number | undefined = contextDef.frameId;
-    
+
     let tabs;
 
     try {
@@ -88,7 +89,7 @@ export class SchemContextManager {
     const contextIds = Promise.all(contexts.map(async context => {
       if (! (await this.hasActiveBaseContentScript(context))) {
         if (!(await this.injectBaseContentScript(context))) {
-          throw new Error(`couldn't inject base content script into context ${context.id}`);  
+          throw new Error(`couldn't inject base content script into context ${context.id}`);
         }
       }
 

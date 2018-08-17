@@ -22,15 +22,17 @@
 
 (do
   (defcontext xkcd: { :tabQuery {:url "*://*.xkcd.com/*"}
-                      :features ["schem-interpreter" "dom-manipulation"]})
+                      :features ["schem-interpreter" "dom-manipulation" "tiny-repl"]})
 
   (xkcd:
     (do
       (def count (atom 0))
-      (add-listener "click" "#ctitle")
-      '(do
-        (swap! count #(+ 1 %))
-        (window.alert (str "You clicked the title " (deref count) " times."))))))
+      (add-listener "click" "#ctitle"
+        '(do
+          (swap! count #(+ 1 %)
+           (window.alert (str "You clicked the title " (deref count) " times."))))))))
+      
+(xkcd:(tiny-repl-show))
 
 ; implementing fizz-buzz using a lazy vector
 (defn fizz-buzz (start end)
