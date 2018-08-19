@@ -595,7 +595,7 @@ export function filterRecursively(ast: SchemType, predicate: (element: SchemType
  * @param {object} options Indicates how map keys should be handled. Choose wisely.
 */
 // TODO: as isSerializable check and throw error when trying to convert a schemObject that isn't
-export function schemToJs(schemObject: SchemType | null, options: {keySerialization: 'includeTypePrefix' | 'noPrefix'} = {keySerialization: 'noPrefix'}): any | null {
+export function schemToJs(schemObject?: SchemType | null, options: {keySerialization: 'includeTypePrefix' | 'noPrefix'} = {keySerialization: 'noPrefix'}): any | null {
   let jsObject: any;
 
   // maps turn into objects
@@ -644,18 +644,64 @@ export function schemToJs(schemObject: SchemType | null, options: {keySerializat
     }
 
   } else if (isSchemType(schemObject)) {
-    // getStringRepresentation is preferable to valueOf because it returns values that look like their Schem representation (e.g. ":keyword" instead of "keyword")
-    jsObject = ('getStringRepresentation' in schemObject) ? schemObject.getStringRepresentation() : schemObject.valueOf();
+    if (schemObject instanceof SchemNil) {
+      return null;
+    }
+    return atomicSchemObjectToJS(schemObject);
   }
 
   return jsObject;
 }
 
-export function primitiveValueToSchemType(value: any) {
+/** Converts a Schem value (that isn't a collection) to a js primitive */
+export function atomicSchemObjectToJS(schemObject?: SchemType): any {
+  if (typeof schemObject === 'undefined') return undefined;
+  if (schemObject instanceof SchemNil) return null;
+  // getStringRepresentation is preferable to valueOf because it returns values that look like their Schem representation (e.g. ":keyword" instead of "keyword")
+  return ('getStringRepresentation' in schemObject) ? schemObject.getStringRepresentation() : schemObject.valueOf();
+}
+
+/** Tries to recursively convert js objects to schem representations.
+ ``` markdown
+ - Objects -> Maps
+ - Arrays -> Lists or Vectors, depending on options
+ - Primitive js values turn into their respective Schem values
+ - Anything that can't be converted turns into 'nil'
+ ```
+ * */
+export function jsObjectToSchemType(o: any, options = {'arrays-to-vectors': false}): SchemType {
+  if (typeof o === 'object') {
+    if (o instanceof Array) {
+      if (options['arrays-to-vectors']) {
+        return new SchemVector(...o.map(element => jsObjectToSchemType(element, options)));
+      } else {
+        return new SchemList(...o.map(element => jsObjectToSchemType(element, options)));
+      }
+    } else {
+      const properterties = Object.getOwnPropertyNames(o);
+      const schemMap = new SchemMap();
+      properterties.forEach(property => {
+        schemMap.set(SchemKeyword.from(property), jsObjectToSchemType(o[property]));
+      });
+      return schemMap;
+    }
+  } else {
+    return primitiveValueToSchemType(o, SchemNil.instance);
+  }
+}
+
+/** Converts a primitive js value to a Schem object */
+export function primitiveValueToSchemType(value: any, defaultValue?: SchemType): SchemType {
   switch (typeof value) {
     case 'string': return new SchemString(value);
     case 'number': return new SchemNumber(value);
     case 'boolean': return SchemBoolean.fromBoolean(value);
-    default: throw new Error(`can't convert ${typeof value} to SchemType`);
+    case 'undefined': return SchemNil;
+    default:
+      if (defaultValue != null) {
+        return defaultValue;
+      } else {
+        throw new Error(`can't convert ${typeof value} to SchemType, no default value provided.`);
+      }
   }
 }

@@ -70,7 +70,7 @@ window.onload = () => {
 
       addEvaluationViewZone(viewZoneAfterLineNumber, '...evaluating...', 'evalWaitingForResultViewZone');
 
-      interpreter.arep(sourceOfInnermostCollection, messagingWithEventPage).then((result) => {
+      interpreter.arep(sourceOfInnermostCollection).then((result) => {
         addEvaluationViewZone(viewZoneAfterLineNumber, schemUnescape(result), 'evalResultViewZone');
       }).catch(error => {
         console.error(error);

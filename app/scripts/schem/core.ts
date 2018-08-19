@@ -3,7 +3,7 @@ import { browser } from 'webextension-polyfill-ts';
 import { prettyPrint, pr_str } from './printer';
 import { readStr } from './reader';
 import { isSequential, LazyVector, SchemAtom, SchemBoolean, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemNil, SchemNumber, SchemRegExp, SchemString, SchemSymbol, SchemType, SchemVector, isValidKeyType } from './types';
-import { schemToJs, primitiveValueToSchemType } from './schem';
+import { schemToJs, primitiveValueToSchemType, jsObjectToSchemType } from './schem';
 import { setJsProperty, getJsProperty } from '../javascriptInterop';
 import { VirtualFileSystem } from '../virtualFilesystem';
 
@@ -330,8 +330,8 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
       throw new Error(`You're not allowed to set Schem bindings to new values. Use atoms for mutable state.`);
     }
   },
-  'js->schem': async (value: SchemType) => {
-    return primitiveValueToSchemType(value);
+  'js->schem': async (value: SchemType, options?: SchemMap) => {
+    return jsObjectToSchemType(value, schemToJs(options));
   },
   'storage-create': async (qualifiedObjectName: SchemString, value: SchemType) => {
     return await VirtualFileSystem.createObject(qualifiedObjectName.valueOf(), schemToJs(value));

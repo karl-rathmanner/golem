@@ -22,88 +22,6 @@ const contextManager = window.golem.priviledgedContext!.contextManager;
 browser.runtime.onMessage.addListener(async (message: EventPageMessage, sender): Promise<any> => {
 
   switch (message.action) {
-
-    /*
-    case 'create-contexts': {
-      // data may contain a queryInfo object and a frameId value
-      const queryInfo: Tabs.QueryQueryInfoType = message.args.queryInfo;
-      const frameId = (typeof message.args.frameId === 'number') ? message.args.frameId : 0;
-
-      let tabs;
-
-      try {
-        tabs = await browser.tabs.query(queryInfo);
-      } catch (e) {
-        // *resolve* with a plain object - the actual value of 'e' can't be jsonified, I guess. (at least it won't work for *some* reason...)
-        return Promise.resolve({error: {message: e.message}});
-      }
-
-      const contextDetails = await tabs.map(async (tab): Promise<SchemContextDefinition> => {
-        if (typeof tab.id !== 'undefined') {
-
-          const newContextID = lastContextID++;
-          if (!Number.isInteger(newContextID)) {
-            throw new Error(`I don't think this could ever happen, but I'm paranoid about script injection and this check won't hurt anyone.`);
-          }
-
-          // add and initialize global golem object that content scripts can share
-          await browser.tabs.executeScript(tab.id, {
-            code: `
-              var golem = {contextId: ${newContextID}};
-              golem.injectedProcedures = new Map();
-              `,
-            frameId: frameId
-          }).catch(e => {
-            return new Error(`Failed to inject content script!`);
-          });
-          // inject actual content script
-          // TODO: modularize content scripts and inject specific parts only when needed
-          await browser.tabs.executeScript(tab.id, {file: 'scripts/baseContentScript.js', frameId: frameId}).catch(e => e); // turn error into resolved promise
-          await browser.tabs.executeScript(tab.id, {file: 'scripts/demoContentScript.js', frameId: frameId}).catch(e => e);
-          return {
-            contextId: newContextID,
-            windowId: typeof tab.windowId !== 'undefined' ? tab.windowId : -1,
-            tabId: typeof tab.id !== 'undefined' ? tab.id : -1,
-            frameId: frameId,
-            lifetime: 'inject-once'
-          };
-        }
-        return Promise.reject(`Provided a context with an illegal tabId: ${tab.id}`);
-      });
-
-      return Promise.all(contextDetails);
-    }*/
-
-    case 'inject-interpreter': {
-      if (message.contextIds != null) {
-        return Promise.all(message.contextIds.map(async contextId => {
-          const contextInstance = contextManager.getContextInstance(contextId)!;
-          await browser.tabs.executeScript(contextInstance.tabId, {file: 'scripts/localInterpreterCS.js', frameId: contextInstance.definition.frameId}).catch(e => e);
-        }));
-      } else {
-        return Promise.reject('no context supplied to inject-interpreter');
-      }
-    }
-
-    case 'arep-in-contexts': {
-      if (message.contextIds != null && message.args.code != null) {
-        const tabIds: Array<number> = message.contextIds.map((contextId: number) => contextId);
-        const resultsAndReasons = await Promise.all(
-          tabIds.map(async tabId => {
-            return browser.tabs.sendMessage(tabId, {
-              action: 'invoke-context-procedure',
-              args: {
-                procedureName: 'arep',
-                procedureArgs: [message.args.code, message.args.options]
-              }
-            }).catch(e => e);
-          }
-        ));
-        console.log(resultsAndReasons);
-        return resultsAndReasons;
-      }
-    }
-
     case 'forward-context-action': {
       if (message.contextIds != null && message.contextMessage != null) {
         // forward the message to the appropriate contexts
@@ -171,24 +89,7 @@ browser.commands.onCommand.addListener(function(command) {
       break;
 
     case 'open-editor':
-      browser.windows.getCurrent().then(currentWindow => {
-        const halfHorizontalResolution = window.screen.width / 2;
-        const currentWindowWidth = currentWindow.width ? currentWindow.width : 100;
-        let editorWindowWidth = currentWindow.width;
-        let editorWindowLeft = currentWindow.left;
-
-        // put current window and editor window in a split layout, if the current window is smaller than about half the screen resolution
-        if (currentWindowWidth < halfHorizontalResolution + 20) {
-          currentWindow.width = editorWindowWidth = halfHorizontalResolution;
-          currentWindow.left = 0;
-          editorWindowLeft = halfHorizontalResolution;
-        }
-        browser.windows.create({
-          url: './pages/editor.html',
-          top: currentWindow.top, left: editorWindowLeft,
-          height: currentWindow.height, width: editorWindowWidth
-        });
-      });
+      openEditor();
       break;
 
     case 'advanceSchemInterpreter':
@@ -196,3 +97,24 @@ browser.commands.onCommand.addListener(function(command) {
   }
 });
 
+
+export function openEditor(fileName?: string) {
+  browser.windows.getCurrent().then(currentWindow => {
+    const halfHorizontalResolution = window.screen.width / 2;
+    const currentWindowWidth = currentWindow.width ? currentWindow.width : 100;
+    let editorWindowWidth = currentWindow.width;
+    let editorWindowLeft = currentWindow.left;
+
+    // put current window and editor window in a split layout, if the current window is smaller than about half the screen resolution
+    if (currentWindowWidth < halfHorizontalResolution + 20) {
+      currentWindow.width = editorWindowWidth = halfHorizontalResolution;
+      currentWindow.left = 0;
+      editorWindowLeft = halfHorizontalResolution;
+    }
+    browser.windows.create({
+      url: './pages/editor.html' + (fileName ? `#${fileName}` : ''),
+      top: currentWindow.top, left: editorWindowLeft,
+      height: currentWindow.height, width: editorWindowWidth
+    });
+  });
+}
