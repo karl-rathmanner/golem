@@ -31,13 +31,12 @@
   "omnibox": {
     "keyword": "golem"
   },
-
   "commands": {
-    "go-go-golem" : {
+    "open-editor": {
       "suggested_key": {
-        "default":"Alt+G"
+        "default":"Alt+A"
       },
-      "description": "Go-Go-Golem!"
+      "description": "Opens a Monaco instance in a new tab"
     },
     "open-schem-playground": {
       "suggested_key": {
@@ -45,17 +44,17 @@
       },
       "description": "Opens the Schem Playground"
     },
-    "open-editor": {
+    "go-go-golem" : {
       "suggested_key": {
-        "default":"Alt+A"
+        "default":"Alt+G"
       },
-      "description": "Opens a Monaco instance in a new tab"
+      "description": "Go-Go-Golem! (Does nothing, intended to be re-introduced later.)"
     },
     "advanceSchemInterpreter" : {
       "suggested_key": {
         "default":"Alt+R"
       },
-      "description": "Go-On-Golem!"
+      "description": "Go-On-Golem! (Proceed with one evaluation step, if interpreter is paused.)"
     }
   },
   "permissions": [

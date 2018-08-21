@@ -8,7 +8,7 @@
     "description": "The short_name (maximum of 12 characters recommended) is a short version of the app's name."
   },
   "appDescription": {
-    "message": "Carries out menial tasks; is driven by words.",
+    "message": "Carries out menial tasks; is driven by words. Most importantly: is not production ready.",
     "description": "The description of the application"
   },
   "browserActionTitle": {
