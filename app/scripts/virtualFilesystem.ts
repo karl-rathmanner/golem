@@ -8,7 +8,7 @@ type VFSObjectKeysNode = {
 
 /** The Virtual File System makes it possible to create, read, update, and delete objects in the browser's local storage, in a hierachical, file-system-like way.
  * The VFS keeps track of directory and object names using a tree. Each tree node represents a folder. Each folder can contain multiple objects or child folders.
- * Oualified object names (like "exampleFolder/subFolder/objectName") can be resolved to a key that is radomly generated during object creation. 
+ * Oualified object names (like "exampleFolder/subFolder/objectName") can be resolved to a key that is radomly generated during object creation.
  * It's these keys that map to the objects' value in the browser's 'flat' local storage.
 */
 export class VirtualFileSystem {
@@ -33,10 +33,10 @@ export class VirtualFileSystem {
     return browser.storage.local.clear();
   }
 
-  public static logVFS() {
-    browser.storage.local.get({virtualFileSystemKeyTree: {}}).then(async results => {
+  public static async getVFSTree() {
+    return browser.storage.local.get({virtualFileSystemKeyTree: {}}).then(async results => {
       const objectKeyTree = results.virtualFileSystemKeyTree as VFSObjectKeysNode;
-      console.log(objectKeyTree);
+      return (objectKeyTree);
     });
   }
 
@@ -51,6 +51,7 @@ export class VirtualFileSystem {
 
   private static async crudObject(action: 'create' | 'update' | 'read' | 'delete', qualifiedObjectName: string, value?: any, overwriteExistingObject?: boolean): Promise<any> {
     // TODO: extract the tree traversal code and write a less overloaded method?
+    if (qualifiedObjectName[0] === '/') qualifiedObjectName = qualifiedObjectName.slice(1); // drop leading slash silently (those would lead to a zero-length token)
     let fqnTokens: string[] = qualifiedObjectName.split('/');
     const objectName = fqnTokens.pop();
     let pathTokens = fqnTokens;
@@ -73,10 +74,13 @@ export class VirtualFileSystem {
       let currentFolder = objectKeyNode;
       while (pathTokens.length > 0) {
         const childFolderName = pathTokens.shift();
-
+        if (childFolderName!.length === 0) {
+          throw new Error(`Folder names can't be empty.`);
+        }
         if (childFolderName != null && currentFolder.folders[childFolderName] != null) {
           currentFolder = currentFolder.folders[childFolderName];
         } else {
+
           if (action === 'create') {
             currentFolder.folders[childFolderName!] = {objects: {}, folders: {}};
             currentFolder = currentFolder.folders[childFolderName!];
@@ -103,7 +107,7 @@ export class VirtualFileSystem {
         // Create a unique, random, alphabetic key for the object
         let randomKey: string;
         do {
-          randomKey = Array.from('xxxxxxxxxx').map(char => String.fromCharCode(65 + Math.random() * 2)).join('');
+          randomKey = Array.from('xxxxxxxxxx').map(char => String.fromCharCode(65 + Math.random() * 24)).join('');
           // fun fact: a key collision will, on average, occur once in a septillion
         } while ((await browser.storage.local.get(randomKey)).hasOwnProperty(randomKey));
 

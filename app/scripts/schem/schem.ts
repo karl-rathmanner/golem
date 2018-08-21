@@ -671,7 +671,10 @@ export function atomicSchemObjectToJS(schemObject?: SchemType): any {
  - Anything that can't be converted turns into 'nil'
  ```
  * */
-export function jsObjectToSchemType(o: any, options = {'arrays-to-vectors': false, 'depth': 0}, currentDepth = 0): SchemType {
+export function jsObjectToSchemType(o: any, options: {'arrays-to-vectors'?: boolean, depth?: number} = {}, currentDepth = 0): SchemType {
+  if (typeof options['arrays-to-vectors'] === 'undefined') options['arrays-to-vectors'] = false;
+  if (typeof options.depth === 'undefined') options.depth = 0;
+
   if (typeof o === 'object') {
     if (currentDepth > options.depth) {
       return SchemKeyword.from('js-> schem conversion exceeding desired depth');

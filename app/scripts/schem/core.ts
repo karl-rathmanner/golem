@@ -357,6 +357,10 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
       return new SchemString('Local storage was cleared.');
     }
     return new SchemString('Clearing the storage was canceled.');
+  },
+  'storage-get-vfstree': async() => {
+    const vfst = await VirtualFileSystem.getVFSTree();
+    return jsObjectToSchemType(vfst, {depth: 900});
   }
 };
 
