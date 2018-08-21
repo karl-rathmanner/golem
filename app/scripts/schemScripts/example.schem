@@ -1,14 +1,5 @@
-(editor-load-script "prague")
-
-; defining an execution context that matches any regular tab
-(defcontext anyTab: {:tabQuery {:url "*://*/*"}})
-
-; interop type conversion
-(js->schem (schem->js {:a 42 :b ["string" 42]}) {:arrays-to-vectors true})
-(js->schem (schem->js {:v [1 2 3] :l (4 5 6)}))
-
-; evaluating and printing something in a different context
-(anyTab:(prn (+ 41 1)))
+; press alt+e to evaluate the form at your cursor position
+; these examples are 
 
 ; invoking a js function
 (window.alert "This works.")
@@ -17,30 +8,52 @@
 (let (anoy 'window.alert)
   (anoy "This works too. Wohoo!"))
 
-; logging a value from a different context in this context
-(console.log (schem->js (c: (prompt "How's it going over there?"))))
+; interop type conversion (back and forth, just for illustrative purposes)
+(js->schem (schem->js {:a 42 :b ["string" 42]}) {:arrays-to-vectors true})
+(js->schem (schem->js {:v [1 2 3] :l '(4 5 6)}) {:depth 1})
 
-; combining js function invocation and js property resolution
-(window.alert window.document.title)
+; defining an execution context that matches any regular tab
+(defcontext anyTab: {:tabQuery {:url "*://*/*"}})
 
-; adding an event listener in foreign contexts (and local state)
+; evaluating and printing something in a different context
+(anyTab:(prn (+ 41 1)))
+
+; logging a value gathered from a different context to this context
+(str "They feel: " (anyTab: (prompt "How's it going over there?")))
+
+; combining js function invocation and js property resolution (what happens with "js symbols" depends on their position in a form)
+(window.alert document.title)
+
+; setting a js property (notice that the js symbol is quoted!)
+(set! 'document.title "ᕕ( ՞ ᗜ ՞ )ᕗ")
+
+; the next examples must be executed in order
+
+; 1) opening a tab by calling a privileged API function - this only works, because the editor lives in a privileged context
 (chrome.tabs.create {:url "http://xkcd.com"})
 
-(do
-  (defcontext xkcd: { :tabQuery {:url "*://*.xkcd.com/*"}
-                      :features ["schem-interpreter" "dom-manipulation" "tiny-repl"]})
+; 2) preparing a context with specific features (instead of relying on on-demand feature aggregation)
+; dom-manipulation and tiny-reply both depend on schem-interpreter, so the order matters
+(defcontext xkcd: { :tabQuery {:url "*://*.xkcd.com/*"}
+                    :features ["schem-interpreter" "dom-manipulation" "tiny-repl"]})
 
-  (xkcd:
-    (do
-      (def count (atom 0))
-      (add-listener "click" "#ctitle"
-        '(do
-          (swap! count #(+ 1 %)
-           (window.alert (str "You clicked the title " (deref count) " times."))))))))
-      
+; 3) adding an event listener in foreign contexts (and doing something with local state)
+(xkcd:
+  (do
+    (def count (atom 0))
+    (add-listener "click" "#ctitle"
+      '(do
+        (swap! count #(+ 1 %)
+          (window.alert (str "You clicked the title " (deref count) " times.")))))))
+
+; 4) opening the tiny repl (or Schem shell?) in the contexts 
+; The tiny reply allows you to evaluate Schem code within the respective local context.
 (xkcd:(tiny-repl-show))
 
-; implementing fizz-buzz using a lazy vector
+; 5) increase the page's general comicness
+(xkcd:(set-css-text "body" "font-family: \"Comic Sans MS\", \"Comic Sans\", cursive"))
+
+; implementing fizz-buzz using a lazy vector. Very lispy.
 (defn fizz-buzz (start end)
   (subvec 
     (lazy-vector 
@@ -53,21 +66,24 @@
 
 (fizz-buzz 0 100)
 
-; a simple example function and macro
+; a simple function
 (defn add1 (x) (+ x 1))
+
+; a simple macro that turns (a b c f) into (f a b c)
 (defmacro executePostfix (fn (l) (cons (last l) (butlast l))))
+(executePostfix (1 2 3 4 +))
 
-; just some output for whomever this file is loaded by
-"example functions/macros loaded"
-
-
+;;; local storage - like a file system, even though it's not.
 ; clearing the local storage
 (storage-clear-all)
 
 ; storing and retrieving objects in the virtual file system
-(storage-create "/folder/objectName" "an invaluable value")
-(storage-read "/folder/objectName")
+(storage-create "/folder/subfolder/objectName" "an invaluable value")
+(storage-read "/folder/subfolder/objectName")
 
-; reading and writing scripts from the editor
+; show vfs info
+(storage-get-vfstree)
+
+; reading and writing scripts from the editor (uses the vfs, so you can put your stuff in folders, too)
 (editor-load-script "code")
 (editor-save-script "code")
