@@ -1,3 +1,5 @@
+(editor-load-script "prague")
+
 ; defining an execution context that matches any regular tab
 (defcontext anyTab: {:tabQuery {:url "*://*/*"}})
 
