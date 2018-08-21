@@ -4,8 +4,10 @@ import { coreFunctions } from './core';
 import { Env, EnvSetupMap } from './env';
 import { pr_str } from './printer';
 import { readStr } from './reader';
-import { isCallable, isSchemCollection, isSchemType, isSequable, isSequential, isValidKeyType, LazyVector, SchemAtom, SchemBoolean, SchemContextDefinition, SchemContextSymbol, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemString, SchemSymbol, SchemType, SchemVector, toSchemMapKey, SchemNumber } from './types';
+import { SchemLazyVector, SchemAtom, SchemBoolean, SchemContextDefinition, SchemContextSymbol, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemString, SchemSymbol, SchemType, SchemVector, toSchemMapKey, SchemNumber} from './types';
 import { SchemContextManager } from '../contextManager';
+import { isSchemAtom, isSchemBoolean, isSchemLazyVector, isSchemMap, isSchemNumber, isSchemString, isSchemSymbol, isSchemList, isSchemVector, isSchemKeyword, isSchemRegExp, isSchemContextSymbol, isSchemNil, isValidKeyType, isSequential, isCallable, isSchemFunction, isSchemType, isSchemCollection, isSequable, isANil } from './typeGuards';
+import { isAbsolute } from 'path';
 
 export class Schem {
 
@@ -62,7 +64,7 @@ export class Schem {
   }
 
   async evalAST(ast: SchemType, env: Env): Promise<SchemType> {
-    if (ast instanceof SchemSymbol) {
+    if (isSchemSymbol(ast)) {
       // js interop: evaluate to object value
       if (SchemSymbol.refersToJavascriptObject(ast)) {
         return getJsProperty(ast.name);
@@ -74,15 +76,15 @@ export class Schem {
         return env.get(ast);
       }
 
-    } else if (ast instanceof SchemList || ast instanceof SchemVector) {
+    } else if (isSchemList(ast) || ast instanceof SchemVector) {
 
-      const evaluatedAST = (ast instanceof SchemList) ? new SchemList() : new SchemVector();
+      const evaluatedAST = (isSchemList(ast)) ? new SchemList() : new SchemVector();
       for (let i = 0; i < ast.length; i++) {
         evaluatedAST[i] = await this.evalSchem(ast[i], env);
       }
 
       return evaluatedAST;
-    } else if (ast instanceof LazyVector) {
+    } else if ( isSchemLazyVector(ast)) {
 
       const evaluatedAST = new SchemVector();
       for (let i = 0; i < ast.count(); i++) {
@@ -90,7 +92,7 @@ export class Schem {
       }
 
       return evaluatedAST;
-    } else if (ast instanceof SchemMap) {
+    } else if ( isSchemMap(ast)) {
       let m = new SchemMap();
 
       let flatAst = ast.flatten();
@@ -131,29 +133,29 @@ export class Schem {
       }
 
       await this.nextStep();
-      if (!(ast instanceof SchemList)) {
+      if (!(isSchemList(ast))) {
         return await this.evalAST(ast, env);
       }
 
       ast = await this.macroExpand(ast, env);
-      if (!(ast instanceof SchemList)) {
+      if (!(isSchemList(ast))) {
         return this.evalAST(ast, env);
       }
 
-      if (ast instanceof SchemList) {
+      if (isSchemList(ast)) {
         if (ast.length === 0) {
           return ast;
         } else {
           const first: SchemType = ast[0];
 
           // SchemSymbols can indicate special forms
-          if (first instanceof SchemSymbol) {
+          if (isSchemSymbol(first)) {
             switch (first.name) {
               /** (def symbol value)
                * Binds a value to a symbol in the current environment
                */
               case 'def':
-                if (ast[1] instanceof SchemSymbol) {
+                if (isSchemSymbol(ast[1])) {
                   return env.set(ast[1] as SchemSymbol, await this.evalSchem(ast[2], env));
                 } else {
                   throw `first argument of 'def' must be a symbol`;
@@ -164,10 +166,10 @@ export class Schem {
                */
               case 'defmacro':
                 const [, sym, val] = ast;
-                if (sym instanceof SchemSymbol) {
+                if (isSchemSymbol(sym)) {
                   const macroFunction = await this.evalSchem(val, env);
 
-                  if (!(macroFunction instanceof SchemFunction)) {
+                  if (!(isSchemFunction(macroFunction))) {
                     throw `only functions can be macros`;
                   } else {
                     macroFunction.isMacro = true;
@@ -183,7 +185,7 @@ export class Schem {
               case 'defcontext': {
                 const [, contextSymbol, contextDefinitionMap] = ast;
 
-                if (contextSymbol instanceof SchemContextSymbol && contextDefinitionMap instanceof SchemMap) {
+                if ( isSchemContextSymbol(contextSymbol) &&  isSchemMap(contextDefinitionMap)) {
                   env.set(contextSymbol, SchemContextDefinition.fromSchemMap(contextDefinitionMap));
                 }
 
@@ -203,7 +205,7 @@ export class Schem {
                 }
 
                 for (let i = 0; i < bindingList.length; i += 2) {
-                  if (bindingList[i] instanceof SchemSymbol) {
+                  if (isSchemSymbol(bindingList[i])) {
                     childEnv.set(bindingList[i] as SchemSymbol, await this.evalSchem(bindingList[i + 1], childEnv));
                   } else {
                     throw `every uneven argument of 'let' must be a symbol`;
@@ -242,7 +244,7 @@ export class Schem {
                   throw `if must be followed by at least two arguments`;
                 }
                 const condition = await this.evalSchem(ast[1], env);
-                if ((condition instanceof SchemBoolean && condition === SchemBoolean.false) || condition instanceof SchemNil) {
+                if (( isSchemBoolean(condition) && condition === SchemBoolean.false) ||  isSchemNil(condition)) {
                   ast = (typeof ast[3] === 'undefined') ? SchemNil.instance : ast[3];
                   continue;
                 } else {
@@ -257,14 +259,14 @@ export class Schem {
               case 'fn':
                 let name, params, fnBody;
 
-                if (ast[1] instanceof SchemSymbol) {
+                if (isSchemSymbol(ast[1])) {
                   [, name, params, fnBody] = ast;
                   name = (name as SchemSymbol).name;
                 } else {
                   [, params, fnBody] = ast;
                 }
 
-                if (!(params instanceof SchemList || params instanceof SchemVector)) {
+                if (!(isSchemList(params) || params instanceof SchemVector)) {
                   throw `expected a list or vector of parameters`;
                 }
 
@@ -307,10 +309,10 @@ export class Schem {
                *  e.g.: (set-interpreter-options {"logArepInput" true "pauseEvaluation" false}) */
               case 'set-interpreter-options':
                 const options = await this.evalAST(ast[1], env);
-                if (!(options instanceof SchemMap)) throw `(set-interpreter-options options) options must be a map`;
+                if (!( isSchemMap(options))) throw `(set-interpreter-options options) options must be a map`;
 
                 options.forEach((key, value) => {
-                  if (key instanceof SchemString && value instanceof SchemBoolean && key.valueOf() in this.debug) {
+                  if ( isSchemString(key) &&  isSchemBoolean(value) && key.valueOf() in this.debug) {
                     (this.debug as any)[key.valueOf()] = value.valueOf();  // typecost is necessary, because the debug options literal lacks a string indexer – but we allready checked if the object has that key, so it's all good
                   }
                   return void 0;
@@ -329,7 +331,7 @@ export class Schem {
               ast = await invokeJsProcedure(first.name, evaluatedArguments);
               continue fromTheTop;
             }
-          } else if (first instanceof SchemContextSymbol) {
+          } else if ( isSchemContextSymbol(first)) {
             if (this.contextManager != null) {
               const contextDef = env.getContextSymbol(first);
               const contextIds = await this.contextManager.prepareContexts(contextDef);
@@ -338,7 +340,7 @@ export class Schem {
               /** (contextSymbol: (form))
               * execute (form) in any context matching the definition bound to contextSymbol:
               */
-              if (ast[1] instanceof SchemList) {
+              if (isSchemList(ast[1])) {
                 // get/realize contexts
                 let resultsAndErrors = await this.contextManager.arepInContexts(contextIds, await pr_str(ast[1]), ast[2]);
                 return new SchemList(...resultsAndErrors.map(resultOrError => {
@@ -355,7 +357,7 @@ export class Schem {
               /** (contextSymbol:js.symbol args)
                * invoke a js function in its contexts
               */
-              } else if (ast[1] instanceof SchemSymbol) {
+              } else if (isSchemSymbol(ast[1])) {
                 const sym = ast[1] as SchemSymbol;
                 let results;
                 if (SchemSymbol.refersToJavascriptObject(sym)) {
@@ -381,7 +383,7 @@ export class Schem {
           const [f, ...args] = await this.evalAST(ast, env) as SchemList;
 
           if (isCallable(f)) {
-            if (f instanceof SchemFunction) {
+            if (isSchemFunction(f)) {
               if (this.debug.logSchemFunctionInvocation) {
                 console.log('invoking a Schem function');
                 console.group();
@@ -414,7 +416,7 @@ export class Schem {
             }
           // Symbols that are bound to anther symbol that contains dots are treated like an alias to a javacript procedure call.
           // (let [x 'window.example] (x args)) <- invokes window.example with args
-          } else if (f instanceof SchemSymbol && SchemSymbol.refersToJavascriptObject(f)) {
+          } else if (isSchemSymbol(f) && SchemSymbol.refersToJavascriptObject(f)) {
             return await invokeJsProcedure(f.name, args);
           } else {
             console.log(first);
@@ -435,7 +437,7 @@ export class Schem {
       }
 
       const nonEmptyList = ast;
-      if (nonEmptyList[0] instanceof SchemSymbol && (nonEmptyList[0] as SchemSymbol).name === 'unquote') {
+      if (isSchemSymbol(nonEmptyList[0]) && (nonEmptyList[0] as SchemSymbol).name === 'unquote') {
         // ast looks like: (unquote x) -> return just x, so it's going to be evaluated
         return nonEmptyList[1];
       }
@@ -444,7 +446,7 @@ export class Schem {
 
       if (isSequential(nonEmptyList[0])) {
         const innerList = (nonEmptyList[0] as SchemList);
-        if (innerList[0] instanceof SchemSymbol && (innerList[0] as SchemSymbol).name === 'splice-unquote') {
+        if (isSchemSymbol(innerList[0]) && (innerList[0] as SchemSymbol).name === 'splice-unquote') {
           // ast looks like: ((splice-unquote (a b c)) d e f) -> concatenate the result of evaluating (a b c) and whatever the result calling evalQuasiquote wit "d e f" is going to be
           return new SchemList(SchemSymbol.from('concat'), innerList[1], this.evalQuasiquote(new SchemList(...secondTroughLastElements)));
         }
@@ -493,10 +495,10 @@ export class Schem {
    * @param env The Environment the call will be evaluated in
    */
   isMacroCall(ast: SchemType, env: Env) {
-    if (ast instanceof SchemList && ast[0] instanceof SchemSymbol) {
+    if (isSchemList(ast) && isSchemSymbol(ast[0])) {
       try {
         const val = env.get(ast[0] as SchemSymbol);
-        return (val instanceof SchemFunction && val.isMacro);
+        return (isSchemFunction(val) && val.isMacro);
       } catch {
         // the symbol could not be found
         return false;
@@ -520,7 +522,7 @@ export class Schem {
 
   /** Recursively expands macro all functions in an abstract syntax tree */
   async macroExpandAll(ast: SchemType, env: Env): Promise<SchemType> {
-    if (ast instanceof SchemList) {
+    if (isSchemList(ast)) {
       return new SchemList(...await Promise.all<SchemType>(
         ast.map(async (element) => {
           // expand every node
@@ -599,7 +601,7 @@ export function schemToJs(schemObject?: SchemType | null, options: {keySerializa
   let jsObject: any;
 
   // maps turn into objects
-  if (schemObject instanceof SchemMap) {
+  if ( isSchemMap(schemObject)) {
     jsObject = {};
     schemObject.forEach((key, value) => {
       let jsKey, jsValue;
@@ -607,7 +609,7 @@ export function schemToJs(schemObject?: SchemType | null, options: {keySerializa
       if (options.keySerialization === 'includeTypePrefix') {
         jsKey = toSchemMapKey(key);
       } else {
-        if (key instanceof SchemKeyword) {
+        if (isSchemKeyword(key)) {
           jsKey = key.name;
         } else {
           jsKey = key.getStringRepresentation();
@@ -644,7 +646,7 @@ export function schemToJs(schemObject?: SchemType | null, options: {keySerializa
     }
 
   } else if (isSchemType(schemObject)) {
-    if (schemObject instanceof SchemNil) {
+    if ( isSchemNil(schemObject)) {
       return null;
     }
     return atomicSchemObjectToJS(schemObject);
@@ -661,7 +663,7 @@ export function atomicSchemObjectToJS(schemObject?: SchemType): any {
   return ('getStringRepresentation' in schemObject) ? schemObject.getStringRepresentation() : schemObject.valueOf();
 }
 
-/** Tries to recursively convert js objects to schem representations.
+/** Tries to recursively (if deph > 0) convert js objects to schem representations.
  ``` markdown
  - Objects -> Maps
  - Arrays -> Lists or Vectors, depending on options
@@ -669,20 +671,28 @@ export function atomicSchemObjectToJS(schemObject?: SchemType): any {
  - Anything that can't be converted turns into 'nil'
  ```
  * */
-export function jsObjectToSchemType(o: any, options = {'arrays-to-vectors': false}): SchemType {
+export function jsObjectToSchemType(o: any, options = {'arrays-to-vectors': false, 'depth': 0}, currentDepth = 0): SchemType {
   if (typeof o === 'object') {
+    if (currentDepth > options.depth) {
+      return SchemKeyword.from('js-> schem conversion exceeding desired depth');
+    }
     if (o instanceof Array) {
       if (options['arrays-to-vectors']) {
-        return new SchemVector(...o.map(element => jsObjectToSchemType(element, options)));
+        return new SchemVector(...o.map(element => jsObjectToSchemType(element, options, currentDepth++)));
       } else {
-        return new SchemList(...o.map(element => jsObjectToSchemType(element, options)));
+        return new SchemList(...o.map(element => jsObjectToSchemType(element, options, currentDepth++)));
       }
     } else {
-      const properterties = Object.getOwnPropertyNames(o);
+
       const schemMap = new SchemMap();
+      for (const property in o) {
+        schemMap.set(SchemKeyword.from(property), jsObjectToSchemType(o[property], options, currentDepth++ ));
+      }
+      /* not going up the prototype chain. :/
+      const properterties = Object.getOwnPropertyNames(o);
       properterties.forEach(property => {
         schemMap.set(SchemKeyword.from(property), jsObjectToSchemType(o[property]));
-      });
+      });*/
       return schemMap;
     }
   } else {

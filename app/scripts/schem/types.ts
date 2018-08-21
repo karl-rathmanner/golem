@@ -2,6 +2,7 @@ import { Env } from './env';
 import { Schem, schemToJs } from './schem';
 import { Tabs } from 'webextension-polyfill-ts';
 import { AvailableSchemContextFeatures } from '../contextManager';
+import { isSchemKeyword, isSchemSymbol, isValidKeyType, isSchemString, isSchemNumber, isSchemMap } from './typeGuards';
 
 // interfaces
 export interface Callable {
@@ -36,6 +37,16 @@ export interface Metadatable {
   // getMetadata(): SchemMap {}
 }
 
+export enum SchemTypes {
+  function = 0,
+  list = 1,
+  vecor = 2
+}
+
+export interface TaggedType {
+  typeTag: SchemTypes;
+}
+
 // types
 
 export type SchemType = SchemList | SchemVector| SchemMap | SchemNumber | SchemSymbol | SchemKeyword | SchemNil | SchemString | SchemRegExp | SchemFunction | SchemBoolean | SchemAtom | SchemContextSymbol | SchemContextInstance;
@@ -50,8 +61,9 @@ export type SchemMetadata = {
 
 // class - Schem Function
 
-export class SchemFunction implements Callable, Metadatable {
+export class SchemFunction implements Callable, Metadatable, TaggedType {
   public isMacro = false;
+  public typeTag = SchemTypes.function;
 
 
   constructor(public f: Function,
@@ -86,14 +98,15 @@ export class SchemFunction implements Callable, Metadatable {
 
 // classes - Schem collection types
 
-export class SchemList extends Array<SchemType> implements Reducible, Countable, Indexable, Metadatable, Sequable {
+export class SchemList extends Array<SchemType> implements Reducible, Countable, Indexable, Metadatable, Sequable, TaggedType {
   static isCollection = true;
+  public typeTag = SchemTypes.list;
   metadata: SchemMetadata;
 
   /** Makes sure that all elements of the list are SchemSymbols and returns them in an array.*/
   public asArrayOfSymbols(): SchemSymbol[] {
     return this.map((e) => {
-      if (!(e instanceof SchemSymbol)) throw `List contained an element of type ${e} where only symbols where expected`;
+      if (!(isSchemSymbol(e))) throw `List contained an element of type ${e} where only symbols where expected`;
       return e;
     });
   }
@@ -139,7 +152,7 @@ export class SchemVector extends Array<SchemType> implements Callable, Indexable
 
   public asArrayOfSymbols(): SchemSymbol[] {
     return this.map((e) => {
-      if (!(e instanceof SchemSymbol)) throw `Vector contained an element of type ${e} where only symbols where expected`;
+      if (!(isSchemSymbol(e))) throw `Vector contained an element of type ${e} where only symbols where expected`;
       return e;
     });
   }
@@ -153,7 +166,7 @@ export class SchemVector extends Array<SchemType> implements Callable, Indexable
   }
 
   invoke(...args: SchemType[]) {
-    const index = (args[0] instanceof SchemNumber) ? (args[0] as SchemNumber).valueOf() : NaN;
+    const index = ( isSchemNumber(args[0])) ? (args[0] as SchemNumber).valueOf() : NaN;
     if (Number.isInteger(index) && index >= 0 && index < this.length) {
       return this[index];
     }
@@ -196,13 +209,13 @@ export class SchemMap implements Callable, Reducible, Countable, Metadatable {
 
   private turnIntoKeyString(key: SchemMapKey): string {
     let keyString: string;
-    if (key instanceof SchemString) {
+    if ( isSchemString(key)) {
       keyString = 's'  + key.valueOf();
-    } else if (key instanceof SchemNumber) {
+    } else if ( isSchemNumber(key)) {
       keyString = 'n'  + key.valueOf();
-    } else if (key instanceof SchemKeyword) {
+    } else if (isSchemKeyword(key)) {
       keyString = 'k' + key.name;
-    } else if (key instanceof SchemSymbol) {
+    } else if (isSchemSymbol(key)) {
       keyString = 'y' + key.name;
     } else {
       throw `invalid key type ${key}`;
@@ -274,7 +287,7 @@ export class SchemMap implements Callable, Reducible, Countable, Metadatable {
     }
   }
 }
-export class LazyVector implements Countable, Indexable {
+export class SchemLazyVector implements Countable, Indexable {
   static isCollection = true;
 
   private cachedValues: Map<number, SchemType>;
@@ -387,7 +400,7 @@ class SymbolicType {
   }
 
   static from(name: string | SchemString) {
-    if (name instanceof SchemString) {
+    if ( isSchemString(name)) {
       name = name.valueOf();
     }
 
@@ -420,7 +433,7 @@ export class SchemSymbol extends SymbolicType implements Metadatable {
   }
 
   static from(name: string | SchemString) {
-    if (name instanceof SchemString) {
+    if ( isSchemString(name)) {
       name = name.valueOf();
     }
 
@@ -441,7 +454,7 @@ export class SchemKeyword extends SymbolicType implements Callable {
   static registeredSymbols: Map<symbol, SchemKeyword> = new Map<symbol, SchemKeyword>();
 
   static from(name: string | SchemString): SchemKeyword {
-    if (name instanceof SchemString) {
+    if ( isSchemString(name)) {
       name = name.valueOf();
     }
 
@@ -466,7 +479,7 @@ export class SchemKeyword extends SymbolicType implements Callable {
     if (args.length === 0) {
       throw `Tried to invoke a keywords without passing a collection. Did you accidentally put it in the head position of a form that wasn't supposed to be evaluated?`;
     }
-    if (args[0] instanceof SchemMap) {
+    if ( isSchemMap(args[0])) {
       return (args[0] as SchemMap).get(this, args[1]);
     } else {
       throw 'First argument to keyword lookup must be a map';
@@ -476,7 +489,7 @@ export class SchemKeyword extends SymbolicType implements Callable {
 
 export class SchemContextSymbol extends SymbolicType {
   static from(name: string | SchemString): SchemContextSymbol {
-    if (name instanceof SchemString) {
+    if ( isSchemString(name)) {
       name = name.valueOf();
     }
 
@@ -548,60 +561,84 @@ export class SchemAtom {
 
 /// type guards
 
-export function isSequential(object: SchemType): object is SchemList | SchemVector {
-  return (object instanceof SchemList || object instanceof SchemVector);
-}
+// export function isSequential(object: SchemType): object is SchemList | SchemVector {
+//   return (object instanceof SchemList || object instanceof SchemVector);
+// }
 
-export function isSchemType(o: any): o is SchemType {
-  return (o instanceof SchemList ||
-          o instanceof SchemVector ||
-          o instanceof SchemMap ||
-          o instanceof SchemNumber ||
-          o instanceof SchemSymbol ||
-          o instanceof SchemContextSymbol ||
-          o instanceof SchemKeyword ||
-          o instanceof SchemNil ||
-          o instanceof SchemString ||
-          o instanceof SchemRegExp ||
-          o instanceof SchemFunction ||
-          o instanceof SchemBoolean ||
-          o instanceof SchemAtom);
-}
+// export function isSchemType(o: any): o is SchemType {
+//   return (o instanceof SchemList ||
+//           o instanceof SchemVector ||
+//            isSchemMap(o) ||
+//            isSchemNumber(o) ||
+//           isSchemSymbol(o) ||
+//            isSchemContextSymbol(o) ||
+//           isSchemKeyword(o) ||
+//            isSchemNil(o) ||
+//            isSchemString(o) ||
+//            isSchemRegExp(o) ||
+//           o instanceof SchemFunction ||
+//            isSchemBoolean(o) ||
+//            isSchemAtom(o));
+// }
 
-export function isSchemCollection(o: any): boolean {
-  return (o instanceof SchemList ||
-          o instanceof SchemVector ||
-          o instanceof SchemMap ||
-          o instanceof LazyVector);
-}
+// export function isSchemCollection(o: any): boolean {
+//   return (o instanceof SchemList ||
+//           o instanceof SchemVector ||
+//            isSchemMap(o) ||
+//            isSchemLazyVector(o));
+// }
 
-export function isCallable(o: any): o is Callable {
-  return (typeof o.invoke === 'function');
-}
+// export function isSchemFunction(o: any): o is SchemFunction {
+//   return (typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.function);
+// }
 
-export function isValidKeyType(o: any): o is SchemMapKey {
-  return (o instanceof SchemKeyword ||
-          o instanceof SchemNumber ||
-          o instanceof SchemString);
-}
+// export function isSchemList(o: any): o is SchemList {
+//   return (typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.list);
+// }
 
-export function isSequable(o: any): o is Sequable {
-  return (typeof o.first === 'function' &&
-          typeof o.next === 'function' &&
-          typeof o.rest === 'function' &&
-          typeof o.cons === 'function');
-}
+// export function isSchemSymbol(o: any): o is SchemSymbol {
+//   return (typeof o === 'object' && o.constructor.name === 'SchemSymbol');
+// }
+
+// export function isSchemKeyword(o: any): o is SchemKeyword {
+//   return (typeof o === 'object' && o.constructor.name === 'SchemKeyword');
+// }
+
+// export function isSchemVector(o: any): o is SchemVector {
+//   return (typeof o === 'object' && o.constructor.name === 'SchemVector');
+// }
+
+
+
+
+
+// export function isCallable(o: any): o is Callable {
+//   return (typeof o.invoke === 'function');
+// }
+
+// export function isValidKeyType(o: any): o is SchemMapKey {
+//   return (isSchemKeyword(o) ||
+//            isSchemNumber(o) ||
+//            isSchemString(o));
+// }
+
+// export function isSequable(o: any): o is Sequable {
+//   return (typeof o.first === 'function' &&
+//           typeof o.next === 'function' &&
+//           typeof o.rest === 'function' &&
+//           typeof o.cons === 'function');
+// }
 
 // type conversion
 
 export function toSchemMapKey(key: SchemMapKey): string {
-  if (key instanceof SchemString) {
+  if ( isSchemString(key)) {
     return 's'  + key.valueOf();
-  } else if (key instanceof SchemNumber) {
+  } else if ( isSchemNumber(key)) {
     return 'n'  + key.valueOf();
-  } else if (key instanceof SchemKeyword) {
+  } else if (isSchemKeyword(key)) {
     return 'k' + key.name;
-  } else if (key instanceof SchemSymbol) {
+  } else if (isSchemSymbol(key)) {
     return 'y' + key.name;
   } else {
     throw `invalid key type ${key}`;

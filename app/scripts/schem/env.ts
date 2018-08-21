@@ -1,6 +1,7 @@
 import { readStr } from './reader';
 import { Schem } from './schem';
-import { SchemFunction, SchemList, SchemSymbol, SchemType, SchemNumber, isSchemType, SchemContextSymbol, SchemContextDefinition } from './types';
+import { isSchemContextSymbol, isSchemSymbol } from './typeGuards';
+import { SchemContextDefinition, SchemContextSymbol, SchemFunction, SchemList, SchemSymbol, SchemType } from './types';
 
 /** This allows concevient initialization of environments when using Env.addMap()
  *
@@ -49,7 +50,7 @@ export class Env {
   /** Binds a symbol to a value */
   set(key: SchemSymbol | string | SchemContextSymbol, value: SchemType | SchemContextDefinition, metadata?: SchemFunction['metadata']): SchemType {
 
-    if (key instanceof SchemContextSymbol) {
+    if ( isSchemContextSymbol(key)) {
       if (value instanceof SchemContextDefinition) {
         this.contextSymbolMap.set(key.name, value);
         return value;
@@ -57,7 +58,7 @@ export class Env {
       throw new Error('Only context definitions may be bound to context symbols');
     }
 
-    if (key instanceof SchemSymbol) {
+    if (isSchemSymbol(key)) {
       key = key.name;
     }
 
@@ -98,8 +99,8 @@ export class Env {
 
   /** Returns the environment cotaining a symbol or undefined if the symbol can't be found */
   find(sym: SchemSymbol | SchemContextSymbol): Env | undefined {
-    if (sym instanceof SchemSymbol && this.symbolValueMap.has(Symbol.for(sym.name)) ||
-        sym instanceof SchemContextSymbol && this.contextSymbolMap.has(sym.name)) {
+    if (isSchemSymbol(sym) && this.symbolValueMap.has(Symbol.for(sym.name)) ||
+         isSchemContextSymbol(sym) && this.contextSymbolMap.has(sym.name)) {
       return this;
     } else {
       if (this.outer) {
@@ -117,7 +118,7 @@ export class Env {
     const env = this.find(sym);
     if (!env) throw `${sym.name} not found`;
 
-    if (sym instanceof SchemSymbol) {
+    if (isSchemSymbol(sym)) {
       return env.symbolValueMap.get(Symbol.for(sym.name))!;
     } else {
       return env.contextSymbolMap.get(sym.name)!;

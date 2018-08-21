@@ -1,5 +1,5 @@
-import {SchemType, SchemList, SchemNumber, SchemSymbol, SchemNil, SchemString, SchemBoolean, SchemVector, SchemMap, SchemKeyword, isSchemType, isSequential, SchemMapKey, SchemContextSymbol} from './types';
-
+import {SchemType, SchemList, SchemNumber, SchemSymbol, SchemNil, SchemString, SchemBoolean, SchemVector, SchemMap, SchemKeyword, SchemMapKey, SchemContextSymbol } from './types';
+import { isSchemSymbol, isSchemKeyword, isSchemMap, isSchemString, isSchemNumber } from './typeGuards';
 
 type token = {
   value: string,
@@ -135,11 +135,11 @@ function readParen(reader: Reader, openParen: string): SchemType {
     }
 
     // note: readForm calls readParen or readAtom which advances the reader's position
-    if (collection instanceof SchemMap) {
+    if ( isSchemMap(collection)) {
       const possibleKey = readForm(reader);
       const value = readForm(reader);
 
-      if (possibleKey instanceof SchemSymbol || possibleKey instanceof SchemKeyword || possibleKey instanceof SchemString || possibleKey instanceof SchemNumber) {
+      if (isSchemSymbol(possibleKey) || isSchemKeyword(possibleKey) || isSchemString(possibleKey) || isSchemNumber(possibleKey)) {
         collection.set(possibleKey, value);
       } else {
         throw `Map keys must be of type Symbol, String or Number`;
@@ -201,7 +201,7 @@ function expandFnShorthand(reader: Reader) {
     let highestPlaceholderNumber = 0;
 
     const analyzeAndMassageCollection = (element: SchemType, indexOrKey: number | SchemMapKey, collection?: SchemType[]): SchemType => {
-      if (element instanceof SchemSymbol &&
+      if (isSchemSymbol(element) &&
         element.name === '#' &&
         typeof indexOrKey === 'number' &&
         typeof collection !== 'undefined' &&
@@ -210,7 +210,7 @@ function expandFnShorthand(reader: Reader) {
           containsNestedFnShorthands = true;
       }
 
-      if (element instanceof SchemSymbol) {
+      if (isSchemSymbol(element)) {
         if (element.name === '%') {
           highestPlaceholderNumber = Math.max(1, highestPlaceholderNumber);
           return SchemSymbol.from('%1');
@@ -224,7 +224,7 @@ function expandFnShorthand(reader: Reader) {
 
       if (element instanceof SchemVector || element instanceof SchemList) {
         return element.map(analyzeAndMassageCollection);
-      } if (element instanceof SchemMap) {
+      } if ( isSchemMap(element)) {
         return element.map(analyzeAndMassageCollection as any); // Deliberately not caring about the actual method signature, here...
       }
 

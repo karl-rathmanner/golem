@@ -8,6 +8,7 @@ import { Schem } from './schem/schem';
 import { SchemKeyword, SchemList, SchemNil, SchemString, SchemSymbol, SchemType } from './schem/types';
 import { CommandHistory } from './utils/commandHistory';
 import { Key } from './utils/Key.enum';
+import { isSchemKeyword, isSchemSymbol, isSchemString } from './schem/typeGuards';
 
 $.when($.ready).then(() => {
   const inputElement = $('#input');
@@ -46,7 +47,7 @@ $.when($.ready).then(() => {
       $('#output').text('');
     },
     'set-repl-separator': (char: SchemString) => {
-      if (char instanceof SchemString && char.length > 0) {
+      if ( isSchemString(char) && char.length > 0) {
         if (typeof separatorPresets[char.valueOf()] !== 'undefined') {
           currentSeparator = separatorPresets[char.valueOf()];
         } else {
@@ -172,7 +173,7 @@ $.when($.ready).then(() => {
         $('#autocompleteSuggestions').empty();
         autocompleteSuggestions = [];
         suggestions.map((s, i) => {
-          if (s instanceof SchemSymbol || s instanceof SchemString || s instanceof SchemKeyword) {
+          if (isSchemSymbol(s) ||  isSchemString(s) || isSchemKeyword(s)) {
             autocompleteSuggestions.push(s.getStringRepresentation());
 
             $('#autocompleteSuggestions').append(`<span class="${(i === selectedSuggestion) ? 'highlightedSuggestion' : 'acSuggestion'}">${s.getStringRepresentation()}</span>`);

@@ -1,11 +1,12 @@
 import * as $ from 'jquery';
 import { browser } from 'webextension-polyfill-ts';
+import { setJsProperty } from '../javascriptInterop';
+import { VirtualFileSystem } from '../virtualFilesystem';
 import { prettyPrint, pr_str } from './printer';
 import { readStr } from './reader';
-import { isSequential, LazyVector, SchemAtom, SchemBoolean, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemNil, SchemNumber, SchemRegExp, SchemString, SchemSymbol, SchemType, SchemVector, isValidKeyType } from './types';
-import { schemToJs, primitiveValueToSchemType, jsObjectToSchemType } from './schem';
-import { setJsProperty, getJsProperty } from '../javascriptInterop';
-import { VirtualFileSystem } from '../virtualFilesystem';
+import { jsObjectToSchemType, schemToJs } from './schem';
+import { isSchemKeyword, isSchemString, isSchemSymbol, isSequential, isValidKeyType, isSchemLazyVector, isSchemMap, isSchemNumber } from './typeGuards';
+import { SchemAtom, SchemBoolean, SchemFunction, SchemKeyword, SchemLazyVector, SchemList, SchemMap, SchemMapKey, SchemNil, SchemNumber, SchemRegExp, SchemString, SchemSymbol, SchemType, SchemVector } from './types';
 
 export const coreFunctions: {[symbol: string]: SchemType} = {
   '+': (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue: SchemNumber, currentIndex: number) => {
@@ -92,7 +93,7 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
   'count': (arg: SchemType) => {
     if ('count' in arg) {
       return new SchemNumber(arg.count());
-    } else if (arg instanceof SchemString) {
+    } else if ( isSchemString(arg)) {
       return new SchemNumber(arg.length);
     } else if (arg === SchemNil.instance) {
       return new SchemNumber(0);
@@ -124,7 +125,7 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     throwErrorForNonSequentialArguments(sequential);
     const i = index.valueOf();
     if (i < 0) throw `index value must be positive`;
-    if (!(sequential instanceof LazyVector) && i >= sequential.length) {
+    if (!( isSchemLazyVector(sequential)) && i >= sequential.length) {
       throw `index out of bounds: ${i} >= ${sequential.length}`;
     }
     return sequential.nth(index.valueOf());
@@ -167,7 +168,7 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     };
 
     let format: any = opts ? opts.getValueForKeyword('data-type') : null;
-    if (format instanceof SchemString) {
+    if ( isSchemString(format)) {
       ajaxSettings.dataType = format.valueOf();
     }
 
@@ -179,7 +180,7 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     }
   },
   'get': (map: SchemMap, key: SchemMapKey, defaultValue?: SchemType) => {
-    if (map instanceof SchemMap) {
+    if ( isSchemMap(map)) {
       if (isValidKeyType(key)) {
         return (map.has(key)) ? map.get(key) : defaultValue ? defaultValue : SchemNil.instance;
       } else {
@@ -241,9 +242,9 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
 
     const rankedHaystack: Array<[number, SchemString | SchemSymbol | SchemKeyword ]> = haystack.map((hay) => {
       // create an aray of tuples [score, haystackElement]
-      if (hay instanceof SchemString) {
+      if ( isSchemString(hay)) {
         return <[number, SchemString]> [computeSimpleStringSimilarityScore(needle.valueOf(), hay.valueOf()), hay];
-      } else if (hay instanceof SchemSymbol || hay instanceof SchemKeyword) {
+      } else if (isSchemSymbol(hay) || isSchemKeyword(hay)) {
         return <[number, SchemSymbol | SchemKeyword]> [computeSimpleStringSimilarityScore(needle.valueOf(), hay.name), hay];
       } else {
         throw `${needle} and ${hay} can't be compared`;
@@ -299,9 +300,9 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     }
   },
   'lazy-vector': (producer: SchemFunction, count?: SchemNumber) => {
-    return new LazyVector(producer, (count) ? count.valueOf() : Infinity);
+    return new SchemLazyVector(producer, (count) ? count.valueOf() : Infinity);
   },
-  'subvec': async (source: SchemVector | LazyVector, start?: SchemNumber, end?: SchemNumber) => {
+  'subvec': async (source: SchemVector | SchemLazyVector, start?: SchemNumber, end?: SchemNumber) => {
     if (source instanceof SchemVector) {
       return source.slice(
         (start) ? start.valueOf() : 0,
@@ -364,7 +365,7 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
 
 function doNumericComparisonForEachConsecutivePairInArray(predicate: (a: number, b: number) => boolean,  args: SchemNumber[]) {
   for (let i = 0; i < args.length - 1; i++) {
-    if (!(args[i] instanceof SchemNumber) || !(args[i + 1] instanceof SchemNumber)) {
+    if (!( isSchemNumber(args[i])) || !(args[i + 1] instanceof SchemNumber)) {
       throw `trying to do numeric comparison on non numeric types (or less than two arguments)`;
     }
     if (!predicate(args[i].valueOf(), args[i + 1].valueOf())) {
