@@ -5,7 +5,7 @@ import { coreFunctions } from './core';
 import { Env, EnvSetupMap } from './env';
 import { pr_str } from './printer';
 import { readStr } from './reader';
-import { isCallable, isSchemBoolean, isSchemCollection, isSchemContextSymbol, isSchemFunction, isSchemKeyword, isSchemLazyVector, isSchemList, isSchemMap, isSchemNil, isSchemString, isSchemSymbol, isSchemType, isSequable, isSequential, isValidKeyType } from './typeGuards';
+import { isCallable, isSchemBoolean, isSchemCollection, isSchemContextSymbol, isSchemFunction, isSchemKeyword, isSchemLazyVector, isSchemList, isSchemMap, isSchemNil, isSchemString, isSchemSymbol, isSchemType, isSequable, isSequential, isValidKeyType, isSchemNumber } from './typeGuards';
 import { SchemAtom, SchemBoolean, SchemContextDefinition, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemNumber, SchemString, SchemSymbol, SchemType, SchemVector, toSchemMapKey } from './types';
 
 export class Schem {
@@ -345,7 +345,6 @@ export class Schem {
                 if (isSchemSymbol(form[0]) && (form[0] as SchemSymbol).name === 'quasiquote') {
                   form = await this.evalSchem(form);
                 }
-                // let resultsAndErrors = await this.contextManager.arepInContexts(contextIds, await pr_str(ast[1]), ast[2]);
                 let resultsAndErrors = await this.contextManager.arepInContexts(contextIds, await pr_str(form), ast[2]);
                 return new SchemList(...resultsAndErrors.map(resultOrError => {
                   if ('result' in resultOrError) {
@@ -605,7 +604,7 @@ export function schemToJs(schemObject?: SchemType | null, options: {keySerializa
   let jsObject: any;
 
   // maps turn into objects
-  if ( isSchemMap(schemObject)) {
+  if (isSchemMap(schemObject)) {
     jsObject = {};
     schemObject.forEach((key, value) => {
       let jsKey, jsValue;
@@ -620,13 +619,7 @@ export function schemToJs(schemObject?: SchemType | null, options: {keySerializa
         }
       }
 
-      if (isSchemCollection(schemObject)) {
-        jsValue = schemToJs(value, options);
-      } else {
-        jsValue = value.valueOf();
-      }
-
-      jsObject[jsKey] = jsValue;
+      jsObject[jsKey] = schemToJs(value, options);
     });
 
   // list and vectors turn into arrays
@@ -650,7 +643,7 @@ export function schemToJs(schemObject?: SchemType | null, options: {keySerializa
     }
 
   } else if (isSchemType(schemObject)) {
-    if ( isSchemNil(schemObject)) {
+    if (isSchemNil(schemObject)) {
       return null;
     }
     return atomicSchemObjectToJS(schemObject);
@@ -663,6 +656,7 @@ export function schemToJs(schemObject?: SchemType | null, options: {keySerializa
 export function atomicSchemObjectToJS(schemObject?: SchemType): any {
   if (typeof schemObject === 'undefined') return undefined;
   if (schemObject instanceof SchemNil) return null;
+  if (isSchemNumber(schemObject)) return schemObject.valueOf();
   // getStringRepresentation is preferable to valueOf because it returns values that look like their Schem representation (e.g. ":keyword" instead of "keyword")
   return ('getStringRepresentation' in schemObject) ? schemObject.getStringRepresentation() : schemObject.valueOf();
 }
