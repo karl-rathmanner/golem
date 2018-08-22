@@ -1,13 +1,12 @@
 import { browser } from 'webextension-polyfill-ts';
-import { invokeJsProcedure, getJsProperty } from '../javascriptInterop';
+import { SchemContextManager } from '../contextManager';
+import { getJsProperty, invokeJsProcedure } from '../javascriptInterop';
 import { coreFunctions } from './core';
 import { Env, EnvSetupMap } from './env';
 import { pr_str } from './printer';
 import { readStr } from './reader';
-import { SchemLazyVector, SchemAtom, SchemBoolean, SchemContextDefinition, SchemContextSymbol, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemString, SchemSymbol, SchemType, SchemVector, toSchemMapKey, SchemNumber} from './types';
-import { SchemContextManager } from '../contextManager';
-import { isSchemAtom, isSchemBoolean, isSchemLazyVector, isSchemMap, isSchemNumber, isSchemString, isSchemSymbol, isSchemList, isSchemVector, isSchemKeyword, isSchemRegExp, isSchemContextSymbol, isSchemNil, isValidKeyType, isSequential, isCallable, isSchemFunction, isSchemType, isSchemCollection, isSequable, isANil } from './typeGuards';
-import { isAbsolute } from 'path';
+import { isCallable, isSchemBoolean, isSchemCollection, isSchemContextSymbol, isSchemFunction, isSchemKeyword, isSchemLazyVector, isSchemList, isSchemMap, isSchemNil, isSchemString, isSchemSymbol, isSchemType, isSequable, isSequential, isValidKeyType } from './typeGuards';
+import { SchemAtom, SchemBoolean, SchemContextDefinition, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemNumber, SchemString, SchemSymbol, SchemType, SchemVector, toSchemMapKey } from './types';
 
 export class Schem {
 
@@ -340,9 +339,14 @@ export class Schem {
               /** (contextSymbol: (form))
               * execute (form) in any context matching the definition bound to contextSymbol:
               */
-              if (isSchemList(ast[1])) {
-                // get/realize contexts
-                let resultsAndErrors = await this.contextManager.arepInContexts(contextIds, await pr_str(ast[1]), ast[2]);
+              let form = ast[1];
+              if (isSchemList(form)) {
+                // if the whole form is quasiquoted, evaluate it in this context to resolve any unquoted parts, then evaluate that it in the foreign context
+                if (isSchemSymbol(form[0]) && (form[0] as SchemSymbol).name === 'quasiquote') {
+                  form = await this.evalSchem(form);
+                }
+                // let resultsAndErrors = await this.contextManager.arepInContexts(contextIds, await pr_str(ast[1]), ast[2]);
+                let resultsAndErrors = await this.contextManager.arepInContexts(contextIds, await pr_str(form), ast[2]);
                 return new SchemList(...resultsAndErrors.map(resultOrError => {
                   if ('result' in resultOrError) {
                     return readStr(resultOrError.result);
