@@ -1,31 +1,31 @@
 import { Env } from './env';
-import { Schem, schemToJs } from './schem';
+import { Schem, schemToJs, jsObjectToSchemType } from './schem';
 import { Tabs } from 'webextension-polyfill-ts';
 import { AvailableSchemContextFeatures } from '../contextManager';
 import { isSchemKeyword, isSchemSymbol, isValidKeyType, isSchemString, isSchemNumber, isSchemMap } from './typeGuards';
 
 // interfaces
 export interface Callable {
-  invoke: (...args: SchemType[]) => SchemType;
+  invoke: (...args: AnySchemType[]) => AnySchemType;
 }
 
 export interface Indexable {
-  nth(index: number): SchemType;
+  nth(index: number): Promise<AnySchemType>;
 }
 
 export interface Reducible {
-  reduce(callbackfn: (previousValue: any, currentValue: SchemType) => any, initialValue?: any): any;
+  reduce(callbackfn: (previousValue: any, currentValue: AnySchemType) => any, initialValue?: any): any;
 }
 
 export interface Sequable {
   /** returns the first element of the collecton or null */
-  first(): SchemType | null;
+  first(): AnySchemType | null;
   /** returns a collection containing the second to last elements of the collection - or null if there are no more elements*/
   next(): Sequable | null;
   /** returns a collection containing the second to last elements of the collection - or empty an collection if there are no more elements*/
   rest(): Sequable;
   /** returns a collection beginning with the passed element followed by the rest of this collection */
-  cons(element: SchemType): Sequable;
+  cons(element: AnySchemType): Sequable;
 }
 
 export interface Countable {
@@ -38,9 +38,22 @@ export interface Metadatable {
 }
 
 export enum SchemTypes {
-  function = 0,
-  list = 1,
-  vecor = 2
+  SchemList,
+  SchemVector,
+  SchemMap,
+  SchemNumber,
+  SchemSymbol,
+  SchemKeyword,
+  SchemNil,
+  SchemString,
+  SchemRegExp,
+  SchemFunction,
+  SchemBoolean,
+  SchemAtom,
+  SchemLazyVector,
+  SchemContextSymbol,
+  SchemContextDefinition,
+  SchemContextInstance
 }
 
 export interface TaggedType {
@@ -49,8 +62,11 @@ export interface TaggedType {
 
 // types
 
-export type SchemType = SchemList | SchemVector| SchemMap | SchemNumber | SchemSymbol | SchemKeyword | SchemNil | SchemString | SchemRegExp | SchemFunction | SchemBoolean | SchemAtom | SchemContextSymbol | SchemContextInstance;
+// TODO: figure out how LazyVectors schould be handled
+export type AnySchemType = SchemList | SchemVector| SchemMap | SchemNumber | SchemSymbol | SchemKeyword | SchemNil | SchemString | SchemRegExp | SchemFunction | SchemBoolean | SchemAtom | SchemContextSymbol | SchemContextDefinition | SchemContextInstance;
+export type RegularSchemCollection = SchemList | SchemVector | SchemMap;
 export type SchemMapKey = SchemSymbol | SchemKeyword | SchemString | SchemNumber;
+
 
 export type SchemMetadata = {
   name?: string,
@@ -63,12 +79,12 @@ export type SchemMetadata = {
 
 export class SchemFunction implements Callable, Metadatable, TaggedType {
   public isMacro = false;
-  public typeTag = SchemTypes.function;
+  public typeTag = SchemTypes.SchemFunction;
 
 
   constructor(public f: Function,
     public metadata?: SchemMetadata,
-    public fnContext?: {ast: SchemType, params: SchemSymbol[], env: Env}) {
+    public fnContext?: {ast: AnySchemType, params: SchemSymbol[], env: Env}) {
     // bind a function's name to itself within its environment
     // this allows recursion even in 'anonymous' functions
     if (this.fnContext && metadata && metadata.name && metadata.name.length > 0) {
@@ -76,14 +92,14 @@ export class SchemFunction implements Callable, Metadatable, TaggedType {
     }
   }
 
-  static fromSchemWithContext(that: Schem, env: Env, params: SchemSymbol[], functionBody: SchemType, metadata: SchemMetadata): SchemFunction {
-    return new SchemFunction(async (...args: SchemType[]) => {
+  static fromSchemWithContext(that: Schem, env: Env, params: SchemSymbol[], functionBody: AnySchemType, metadata: SchemMetadata): SchemFunction {
+    return new SchemFunction(async (...args: AnySchemType[]) => {
 
       return await that.evalSchem(functionBody, new Env(env, params, args));
     }, metadata, {ast: functionBody, params: params, env: env});
   }
 
-  newEnv(args: SchemType[]): Env {
+  newEnv(args: AnySchemType[]): Env {
     if (this.fnContext) {
       return new Env(this.fnContext.env, this.fnContext.params, args);
     } else {
@@ -91,16 +107,16 @@ export class SchemFunction implements Callable, Metadatable, TaggedType {
     }
   }
 
-  invoke(...args: SchemType[]) {
+  invoke(...args: AnySchemType[]) {
     return this.f(...args);
   }
 }
 
 // classes - Schem collection types
 
-export class SchemList extends Array<SchemType> implements Reducible, Countable, Indexable, Metadatable, Sequable, TaggedType {
+export class SchemList extends Array<AnySchemType> implements Reducible, Countable, Indexable, Metadatable, Sequable, TaggedType {
   static isCollection = true;
-  public typeTag = SchemTypes.list;
+  public typeTag = SchemTypes.SchemList;
   metadata: SchemMetadata;
 
   /** Makes sure that all elements of the list are SchemSymbols and returns them in an array.*/
@@ -111,7 +127,11 @@ export class SchemList extends Array<SchemType> implements Reducible, Countable,
     });
   }
 
-  async amap(callbackfn: (value: SchemType, index: number, array: any[]) => any, thisArg?: any): Promise<any[]> {
+  static fromPrimitiveValues(...values: any[]): SchemList {
+    return new SchemList(...values.map(v => jsObjectToSchemType(v)));
+  }
+
+  async amap(callbackfn: (value: AnySchemType, index: number, array: any[]) => any, thisArg?: any): Promise<any[]> {
     return Promise.all(this.map(callbackfn, thisArg));
   }
 
@@ -120,10 +140,10 @@ export class SchemList extends Array<SchemType> implements Reducible, Countable,
   }
 
   nth(index: number) {
-    return this[index];
+    return Promise.resolve(this[index]);
   }
 
-  first(): SchemType | null {
+  first(): AnySchemType | null {
     return (this[0] != null) ? this[0] : null;
   }
 
@@ -135,16 +155,21 @@ export class SchemList extends Array<SchemType> implements Reducible, Countable,
     return (this.length > 1) ? new SchemList(...this.slice(1)) : new SchemList();
   }
 
-  cons(element: SchemType) {
+  cons(element: AnySchemType) {
     return new SchemList(element, ...this);
   }
 
 
 }
 
-export class SchemVector extends Array<SchemType> implements Callable, Indexable, Countable, Metadatable, Sequable {
+export class SchemVector extends Array<AnySchemType> implements Callable, Indexable, Countable, Metadatable, Sequable, TaggedType {
+  public typeTag = SchemTypes.SchemVector;
   static isCollection = true;
   metadata: SchemMetadata;
+
+  static fromPrimitiveValues(...values: any[]): SchemVector {
+    return new SchemVector(...values.map(v => jsObjectToSchemType(v)));
+  }
 
   count(): number {
     return this.length;
@@ -157,15 +182,15 @@ export class SchemVector extends Array<SchemType> implements Callable, Indexable
     });
   }
 
-  async amap(callbackfn: (value: SchemType, index: number, array: any[]) => any, thisArg?: any): Promise<any[]> {
+  async amap(callbackfn: (value: AnySchemType, index: number, array: any[]) => any, thisArg?: any): Promise<any[]> {
     return Promise.all(this.map(callbackfn, thisArg));
   }
 
   nth(index: number) {
-    return this[index];
+    return Promise.resolve(this[index]);
   }
 
-  invoke(...args: SchemType[]) {
+  invoke(...args: AnySchemType[]) {
     const index = ( isSchemNumber(args[0])) ? (args[0] as SchemNumber).valueOf() : NaN;
     if (Number.isInteger(index) && index >= 0 && index < this.length) {
       return this[index];
@@ -173,7 +198,7 @@ export class SchemVector extends Array<SchemType> implements Callable, Indexable
     throw `index ${index} out of bounds`;
   }
 
-  first(): SchemType | null {
+  first(): AnySchemType | null {
     return (this[0] != null) ? this[0] : null;
   }
 
@@ -185,22 +210,23 @@ export class SchemVector extends Array<SchemType> implements Callable, Indexable
     return (this.length > 1) ? new SchemVector(...this.slice(1)) : new SchemVector();
   }
 
-  cons(element: SchemType) {
+  cons(element: AnySchemType) {
     return new SchemVector(element, ...this);
   }
 }
 
-export class SchemMap implements Callable, Reducible, Countable, Metadatable {
+export class SchemMap implements Callable, Reducible, Countable, Metadatable, TaggedType {
+  public typeTag = SchemTypes.SchemMap;
   static isCollection = true;
   metadata: SchemMetadata;
 
-  private nativeMap: Map<string, SchemType> = new Map<string, SchemType>();
+  private nativeMap: Map<string, AnySchemType> = new Map<string, AnySchemType>();
   /** Returns an array of alternating key value pairs
    * @returns
    * [key: SchemSymbol, value:  SchemType, ...] */
   public flatten(): SchemList {
     return new SchemList(...Array.from(this.nativeMap.keys()).reduce(
-      (acc: SchemType[], currentKey: string) => {
+      (acc: AnySchemType[], currentKey: string) => {
         acc.push(fromSchemMapKey(currentKey));
         acc.push(this.nativeMap.get(currentKey)!);
         return acc;
@@ -226,18 +252,18 @@ export class SchemMap implements Callable, Reducible, Countable, Metadatable {
 
   // private getOriginalKeyObject
 
-  set(key: SchemMapKey, value: SchemType ): void {
+  set(key: SchemMapKey, value: AnySchemType ): void {
     this.nativeMap.set(this.turnIntoKeyString(key), value);
   }
 
-  get(key: SchemMapKey, defaultValue?: SchemType): SchemType {
+  get(key: SchemMapKey, defaultValue?: AnySchemType): AnySchemType {
     let v = this.nativeMap.get(this.turnIntoKeyString(key));
     if (v) return v;
     if (defaultValue) return defaultValue;
     return SchemNil.instance;
   }
 
-  has(key: SchemMapKey): SchemType {
+  has(key: SchemMapKey): boolean {
     return this.nativeMap.has(this.turnIntoKeyString(key));
   }
 
@@ -250,7 +276,7 @@ export class SchemMap implements Callable, Reducible, Countable, Metadatable {
   }
 
   /** Returns a new map from the results of passing this map's values through the callback function (keys are not changed)*/
-  map(callbackFn: (value: SchemType, key?: SchemMapKey) => SchemType): SchemMap {
+  map(callbackFn: (value: AnySchemType, key?: SchemMapKey) => AnySchemType): SchemMap {
     let newMap = new SchemMap();
 
     this.nativeMap.forEach((value, key) => {
@@ -260,8 +286,8 @@ export class SchemMap implements Callable, Reducible, Countable, Metadatable {
     return newMap;
   }
 
-  forEach(callbackFn: (key: SchemMapKey, value: SchemType) => void) {
-    this.nativeMap.forEach((value: SchemType, key: string) => {
+  forEach(callbackFn: (key: SchemMapKey, value: AnySchemType) => void) {
+    this.nativeMap.forEach((value: AnySchemType, key: string) => {
       callbackFn(fromSchemMapKey(key), value);
     });
   }
@@ -274,11 +300,11 @@ export class SchemMap implements Callable, Reducible, Countable, Metadatable {
   async amap(callbackFn: (value: SchemType , index: number, arrayOfValues: any[]) => any): Promise<any[]> {
   }*/
 
-  reduce(callbackfn: (previousValue: number, currentValue: SchemType) => number, initialValue: number = 0): any {
+  reduce(callbackfn: (previousValue: number, currentValue: AnySchemType) => number, initialValue: number = 0): any {
     return this.flatten().reduce(callbackfn, initialValue);
   }
 
-  invoke(...args: SchemType[]) {
+  invoke(...args: AnySchemType[]) {
     let key = args[0];
     if (isValidKeyType(key)) {
       return this.get(key, args[1]);
@@ -287,16 +313,17 @@ export class SchemMap implements Callable, Reducible, Countable, Metadatable {
     }
   }
 }
-export class SchemLazyVector implements Countable, Indexable {
+export class SchemLazyVector implements Countable, Indexable, TaggedType {
+  public typeTag = SchemTypes.SchemLazyVector;
   static isCollection = true;
 
-  private cachedValues: Map<number, SchemType>;
+  private cachedValues: Map<number, AnySchemType>;
 
   constructor(private producer: SchemFunction, public maximumSize = Infinity) {
-    this.cachedValues = new Map<number, SchemType>();
+    this.cachedValues = new Map<number, AnySchemType>();
   }
 
-  async nth(index: number): Promise<SchemType> {
+  async nth(index: number): Promise<AnySchemType> {
     if (!this.cachedValues.has(index)) {
       this.cachedValues.set(index,
         await this.producer.invoke(new SchemNumber(index))
@@ -309,7 +336,7 @@ export class SchemLazyVector implements Countable, Indexable {
     if (typeof end === 'undefined' && this.maximumSize === Infinity) {
       throw `can't realize an infinite vector`;
     }
-    let realizedContents: SchemType[] = new Array<SchemType>();
+    let realizedContents: AnySchemType[] = new Array<AnySchemType>();
     for (let i = start; i < this.maximumSize && i < end; i++) {
       const value = await this.nth(i);
       realizedContents.push(value);
@@ -317,8 +344,8 @@ export class SchemLazyVector implements Countable, Indexable {
     return new SchemVector(...realizedContents);
   }
 
-  map(callbackfn: (value: SchemType, index: number, array: any[]) => any, thisArg?: any): any[] {
-    let realizedContents: SchemType[] = new Array<SchemType>();
+  map(callbackfn: (value: Promise<AnySchemType>, index: number, array: any[]) => any, thisArg?: any): any[] {
+    let realizedContents: AnySchemType[] = new Array<AnySchemType>();
     for (let i = 0; i < this.maximumSize; i++) {
       if (thisArg) {
         realizedContents.push(callbackfn.apply(thisArg, [this.nth(i), i, realizedContents]));
@@ -337,12 +364,14 @@ export class SchemLazyVector implements Countable, Indexable {
 
 /// classes - Schem value types
 
-export class SchemNil {
+export class SchemNil implements TaggedType {
+  public typeTag = SchemTypes.SchemNil;
   static instance = new SchemNil();
   private constructor() {}
 }
 
-export class SchemBoolean extends Boolean {
+export class SchemBoolean extends Boolean implements TaggedType {
+  public typeTag = SchemTypes.SchemBoolean;
   static false = new SchemBoolean(false);
   static true = new SchemBoolean(true);
 
@@ -355,8 +384,11 @@ export class SchemBoolean extends Boolean {
   }
 }
 
-export class SchemNumber extends Number implements Callable {
-  invoke(...args: SchemType[]) {
+export class SchemNumber extends Number implements Callable, TaggedType {
+  public typeTag = SchemTypes.SchemNumber;
+
+  // TODO: make methods static?
+  invoke(...args: AnySchemType[]) {
     const i = this.valueOf();
     const sequential = args[0];
     if (sequential instanceof SchemList || sequential instanceof SchemVector) {
@@ -374,7 +406,8 @@ export class SchemNumber extends Number implements Callable {
   }
 }
 
-export class SchemString extends String {
+export class SchemString extends String implements TaggedType {
+  public typeTag = SchemTypes.SchemString;
 
   // can't hide toString()
   getStringRepresentation(): string {
@@ -382,7 +415,8 @@ export class SchemString extends String {
   }
 }
 
-export class SchemRegExp extends RegExp {
+export class SchemRegExp extends RegExp implements TaggedType {
+  public typeTag = SchemTypes.SchemRegExp;
   getStringRepresentation() {
     if (this.flags.length > 0) {
       return `#"(?${this.flags})${this.source}"`;
@@ -419,7 +453,8 @@ class SymbolicType {
   }
 }
 
-export class SchemSymbol extends SymbolicType implements Metadatable {
+export class SchemSymbol extends SymbolicType implements Metadatable, TaggedType {
+  public typeTag = SchemTypes.SchemSymbol;
   metadata: SchemMetadata;
 
   static refersToJavascriptObject(sym: SchemSymbol): boolean {
@@ -450,7 +485,8 @@ export class SchemSymbol extends SymbolicType implements Metadatable {
 }
 
 
-export class SchemKeyword extends SymbolicType implements Callable {
+export class SchemKeyword extends SymbolicType implements Callable, TaggedType {
+  public typeTag = SchemTypes.SchemKeyword;
   static registeredSymbols: Map<symbol, SchemKeyword> = new Map<symbol, SchemKeyword>();
 
   static from(name: string | SchemString): SchemKeyword {
@@ -475,7 +511,7 @@ export class SchemKeyword extends SymbolicType implements Callable {
   }
 
   /** Returns the value that is associated with this keyword in the provided collection */
-  invoke(...args: SchemType[]) {
+  invoke(...args: AnySchemType[]) {
     if (args.length === 0) {
       throw `Tried to invoke a keywords without passing a collection. Did you accidentally put it in the head position of a form that wasn't supposed to be evaluated?`;
     }
@@ -487,7 +523,8 @@ export class SchemKeyword extends SymbolicType implements Callable {
   }
 }
 
-export class SchemContextSymbol extends SymbolicType {
+export class SchemContextSymbol extends SymbolicType implements TaggedType {
+  public typeTag = SchemTypes.SchemContextSymbol;
   static from(name: string | SchemString): SchemContextSymbol {
     if ( isSchemString(name)) {
       name = name.valueOf();
@@ -509,7 +546,8 @@ export class SchemContextSymbol extends SymbolicType {
 /** Serializable description of a SchemContext. A definition allows the event page to instatiate and setup a new context that fits the description. Definitions also allow Schem scripts to reason about what a given context might be able to do.
  * In theory.
  */
-export class SchemContextDefinition {
+export class SchemContextDefinition implements TaggedType {
+  public typeTag = SchemTypes.SchemContextDefinition;
   frameId?: number;
   features?: AvailableSchemContextFeatures[];
   runAt?: 'document_start' | 'document_end' | 'document_idle';
@@ -530,7 +568,8 @@ export class SchemContextDefinition {
 }
 
 /** These can't be passed around as messages. Contains... callbacks, information about what was already injected and stuff that's necessary for context persistence? I think only the event page will need to handle instances of contexts. */
-export class SchemContextInstance {
+export class SchemContextInstance implements TaggedType {
+  public typeTag = SchemTypes.SchemContextInstance;
   baseContentScriptIsLoaded: boolean = false;
   activeFeatures: Set<SchemContextDefinition['features']>;
 
@@ -554,80 +593,11 @@ export class SchemContextInstance {
 
 /// classes - other Schem types
 
-export class SchemAtom {
-  constructor(public value: SchemType) {
+export class SchemAtom implements TaggedType {
+  public typeTag = SchemTypes.SchemAtom;
+  constructor(public value: AnySchemType) {
   }
 }
-
-/// type guards
-
-// export function isSequential(object: SchemType): object is SchemList | SchemVector {
-//   return (object instanceof SchemList || object instanceof SchemVector);
-// }
-
-// export function isSchemType(o: any): o is SchemType {
-//   return (o instanceof SchemList ||
-//           o instanceof SchemVector ||
-//            isSchemMap(o) ||
-//            isSchemNumber(o) ||
-//           isSchemSymbol(o) ||
-//            isSchemContextSymbol(o) ||
-//           isSchemKeyword(o) ||
-//            isSchemNil(o) ||
-//            isSchemString(o) ||
-//            isSchemRegExp(o) ||
-//           o instanceof SchemFunction ||
-//            isSchemBoolean(o) ||
-//            isSchemAtom(o));
-// }
-
-// export function isSchemCollection(o: any): boolean {
-//   return (o instanceof SchemList ||
-//           o instanceof SchemVector ||
-//            isSchemMap(o) ||
-//            isSchemLazyVector(o));
-// }
-
-// export function isSchemFunction(o: any): o is SchemFunction {
-//   return (typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.function);
-// }
-
-// export function isSchemList(o: any): o is SchemList {
-//   return (typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.list);
-// }
-
-// export function isSchemSymbol(o: any): o is SchemSymbol {
-//   return (typeof o === 'object' && o.constructor.name === 'SchemSymbol');
-// }
-
-// export function isSchemKeyword(o: any): o is SchemKeyword {
-//   return (typeof o === 'object' && o.constructor.name === 'SchemKeyword');
-// }
-
-// export function isSchemVector(o: any): o is SchemVector {
-//   return (typeof o === 'object' && o.constructor.name === 'SchemVector');
-// }
-
-
-
-
-
-// export function isCallable(o: any): o is Callable {
-//   return (typeof o.invoke === 'function');
-// }
-
-// export function isValidKeyType(o: any): o is SchemMapKey {
-//   return (isSchemKeyword(o) ||
-//            isSchemNumber(o) ||
-//            isSchemString(o));
-// }
-
-// export function isSequable(o: any): o is Sequable {
-//   return (typeof o.first === 'function' &&
-//           typeof o.next === 'function' &&
-//           typeof o.rest === 'function' &&
-//           typeof o.cons === 'function');
-// }
 
 // type conversion
 

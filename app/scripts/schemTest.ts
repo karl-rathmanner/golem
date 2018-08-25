@@ -5,7 +5,7 @@ import { EnvSetupMap } from './schem/env';
 import { pr_str } from './schem/printer';
 import { tokenize } from './schem/reader';
 import { Schem } from './schem/schem';
-import { SchemKeyword, SchemList, SchemNil, SchemString, SchemSymbol, SchemType } from './schem/types';
+import { SchemKeyword, SchemList, SchemNil, SchemString, SchemSymbol, AnySchemType } from './schem/types';
 import { CommandHistory } from './utils/commandHistory';
 import { Key } from './utils/Key.enum';
 import { isSchemKeyword, isSchemSymbol, isSchemString } from './schem/typeGuards';
@@ -36,7 +36,7 @@ $.when($.ready).then(() => {
 
   // example for an envOverwrite
   const envOverwrites: EnvSetupMap = {
-    'notify': (...args: SchemType[]) => {
+    'notify': (...args: AnySchemType[]) => {
       const msg: string = (args.map(async (element) => {
         return await pr_str(element, true);
       }).join(' '));

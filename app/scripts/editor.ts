@@ -3,7 +3,7 @@ import { EventPageActionName, eventPageMessagingSchemFunctions } from './eventPa
 import { AddSchemSupportToEditor } from './monaco/schemLanguage';
 import { readStr, unescape as schemUnescape } from './schem/reader';
 import { filterRecursively, Schem } from './schem/schem';
-import { SchemList, SchemType, SchemString, SchemBoolean } from './schem/types';
+import { SchemList, AnySchemType, SchemString, SchemBoolean } from './schem/types';
 import { getHTMLElementById } from './utils/domManipulation';
 import { VirtualFileSystem } from './virtualFilesystem';
 
@@ -11,7 +11,7 @@ const example = require('!raw-loader!./schemScripts/example.schem');
 
 window.onload = () => {
 
-  const messagingWithEventPage: {[symbolName in EventPageActionName]?: SchemType} = eventPageMessagingSchemFunctions;
+  const messagingWithEventPage: {[symbolName in EventPageActionName]?: any} = eventPageMessagingSchemFunctions;
   const editorManipulation = {
     'editor-load-script': async (qualifiedFileName: SchemString) => {
       let candidate = await VirtualFileSystem.readObject(qualifiedFileName.valueOf());
@@ -36,7 +36,7 @@ window.onload = () => {
   let interpreter = new Schem();
   interpreter.replEnv.addMap(messagingWithEventPage);
   interpreter.replEnv.addMap(editorManipulation);
-  let ast: SchemType;
+  let ast: AnySchemType;
   AddSchemSupportToEditor(interpreter);
 
   let editor = monaco.editor.create(document.getElementById('monacoContainer')!, {
@@ -139,7 +139,7 @@ window.onload = () => {
 
     // I'm sorry...
     const collectionsAroundCursor = filterRecursively(ast, (element) => {
-      if ('metadata' in element && element.metadata !== undefined &&
+      if (element != null && 'metadata' in element && element.metadata !== undefined &&
           'sourceIndexStart' in element.metadata && typeof element.metadata.sourceIndexStart === 'number' &&
           'sourceIndexEnd' in element.metadata && typeof element.metadata.sourceIndexEnd === 'number') {
         return (element.metadata.sourceIndexStart < cursorIndex + 1 &&

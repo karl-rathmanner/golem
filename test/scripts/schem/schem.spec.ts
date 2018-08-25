@@ -1,7 +1,7 @@
 
 import { Schem } from '../../../app/scripts/schem/schem';
 import { expect } from 'chai';
-import { SchemNil, SchemType, SchemFunction } from '../../../app/scripts/schem/types';
+import { SchemNil, AnySchemType, SchemFunction } from '../../../app/scripts/schem/types';
 import { pr_str } from '../../../app/scripts/schem/printer';
 
 /** These shouldn't be reused during unit test, unless you explicitly want to retain the interpreter's state between tests. (Calling expectRep with an array of inputs does that, for instance) */
@@ -13,7 +13,7 @@ class TestInterpreter extends Schem {
     super();
 
      // override (println x), exposes its output via println_buffer
-    this.replEnv.set('println', new SchemFunction(async (...args: SchemType[]) => {
+    this.replEnv.set('println', new SchemFunction(async (...args: AnySchemType[]) => {
         this.println_buffer += (await Promise.all(args.map((element) => {
           return pr_str(element, false);
         }))).join(' ');

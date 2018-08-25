@@ -1,5 +1,5 @@
 import { readStr } from './schem/reader';
-import { SchemList, SchemNil, SchemString, SchemType } from './schem/types';
+import { SchemList, SchemNil, SchemString, AnySchemType } from './schem/types';
 import { jsObjectToSchemType } from './schem/schem';
 import { isSchemFunction } from './schem/typeGuards';
 
@@ -15,7 +15,13 @@ import { isSchemFunction } from './schem/typeGuards';
         throw new Error(`No object found with selector ${selector.valueOf()}`);
       }
     },
-    'add-listener': async (eventName: SchemString, selector: SchemString, astOrCode: SchemType | string) => {
+    'add-listener': async (eventName: SchemString, selector: SchemString, astOrCode: AnySchemType | string) => {
+      let ast: AnySchemType;
+      if (typeof astOrCode === 'string' ) {
+        ast = readStr((astOrCode.valueOf()) as string);
+      } else {
+        ast = astOrCode;
+      }
       const elements = document.querySelectorAll<HTMLElement>(selector.valueOf());
       console.log(astOrCode);
       // const code = await pr_str(ast);
@@ -23,16 +29,16 @@ import { isSchemFunction } from './schem/typeGuards';
         elements.item(i).addEventListener(eventName.valueOf(),
           (e) => {
 
-            if (typeof astOrCode.valueOf() === 'string' ) {
-              astOrCode = readStr((astOrCode.valueOf()) as string);
-            }
+
+
 
             if (isSchemFunction(astOrCode)) {
-              const newForm = new SchemList(astOrCode, e);
+              // TODO: add some 'wrapped js object' Schem Type, that could be used here instead of converting e
+              const newForm = new SchemList(astOrCode, jsObjectToSchemType(e));
               // eval only for the side effects
               window.golem.interpreter!.evalSchem(newForm);
             } else {
-              window.golem.interpreter!.evalSchem(astOrCode);
+              window.golem.interpreter!.evalSchem(ast);
             }
           }
         );

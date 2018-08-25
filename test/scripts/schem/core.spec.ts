@@ -1,6 +1,6 @@
 import { coreFunctions } from '../../../app/scripts/schem/core';
 import { expect, use} from 'chai';
-import { SchemBoolean, SchemList, SchemMap, SchemNil, SchemNumber, SchemString, SchemVector, SchemKeyword, SchemSymbol, SchemType } from '../../../app/scripts/schem/types';
+import { SchemBoolean, SchemList, SchemMap, SchemNil, SchemNumber, SchemString, SchemVector, SchemKeyword, SchemSymbol, AnySchemType } from '../../../app/scripts/schem/types';
 import schemHelpers from './chaiSchemHelper';
 // Adds Schem specific assertions to chai
 use(schemHelpers);
@@ -49,15 +49,15 @@ describe('core operators', function() {
     });
 
     it('true for collections with same length and content, regardless of type', function () {
-      expect(getCoreFunction('=')(new SchemList(1, 2, 3, 4, 5), new SchemList(1, 2, 3, 4, 5))).equals(SchemBoolean.true);
-      expect(getCoreFunction('=')(new SchemVector(42, '42', SchemKeyword.from('42')), new SchemVector(42, '42', SchemKeyword.from('42')))).equals(SchemBoolean.true);
-      expect(getCoreFunction('=')(new SchemList(1, 2, 3, 4), new SchemVector(1, 2, 3, 4))).equals(SchemBoolean.true);
+      expect(getCoreFunction('=')(SchemList.fromPrimitiveValues(1, 2, 3, 4, 5), SchemList.fromPrimitiveValues(1, 2, 3, 4, 5))).equals(SchemBoolean.true);
+      expect(getCoreFunction('=')(SchemList.fromPrimitiveValues(42, '42', SchemKeyword.from('42')), SchemList.fromPrimitiveValues(42, '42', SchemKeyword.from('42')))).equals(SchemBoolean.true);
+      expect(getCoreFunction('=')(SchemList.fromPrimitiveValues(1, 2, 3, 4), SchemList.fromPrimitiveValues(1, 2, 3, 4))).equals(SchemBoolean.true);
     });
 
     it('false for lists with different length or content', function () {
-      expect(getCoreFunction('=')(new SchemList(1, 2, 3, 4, 5), new SchemList(1, 2, 3, 4))).equals(SchemBoolean.false);
-      expect(getCoreFunction('=')(new SchemVector(1, 2, 3, 4), new SchemVector(4, 2, 4, 2))).equals(SchemBoolean.false);
-      expect(getCoreFunction('=')(new SchemVector(1, 2, 3, 4), new SchemList(42, 23, 42, 23))).equals(SchemBoolean.false);
+      expect(getCoreFunction('=')(SchemList.fromPrimitiveValues(1, 2, 3, 4, 5), SchemList.fromPrimitiveValues(1, 2, 3, 4))).equals(SchemBoolean.false);
+      expect(getCoreFunction('=')(SchemVector.fromPrimitiveValues(1, 2, 3, 4), SchemVector.fromPrimitiveValues(4, 2, 4, 2))).equals(SchemBoolean.false);
+      expect(getCoreFunction('=')(SchemVector.fromPrimitiveValues(1, 2, 3, 4), SchemList.fromPrimitiveValues(42, 23, 42, 23))).equals(SchemBoolean.false);
     });
   });
 
@@ -100,11 +100,11 @@ describe('core operators', function() {
 
   describe('(count x)', function() {
     it('counting a list', function () {
-      let res = getCoreFunction('count')(new SchemList(1, 2, 3, 4, 5));
+      let res = getCoreFunction('count')(SchemList.fromPrimitiveValues(1, 2, 3, 4, 5));
       expect(res).hasValueOf(5);
     });
     it('counting a vector', function () {
-      let res = getCoreFunction('count')(new SchemVector(0, 1, 2, 3, 4, 5));
+      let res = getCoreFunction('count')(SchemVector.fromPrimitiveValues(0, 1, 2, 3, 4, 5));
       expect(res).hasValueOf(6);
     });
     it('counting a nil returns 0', function () {

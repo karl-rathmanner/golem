@@ -1,5 +1,5 @@
 import { browser, Tabs } from 'webextension-polyfill-ts';
-import { SchemContextDefinition, SchemMap, SchemNumber, SchemList, SchemSymbol, SchemType, SchemString } from './schem/types';
+import { SchemContextDefinition, SchemMap, SchemNumber, SchemList, SchemSymbol, AnySchemType, SchemString } from './schem/types';
 import { schemToJs } from './schem/schem';
 import { GolemContextMessage } from './contentScriptMessaging';
 
@@ -47,7 +47,7 @@ export const eventPageMessagingSchemFunctions = {
       return new SchemList(...contextsOrError);
     });
   },
-  'invoke-context-procedure': async (contexts: SchemList, procedureName: SchemSymbol, ...procedureArgs: SchemType[]) => {
+  'invoke-context-procedure': async (contexts: SchemList, procedureName: SchemSymbol, ...procedureArgs: AnySchemType[]) => {
     return new SchemList(...await requestContextAction({
       contextIds: schemToJs(contexts),
       action: 'forward-context-action',
@@ -60,7 +60,7 @@ export const eventPageMessagingSchemFunctions = {
       }
     }));
   },
-  'invoke-js-procedure': async (contexts: SchemList, qualifiedProcedureName: SchemSymbol, ...procedureArgs: SchemType[]) => {
+  'invoke-js-procedure': async (contexts: SchemList, qualifiedProcedureName: SchemSymbol, ...procedureArgs: AnySchemType[]) => {
     return new SchemList(...await requestContextAction({
       contextIds: schemToJs(contexts),
       action: 'forward-context-action',
@@ -73,7 +73,7 @@ export const eventPageMessagingSchemFunctions = {
       }
     }));
   },
-  'set-js-property': async (contexts: SchemList, qualifiedPropertyName: SchemSymbol, value: SchemType) => {
+  'set-js-property': async (contexts: SchemList, qualifiedPropertyName: SchemSymbol, value: AnySchemType) => {
     return new SchemList(...await requestContextAction({
       contextIds: schemToJs(contexts),
       action: 'forward-context-action',
@@ -86,13 +86,13 @@ export const eventPageMessagingSchemFunctions = {
       }
     }));
   },
-  'inject-interpreter': async (contexts: SchemList, importsOrOptionsOrSomething: SchemType) => {
+  'inject-interpreter': async (contexts: SchemList, importsOrOptionsOrSomething: AnySchemType) => {
     return new SchemList(...await requestContextAction({
       contextIds: schemToJs(contexts),
       action: 'inject-interpreter'
     }));
   },
-  'arep-in-contexts': async (contexts: SchemList, code: SchemString, options?: SchemType) => {
+  'arep-in-contexts': async (contexts: SchemList, code: SchemString, options?: AnySchemType) => {
     return new SchemList(...await requestContextAction({
       contextIds: schemToJs(contexts),
       action: 'arep-in-contexts',

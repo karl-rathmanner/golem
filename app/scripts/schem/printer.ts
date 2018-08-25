@@ -1,7 +1,7 @@
 import { isSchemAtom, isSchemBoolean, isSchemLazyVector, isSchemMap, isSchemNumber, isSchemString, isSchemSymbol, isSchemList, isSchemVector, isSchemKeyword, isSchemRegExp, isSchemContextSymbol, isSchemNil } from './typeGuards';
-import { SchemContextInstance, SchemFunction, SchemList, SchemType, SchemVector, SchemNil } from './types';
+import { SchemContextInstance, SchemFunction, SchemList, AnySchemType, SchemVector, SchemNil } from './types';
 
-export async function pr_str(ast: SchemType, escapeStrings: boolean = true): Promise<string> {
+export async function pr_str(ast: AnySchemType, escapeStrings: boolean = true): Promise<string> {
   if (isSchemBoolean(ast)) {
     return (ast.valueOf()) ? 'true' : 'false';
   } else if (isSchemNumber(ast)) {
@@ -47,7 +47,7 @@ export async function pr_str(ast: SchemType, escapeStrings: boolean = true): Pro
   }
 }
 
-export async function prettyPrint(ast: SchemType, escapeStrings: boolean = true, opts: {indentSize: number} = {indentSize: 2}, currentIndentDepth = 0, addComma = false): Promise<string> {
+export async function prettyPrint(ast: AnySchemType, escapeStrings: boolean = true, opts: {indentSize: number} = {indentSize: 2}, currentIndentDepth = 0, addComma = false): Promise<string> {
   if (ast instanceof SchemList) {
     return `(${(await ast.amap(e => prettyPrint(e, escapeStrings, opts, currentIndentDepth + 1))).join(' ')})` +
       (addComma ? ',' : '');

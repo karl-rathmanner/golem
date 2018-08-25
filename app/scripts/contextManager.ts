@@ -78,7 +78,9 @@ export class SchemContextManager {
       const matchingContextIndex = this.indexOfContextInstanceMatchingPattern({frameId: frameId, tabId: tabId, windowId: windowId, tabQuery: queryInfo});
 
       if (matchingContextIndex < 0) {
-        const newContext = new SchemContextInstance(this.getNewContextId(), tabId, windowId, {tabQuery: queryInfo, frameId: frameId, lifetime: 'inject-once'});
+        const scd = new SchemContextDefinition(queryInfo, 'inject-once');
+        scd.frameId = frameId;
+        const newContext = new SchemContextInstance(this.getNewContextId(), tabId, windowId, scd);
         this.activeContextInstances.push(newContext);
         return newContext;
       } else {

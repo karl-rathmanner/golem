@@ -1,4 +1,4 @@
-import {SchemType, SchemList, SchemNumber, SchemSymbol, SchemNil, SchemString, SchemBoolean, SchemVector, SchemMap, SchemKeyword, SchemMapKey, SchemContextSymbol } from './types';
+import {AnySchemType, SchemList, SchemNumber, SchemSymbol, SchemNil, SchemString, SchemBoolean, SchemVector, SchemMap, SchemKeyword, SchemMapKey, SchemContextSymbol, RegularSchemCollection, Indexable } from './types';
 import { isSchemSymbol, isSchemKeyword, isSchemMap, isSchemString, isSchemNumber } from './typeGuards';
 
 type token = {
@@ -24,7 +24,7 @@ class Reader {
 
 }
 
-export function readStr(input: string, withMetadata = false): SchemType {
+export function readStr(input: string, withMetadata = false): AnySchemType {
   let tokens: token[];
 
   tokens = tokenize(input, withMetadata);
@@ -37,7 +37,7 @@ export function readStr(input: string, withMetadata = false): SchemType {
   return readForm(reader);
 }
 
-function readForm(reader: Reader): SchemType {
+function readForm(reader: Reader): AnySchemType {
   switch (reader.peek().value) {
     case '(': {
       return readParen(reader, '(');
@@ -92,7 +92,7 @@ function readForm(reader: Reader): SchemType {
   }
 }
 
-function readParen(reader: Reader, openParen: string): SchemType {
+function readParen(reader: Reader, openParen: string): AnySchemType {
   let closeParen: string, collection;
 
   // instantiate correct collection type
@@ -195,12 +195,11 @@ function expandFnShorthand(reader: Reader) {
   if (!(fnBody instanceof SchemList)) {
     throw `fn shorthand failed, expected list`;
   } else {
-
     let containsNestedFnShorthands = false;
     let containsAmpersandArg = false;
     let highestPlaceholderNumber = 0;
 
-    const analyzeAndMassageCollection = (element: SchemType, indexOrKey: number | SchemMapKey, collection?: SchemType[]): SchemType => {
+    const analyzeAndMassageCollection = (element: AnySchemType, indexOrKey: number | SchemMapKey, collection?: AnySchemType[]): AnySchemType => {
       if (isSchemSymbol(element) &&
         element.name === '#' &&
         typeof indexOrKey === 'number' &&
@@ -222,8 +221,10 @@ function expandFnShorthand(reader: Reader) {
         }
       }
 
-      if (element instanceof SchemVector || element instanceof SchemList) {
-        return element.map(analyzeAndMassageCollection);
+      if (element instanceof SchemVector) {
+        return element.map(analyzeAndMassageCollection) as SchemVector;
+      } if (element instanceof SchemList) {
+        return element.map(analyzeAndMassageCollection) as SchemList;
       } if ( isSchemMap(element)) {
         return element.map(analyzeAndMassageCollection as any); // Deliberately not caring about the actual method signature, here...
       }
@@ -236,9 +237,9 @@ function expandFnShorthand(reader: Reader) {
       throw `You shall not nest thy #()s!`;
     }*/
 
-    fnBody = fnBody.map(analyzeAndMassageCollection);
+    fnBody = (fnBody.map(analyzeAndMassageCollection) as SchemList);
 
-    let anonymousArgs = new Array<SchemType>();
+    let anonymousArgs = new Array<AnySchemType>();
 
     for (let i = 1; i <= highestPlaceholderNumber; i++) {
       anonymousArgs.push(SchemSymbol.from('%' + i));

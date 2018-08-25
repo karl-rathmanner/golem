@@ -1,7 +1,7 @@
 import { readStr } from './reader';
 import { Schem } from './schem';
 import { isSchemContextSymbol, isSchemSymbol } from './typeGuards';
-import { SchemContextDefinition, SchemContextSymbol, SchemFunction, SchemList, SchemSymbol, SchemType } from './types';
+import { SchemContextDefinition, SchemContextSymbol, SchemFunction, SchemList, SchemSymbol, AnySchemType } from './types';
 
 /** This allows concevient initialization of environments when using Env.addMap()
  *
@@ -24,11 +24,11 @@ export abstract class EnvSetupMap {
  * When a symbol can't be found in an Env, its outer Envs are searched recursively. This means, 'lokal' symbols can hide outer symbols.
  */
 export class Env {
-  private symbolValueMap = new Map<symbol, SchemType>();
+  private symbolValueMap = new Map<symbol, AnySchemType>();
   private contextSymbolMap = new Map<string, SchemContextDefinition>();
   name: string;
 
-  constructor(public outer?: Env, binds: SchemSymbol[] = [], exprs: SchemType[] = [], logDebugMessages = false) {
+  constructor(public outer?: Env, binds: SchemSymbol[] = [], exprs: AnySchemType[] = [], logDebugMessages = false) {
     // Generate a human readable name to make debugging easier
     this.name = String.fromCharCode(65 + Math.random() * 24) + String.fromCharCode(65 + Math.random() * 24) + String.fromCharCode(65 + Math.random() * 24);
 
@@ -48,7 +48,8 @@ export class Env {
   }
 
   /** Binds a symbol to a value */
-  set(key: SchemSymbol | string | SchemContextSymbol, value: SchemType | SchemContextDefinition, metadata?: SchemFunction['metadata']): SchemType {
+  // TODO: turn the type of value back to something like AnySchemType (once there's a 'wrapped js' SchemType)
+  set(key: SchemSymbol | string | SchemContextSymbol, value: any, metadata?: SchemFunction['metadata']): AnySchemType {
 
     if ( isSchemContextSymbol(key)) {
       if (value instanceof SchemContextDefinition) {
@@ -113,7 +114,7 @@ export class Env {
   }
 
   /** Resolves a symbol to its value */
-  get(sym: SchemSymbol | SchemContextSymbol): SchemType {
+  get(sym: SchemSymbol | SchemContextSymbol): AnySchemType {
 
     const env = this.find(sym);
     if (!env) throw `${sym.name} not found`;

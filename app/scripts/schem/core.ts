@@ -5,10 +5,10 @@ import { VirtualFileSystem } from '../virtualFilesystem';
 import { prettyPrint, pr_str } from './printer';
 import { readStr } from './reader';
 import { jsObjectToSchemType, schemToJs } from './schem';
-import { isSchemKeyword, isSchemString, isSchemSymbol, isSequential, isValidKeyType, isSchemLazyVector, isSchemMap, isSchemNumber } from './typeGuards';
-import { SchemAtom, SchemBoolean, SchemFunction, SchemKeyword, SchemLazyVector, SchemList, SchemMap, SchemMapKey, SchemNil, SchemNumber, SchemRegExp, SchemString, SchemSymbol, SchemType, SchemVector } from './types';
+import { isSchemKeyword, isSchemString, isSchemSymbol, isSequential, isValidKeyType, isSchemLazyVector, isSchemMap, isSchemNumber, isSchemList, isSchemVector } from './typeGuards';
+import { SchemAtom, SchemBoolean, SchemFunction, SchemKeyword, SchemLazyVector, SchemList, SchemMap, SchemMapKey, SchemNil, SchemNumber, SchemRegExp, SchemString, SchemSymbol, AnySchemType, SchemVector } from './types';
 
-export const coreFunctions: {[symbol: string]: SchemType} = {
+export const coreFunctions: {[symbol: string]: any} = {
   '+': (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue: SchemNumber, currentIndex: number) => {
     if (currentIndex === 0) return currentValue.valueOf();
     else return accumulator + currentValue.valueOf();
@@ -35,7 +35,7 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     return new SchemNumber((quotient > 0) ? Math.floor(quotient) : Math.ceil(quotient));
   },
   'sqr': (d: SchemNumber) => new SchemNumber(d.valueOf() * d.valueOf()),
-  '=': (...args: SchemType[]) => {
+  '=': (...args: AnySchemType[]) => {
     throwErrorIfArityIsInalid(args.length, 1);
     // If passed a single value (= x) the result is always true.
     if (args.length === 1) return SchemBoolean.true;
@@ -45,8 +45,8 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
       let a = args[i], b = args[i + 1];
 
       // Collections are considered to be equal if their contents are the same - regardless of their type.
-      if ((a instanceof SchemList || a instanceof SchemVector) &&
-          (b instanceof SchemList || b instanceof SchemVector) &&
+      if ((isSchemList(a) || isSchemVector(a)) &&
+          (isSchemList(b) || isSchemVector(b)) &&
           (a.length === b.length)) {
 
         // Compare contents
@@ -74,23 +74,23 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
   '<=': (...args: SchemNumber[]) => {
     return doNumericComparisonForEachConsecutivePairInArray((a, b) => { return a <= b; }, args);
   },
-  'empty?': (arg: SchemType) => {
+  'empty?': (arg: AnySchemType) => {
     return SchemBoolean.fromBoolean('length' in arg && arg.length === 0);
   },
   // returns arguments as a list
-  'list': (...args: SchemType[]) => {
+  'list': (...args: AnySchemType[]) => {
     return new SchemList().concat(args);
   },
-  'list?': (arg: SchemType) => {
+  'list?': (arg: AnySchemType): SchemBoolean => {
     return SchemBoolean.fromBoolean(arg instanceof SchemList);
   },
-  'vector': (...args: SchemType[]) => {
+  'vector': (...args: AnySchemType[]) => {
     return new SchemVector().concat(args);
   },
-  'vector?': (arg: SchemType) => {
+  'vector?': (arg: AnySchemType) => {
     return SchemBoolean.fromBoolean(arg instanceof SchemVector);
   },
-  'count': (arg: SchemType) => {
+  'count': (arg: AnySchemType) => {
     if ('count' in arg) {
       return new SchemNumber(arg.count());
     } else if ( isSchemString(arg)) {
@@ -132,23 +132,23 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
   },
 
   /** calls pr_str (escaped) on each argument, joins the results, seperated by ' ' */
-  'pr-str': async (...args: SchemType[]) => {
+  'pr-str': async (...args: AnySchemType[]) => {
     return new SchemString(
       (await asyncStringifyAll(args, true)).join(' ')
     );
   },
   /** calls pr_str (unescaped) on each argument, concatenates the results */
-  'str': async (...args: SchemType[]) => {
+  'str': async (...args: AnySchemType[]) => {
     return new SchemString(
       (await asyncStringifyAll(args, false)).join('')
     );
   },
-  'prn': async (...args: SchemType[]) => {
+  'prn': async (...args: AnySchemType[]) => {
     const stringified = await asyncStringifyAll(args);
     console.log(stringified.join(' '));
     return SchemNil.instance;
   },
-  'println': async (...args: SchemType[]) => {
+  'println': async (...args: AnySchemType[]) => {
     console.log(await asyncStringifyAll(args, false));
     return SchemNil.instance;
   },
@@ -179,7 +179,7 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
       return new SchemString(response);
     }
   },
-  'get': (map: SchemMap, key: SchemMapKey, defaultValue?: SchemType) => {
+  'get': (map: SchemMap, key: SchemMapKey, defaultValue?: AnySchemType) => {
     if ( isSchemMap(map)) {
       if (isValidKeyType(key)) {
         return (map.has(key)) ? map.get(key) : defaultValue ? defaultValue : SchemNil.instance;
@@ -192,19 +192,19 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
   'parse-xml': (xmlString: SchemString) => {
     return SchemNil.instance;
   },
-  'atom': (value: SchemType) => {
+  'atom': (value: AnySchemType) => {
     return new SchemAtom(value);
   },
-  'atom?': (value: SchemType) => {
+  'atom?': (value: AnySchemType) => {
     return value.constructor === SchemAtom;
   },
   'deref': (atom: SchemAtom) => {
     return atom.value;
   },
-  'reset!': (atom: SchemAtom, value: SchemType) => {
+  'reset!': (atom: SchemAtom, value: AnySchemType) => {
     return atom.value = value;
   },
-  'cons': (item: SchemType, list: SchemList) => {
+  'cons': (item: AnySchemType, list: SchemList) => {
     return new SchemList(item, ...list);
   },
   'concat': (...lists: SchemList[]) => {
@@ -224,9 +224,9 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
         return (currentValue.length < shortestLength) ? currentValue.length : shortestLength;
       }, sequentials[0].length);
 
-      let newValues: SchemType[] = [];
+      let newValues: AnySchemType[] = [];
       for (let i = 0; i < shortestLength; i++) {
-        let args: SchemType[] = [];
+        let args: AnySchemType[] = [];
         for (let j = 0; j < sequentials.length; j++) {
           args.push(sequentials[j][i]);
         }
@@ -321,29 +321,29 @@ export const coreFunctions: {[symbol: string]: SchemType} = {
     console.log(value);
     return SchemNil.instance;
   },
-  'schem->js': (value: SchemType, options?: SchemMap) => {
+  'schem->js': (value: AnySchemType, options?: SchemMap) => {
     return schemToJs(value, options != null ? schemToJs(options, {keySerialization: 'noPrefix'}) : {keySerialization: 'noPrefix'});
   },
-  'set!': (sym: SchemSymbol, value: SchemType) => {
+  'set!': (sym: SchemSymbol, value: AnySchemType) => {
     if (SchemSymbol.refersToJavascriptObject(sym)) {
       setJsProperty(sym.name, schemToJs(value));
     } else {
       throw new Error(`You're not allowed to set Schem bindings to new values. Use atoms for mutable state.`);
     }
   },
-  'js->schem': async (value: SchemType, options?: SchemMap) => {
+  'js->schem': async (value: AnySchemType, options?: SchemMap) => {
     return jsObjectToSchemType(value, schemToJs(options));
   },
-  'storage-create': async (qualifiedObjectName: SchemString, value: SchemType) => {
+  'storage-create': async (qualifiedObjectName: SchemString, value: AnySchemType) => {
     return await VirtualFileSystem.createObject(qualifiedObjectName.valueOf(), schemToJs(value));
   },
-  'storage-create-or-update': async (qualifiedObjectName: SchemString, value: SchemType) => {
+  'storage-create-or-update': async (qualifiedObjectName: SchemString, value: AnySchemType) => {
     return await VirtualFileSystem.createObject(qualifiedObjectName.valueOf(), schemToJs(value), true);
   },
   'storage-read': async (qualifiedObjectName: SchemString) => {
     return await VirtualFileSystem.readObject(qualifiedObjectName.valueOf());
   },
-  'storage-update': async (qualifiedObjectName: SchemString, value: SchemType) => {
+  'storage-update': async (qualifiedObjectName: SchemString, value: AnySchemType) => {
     await VirtualFileSystem.updateObject(qualifiedObjectName.valueOf(), schemToJs(value));
     return value;
   },
@@ -390,7 +390,7 @@ function throwErrorIfArityIsInalid(argsLength: number, min: number = 1, max: num
   }
 }
 
-function throwErrorForNonSequentialArguments(...args: SchemType[]) {
+function throwErrorForNonSequentialArguments(...args: AnySchemType[]) {
   args.forEach(arg => {
     if (!(isSequential(arg) || ('nth' in arg))) {
       throw `Expected argument to be sequential. Got this instead: ${arg}`;
@@ -398,11 +398,11 @@ function throwErrorForNonSequentialArguments(...args: SchemType[]) {
   });
 }
 
-function hasSameConstructorAndValue(a: SchemType, b: SchemType): boolean {
+function hasSameConstructorAndValue(a: AnySchemType, b: AnySchemType): boolean {
   return (a.constructor === b.constructor && a.valueOf() === b.valueOf());
 }
 
-async function asyncStringifyAll(schemObjects: SchemType[], escapeStrings: boolean = true): Promise<string[]> {
+async function asyncStringifyAll(schemObjects: AnySchemType[], escapeStrings: boolean = true): Promise<string[]> {
   return Promise.all(schemObjects.map((element) => {
     return pr_str(element, escapeStrings);
   }));

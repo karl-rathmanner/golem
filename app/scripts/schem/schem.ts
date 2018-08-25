@@ -6,7 +6,7 @@ import { Env, EnvSetupMap } from './env';
 import { pr_str } from './printer';
 import { readStr } from './reader';
 import { isCallable, isSchemBoolean, isSchemCollection, isSchemContextSymbol, isSchemFunction, isSchemKeyword, isSchemLazyVector, isSchemList, isSchemMap, isSchemNil, isSchemString, isSchemSymbol, isSchemType, isSequable, isSequential, isValidKeyType, isSchemNumber } from './typeGuards';
-import { SchemAtom, SchemBoolean, SchemContextDefinition, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemNumber, SchemString, SchemSymbol, SchemType, SchemVector, toSchemMapKey } from './types';
+import { SchemAtom, SchemBoolean, SchemContextDefinition, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemNumber, SchemString, SchemSymbol, AnySchemType, SchemVector, toSchemMapKey } from './types';
 
 export class Schem {
 
@@ -26,9 +26,9 @@ export class Schem {
     this.replEnv.addMap(coreFunctions);
     this.coreLoaded = false;
     // Schem functions that need to reference the repl Environment go here - addMap doesn't support that
-    this.replEnv.set('eval', (rand: SchemType) => this.evalSchem(rand, this.replEnv));
-    this.replEnv.set('swap!', (atom: SchemAtom, fn: SchemFunction, ...rest: SchemType[]) => {
-        atom.value = this.evalSchem(new SchemList(fn, atom.value, ...rest), this.replEnv);
+    this.replEnv.set('eval', (rand: AnySchemType) => this.evalSchem(rand, this.replEnv));
+    this.replEnv.set('swap!', async (atom: SchemAtom, fn: SchemFunction, ...rest: AnySchemType[]) => {
+        atom.value = await this.evalSchem(new SchemList(fn, atom.value, ...rest), this.replEnv);
         return atom.value;
       }
     );
@@ -62,7 +62,7 @@ export class Schem {
 
   }
 
-  async evalAST(ast: SchemType, env: Env): Promise<SchemType> {
+  async evalAST(ast: AnySchemType, env: Env): Promise<AnySchemType> {
     if (isSchemSymbol(ast)) {
       // js interop: evaluate to object value
       if (SchemSymbol.refersToJavascriptObject(ast)) {
@@ -87,7 +87,7 @@ export class Schem {
 
       const evaluatedAST = new SchemVector();
       for (let i = 0; i < ast.count(); i++) {
-        evaluatedAST[i] = await this.evalSchem((ast.nth(i) as SchemType), env);
+        evaluatedAST[i] = await this.evalSchem((await ast.nth(i) as AnySchemType), env);
       }
 
       return evaluatedAST;
@@ -112,7 +112,7 @@ export class Schem {
    * @description
    * TCO hint: recursive Schem functions should call themselves from tail position. Consult stackoverflow.com in case of stack overflows.
   */
-  async evalSchem(ast: SchemType, env: Env = this.replEnv): Promise<SchemType> {
+  async evalSchem(ast: AnySchemType, env: Env = this.replEnv): Promise<AnySchemType> {
   let tcoCounter = 0;
 
   fromTheTop: while (true) {
@@ -145,7 +145,7 @@ export class Schem {
         if (ast.length === 0) {
           return ast;
         } else {
-          const first: SchemType = ast[0];
+          const first: AnySchemType = ast[0];
 
           // SchemSymbols can indicate special forms
           if (isSchemSymbol(first)) {
@@ -432,7 +432,7 @@ export class Schem {
     }
   }
 
-  evalQuasiquote(ast: SchemType): SchemType {
+  evalQuasiquote(ast: AnySchemType): AnySchemType {
     if (isSequential(ast)) {
       if (ast.length === 0) {
         // ast is an empty list -> quote it
@@ -481,7 +481,7 @@ export class Schem {
     return await pr_str(await this.evalSchem(readStr(expression), this.replEnv));
   }
 
-  async readEval(expression: string): Promise<SchemType> {
+  async readEval(expression: string): Promise<AnySchemType> {
     if (typeof expression === 'undefined' || expression.length === 0) {
       return SchemNil.instance;
     }
@@ -497,7 +497,7 @@ export class Schem {
    * @param ast Abstract Syntax Tree
    * @param env The Environment the call will be evaluated in
    */
-  isMacroCall(ast: SchemType, env: Env) {
+  isMacroCall(ast: AnySchemType, env: Env) {
     if (isSchemList(ast) && isSchemSymbol(ast[0])) {
       try {
         const val = env.get(ast[0] as SchemSymbol);
@@ -513,7 +513,7 @@ export class Schem {
   }
 
   /** Expands the macro at the beginning of a list (repeatedly) */
-  async macroExpand(ast: SchemType, env: Env) {
+  async macroExpand(ast: AnySchemType, env: Env) {
     while (this.isMacroCall(ast, env)) {
       const [symbol, ...rest] = ast as SchemList;
       // the following typecasts are safe because isMacroCall returned true
@@ -524,9 +524,9 @@ export class Schem {
   }
 
   /** Recursively expands macro all functions in an abstract syntax tree */
-  async macroExpandAll(ast: SchemType, env: Env): Promise<SchemType> {
+  async macroExpandAll(ast: AnySchemType, env: Env): Promise<AnySchemType> {
     if (isSchemList(ast)) {
-      return new SchemList(...await Promise.all<SchemType>(
+      return new SchemList(...await Promise.all<AnySchemType>(
         ast.map(async (element) => {
           // expand every node
           let expandedElement = await this.macroExpand(element, env);
@@ -560,9 +560,9 @@ export class Schem {
 
 /** Returns all elements in an indexed & possibly nested SchemCollection as a flat array. Searches depth first. */
 // TODO: use isCollection, first and next instead of for loop
-export function filterRecursively(ast: SchemType, predicate: (element: SchemType) => boolean): SchemType[] {
-  let results = Array<SchemType>();
-  let currentElement: SchemType;
+export function filterRecursively(ast: AnySchemType, predicate: (element: AnySchemType) => boolean): AnySchemType[] {
+  let results = Array<AnySchemType>();
+  let currentElement: AnySchemType;
   function notUndefinedOrString(o: any) {
     return (typeof o !== 'undefined' && typeof o !== 'string');
   }
@@ -600,7 +600,7 @@ export function filterRecursively(ast: SchemType, predicate: (element: SchemType
  * @param {object} options Indicates how map keys should be handled. Choose wisely.
 */
 // TODO: as isSerializable check and throw error when trying to convert a schemObject that isn't
-export function schemToJs(schemObject?: SchemType | null, options: {keySerialization: 'includeTypePrefix' | 'noPrefix'} = {keySerialization: 'noPrefix'}): any | null {
+export function schemToJs(schemObject?: AnySchemType | null, options: {keySerialization: 'includeTypePrefix' | 'noPrefix'} = {keySerialization: 'noPrefix'}): any | null {
   let jsObject: any;
 
   // maps turn into objects
@@ -653,7 +653,7 @@ export function schemToJs(schemObject?: SchemType | null, options: {keySerializa
 }
 
 /** Converts a Schem value (that isn't a collection) to a js primitive */
-export function atomicSchemObjectToJS(schemObject?: SchemType): any {
+export function atomicSchemObjectToJS(schemObject?: AnySchemType): any {
   if (typeof schemObject === 'undefined') return undefined;
   if (schemObject instanceof SchemNil) return null;
   if (isSchemNumber(schemObject)) return schemObject.valueOf();
@@ -669,7 +669,7 @@ export function atomicSchemObjectToJS(schemObject?: SchemType): any {
  - Anything that can't be converted turns into 'nil'
  ```
  * */
-export function jsObjectToSchemType(o: any, options: {'arrays-to-vectors'?: boolean, depth?: number} = {}, currentDepth = 0): SchemType {
+export function jsObjectToSchemType(o: any, options: {'arrays-to-vectors'?: boolean, depth?: number} = {}, currentDepth = 0): AnySchemType {
   if (typeof options['arrays-to-vectors'] === 'undefined') options['arrays-to-vectors'] = false;
   if (typeof options.depth === 'undefined') options.depth = 0;
 
@@ -702,12 +702,12 @@ export function jsObjectToSchemType(o: any, options: {'arrays-to-vectors'?: bool
 }
 
 /** Converts a primitive js value to a Schem object */
-export function primitiveValueToSchemType(value: any, defaultValue?: SchemType): SchemType {
+export function primitiveValueToSchemType(value: any, defaultValue?: AnySchemType): AnySchemType {
   switch (typeof value) {
     case 'string': return new SchemString(value);
     case 'number': return new SchemNumber(value);
     case 'boolean': return SchemBoolean.fromBoolean(value);
-    case 'undefined': return SchemNil;
+    case 'undefined': return SchemNil.instance;
     default:
       if (defaultValue != null) {
         return defaultValue;
