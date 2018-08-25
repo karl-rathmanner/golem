@@ -1,14 +1,13 @@
 # Golem
 
-Golem is a webextension that's supposed to automate tasks in Ex Libris' Web-based ILS Alma.
-It carries out menial tasks and is driven by words.
+A golem carries out menial tasks and is driven by words. This is a webextension that's supposed to enable you to automate things or modify stuff in your web browser. In essence, it's a userscript manager with lisp instead of javascript.
 
 ## Schem
-[ʃɛm], from Hebrew שם‎ (Šēm).
+[ʃɛm], from Hebrew שם‎ (Šēm). *Not* pronounced like "scam".
 
-When it grows up, Schem is going to be a clojure-ish lisp dialect that's going to tell the golem how to behave.
-
-
+Schem is golem's scripting language. It's a lisp dialect that tries to replicate some of the many neat features clojure has.
+While still pretty basic, Schem is already powerful enough to do cool stuff with. If you already know another lisp, you might feel at home in the editor. If not, you'll be helplessly lost as there's no documentation yet.  
+In any case, the concept of foreign execution contexts might be something entirely new, probably. If you still want to play with this, having a look at example.schem or schem.spec.ts might get you somewhere.
 
 ------------
 # Development Setup
