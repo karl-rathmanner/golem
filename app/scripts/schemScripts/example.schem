@@ -1,60 +1,31 @@
-; press alt+e to evaluate the form at your cursor position
-; these examples are 
+; Press alt+e to evaluate the form at your cursor position, hope you don't have too many or too few parens in the file.
+; these examples are neither exaustive nor
 
-; invoking a js function
-(window.alert "This works.")
+;;; available types & collections
+; lists, ofc
+(list 1 2 3)
+; vectors
+[4 5 6]
+; maps (and kewords and strings)
+{:keyword "String"}
+; regular expressions
+(re-find #"reg.*ex(?:pr)?" "regularexpresso")
+; functions
+(defn square (x) (* x x))
 
-; aliasing a js function
-(let (anoy 'window.alert)
-  (anoy "This works too. Wohoo!"))
+; this is a simple macro that turns (a b c f) into (f a b c)
+(defmacro executePostfix (fn (l) (cons (last l) (butlast l))))
+(macroexpand (executePostfix (1 2 3 4 +)))
 
-; interop type conversion (back and forth, just for illustrative purposes)
-(js->schem (schem->js {:a 42 :b ["string" 42]}) {:arrays-to-vectors true})
-(js->schem (schem->js {:v [1 2 3] :l '(4 5 6)}) {:depth 1})
+; Calculate numbers with your calculating machine:
+(* 7 (+ 3 2 1))
 
-; defining an execution context that matches any regular tab
-(defcontext anyTab: {:tabQuery {:url "*://*/*"}})
-
-; evaluating and printing something in a different context
-(anyTab:(prn (+ 41 1)))
-
-; logging a value gathered from a different context to this context
-(str "They feel: " (anyTab: (prompt "How's it going over there?")))
-
-; combining js function invocation and js property resolution (what happens with "js symbols" depends on their position in a form)
-(window.alert document.title)
-
-; setting a js property (notice that the js symbol is quoted!)
-(set! 'document.title "ᕕ( ՞ ᗜ ՞ )ᕗ")
-
-; the next examples must be executed in order
-
-; 1) opening a tab by calling a privileged API function - this only works, because the editor lives in a privileged context
-(chrome.tabs.create {:url "http://xkcd.com"})
-
-; 2) preparing a context with specific features (instead of relying on on-demand feature aggregation)
-; dom-manipulation and tiny-reply both depend on schem-interpreter, so the order matters
-(defcontext xkcd: { :tabQuery {:url "*://*.xkcd.com/*"}
-                    :features ["schem-interpreter" "dom-manipulation" "tiny-repl"]})
-
-; 3) adding an event listener in foreign contexts (and doing something with local state)
-(xkcd:
-  (do
-    (def count (atom 0))
-    (add-listener "click" "#ctitle"
-      '(do
-        (swap! count #(+ 1 %)
-          (window.alert (str "You clicked the title " (deref count) " times.")))))))
-
-; 4) opening the tiny repl (or Schem shell?) in the contexts 
-; The tiny reply allows you to evaluate Schem code within the respective local context.
-(xkcd:(tiny-repl-show))
-
-; 5) increase the page's general comicness
-(xkcd:(set-css-text "body" "font-family: \"Comic Sans MS\", \"Comic Sans\", cursive"))
-
-; implementing fizz-buzz using a lazy vector. Very lispy.
+; Implementing fizz-buzz using a lazy vector: (very lispy)
 (defn fizz-buzz (start end)
+  ; Subvec realizes a range of values in a lazy-vector, memoizing the values.
+  ; This would save time if you needed to access an element more than once and if accessing it was expensive,
+  ; e.g. if the accessor function contained a get request.
+  ; Truth be told, I don't know if that's useful. But i thought lazy-vectors looked like fun.
   (subvec 
     (lazy-vector 
       #(cond 
@@ -66,24 +37,85 @@
 
 (fizz-buzz 0 100)
 
-; a simple function
-(defn add1 (x) (+ x 1))
+; Tail call optimization example: (if it wasn't for TCO, calling sum with high values would lead to stack overflows)
+(do
+  (def sum (fn (n acc)
+    (if (= n 0)
+      acc
+      (sum (- n 1) (+ n acc)))))
 
-; a simple macro that turns (a b c f) into (f a b c)
-(defmacro executePostfix (fn (l) (cons (last l) (butlast l))))
-(executePostfix (1 2 3 4 +))
+  (sum 4141 0))
 
-;;; local storage - like a file system, even though it's not.
-; clearing the local storage
-(storage-clear-all)
+;;; Javascript interop (symbols with a dot get treated differently)
+; Invoking a js function:
+(window.alert "This works.")
 
-; storing and retrieving objects in the virtual file system
+; Aliasing a js function:
+(let (anoy 'window.alert)
+  (anoy "This works too. Wohoo!"))
+
+; Interop type conversion: 
+; (back and forth, just for illustrative purposes)
+(js->schem (schem->js {:a 42 :b ["string" "thing"]}) {:arrays-to-vectors true :depth 9001})
+(js->schem (schem->js {:v [1 2 3] :l '(4 5 6)}) {:depth 1})
+
+; Combining js function invocation and js property resolution: 
+; (what happens with "js symbols" depends on their position in a form)
+(window.alert document.title)
+
+; Setting a js property: 
+; (notice that the js symbol is quoted!)
+(set! 'document.title "ᕕ( ՞ ᗜ ՞ )ᕗ")
+
+;;; Foreign Execution Contexts (?)
+; Defining an execution context that matches any regular tab:
+(defcontext anyTab: {:tabQuery {:url "*://*/*"}})
+
+; Evaluating and printing something in a different context (check any other tab's console).
+; Foreign contexts are lazily realized by forms like this. The results from each context will be returned in a list.
+; Errors are silently swept under the rug, currently. Check your js console(s), don't forget about the background page.
+(anyTab:(prn (+ 41 1)))
+
+; Returning a value gathered from a different context in this context:
+(str "They feel: " (anyTab: (prompt "How's it going over there?")))
+
+;;; The following examples should be executed in order
+; 1) Opening a tab by calling a privileged API function: (this only works because the editor lives in a privileged context)
+(chrome.tabs.create {:url "http://xkcd.com/297/"})
+
+; 2) Defining a context with specific features: (instead of relying on on-demand feature aggregation)
+(defcontext xkcd: { :tabQuery {:url "*://*.xkcd.com/*"}
+                    ; dom-manipulation and tiny-reply both depend on schem-interpreter, so the order in which they will be injected does matter
+                    :features ["schem-interpreter" "dom-manipulation" "tiny-repl"]})
+
+; 3) Adding an event listener in foreign contexts: (and doing something with local state)
+(xkcd:
+  (do
+    (def count (atom 0))
+    (add-listener "click" "#ctitle"
+      '(do
+        (swap! count #(+ 1 %)
+          (window.alert (str "You clicked the title " (deref count) " times.")))))))
+
+; 4) Increase the page's general comicness:
+(xkcd:(set-css-text "body" "font-family: \"Comic Sans MS\", \"Comic Sans\", cursive"))
+
+; 5) Opening the tiny repl (or Schem shell?) in the contexts:
+; The tiny reply allows you to evaluate Schem code within the respective local context.
+(xkcd:(tiny-repl-show))
+
+; Try running this in the tiny repl:
+; (set-css-text "body" "background-color: gray")
+
+;;; Local storage: (looks a little like a file system, but it's not)
+
+; Storing and retrieving objects in the virtual file system:
 (storage-create "/folder/subfolder/objectName" "an invaluable value")
 (storage-read "/folder/subfolder/objectName")
 
-; show vfs info
+; Show bare vfs info: (implementing a dir/ls function is left as an exercise for the reader)
 (storage-get-vfstree)
 
-; reading and writing scripts from the editor (uses the vfs, so you can put your stuff in folders, too)
-(editor-load-script "code")
-(editor-save-script "code")
+; Saving and loading scripts in the editor: (uses the vfs, so you can put your stuff in folders, too)
+(editor-save-script "someCode")
+(editor-load-script "someCode")
