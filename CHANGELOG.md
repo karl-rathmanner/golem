@@ -1,6 +1,6 @@
-# Changelog
-All notable changes to this project should be documented in this file. The intention is to [keep a changelog](https://keepachangelog.com/en/1.0.0/) and follow [Semantic Versioning](https://semver.org/).
-
+## 0.2.1 - 2018-08-25
+### Actual public release
+Added a few more 'last minute' features, fixes and better examples.
 
 ## 0.2.0 - 2018-08-17
 ### Public release
@@ -42,3 +42,6 @@ Credit goes to [Joel Martin's](https://github.com/kanaka) awesome [Make a Lisp](
 - Used [mazamachi's](https://github.com/mazamachi) Yeoman [generator for chrome extensions written in TypeScript](https://github.com/mazamachi/generator-chrome-extension-kickstart-typescript) to scaffold out this project.
 - Some css/javascript injection tests, much hair pulling.
 - Trying to get a grip on typescript, lisp, writing your own lisp in typescript, webextensions, gulp, all those es6 features that look cool, the node.js ecosystem, ~~npm~~ yarn... (ongoing)
+
+# Changelog
+All notable changes to this project should be documented in this file. The intention is to [keep a changelog](https://keepachangelog.com/en/1.0.0/) and follow [Semantic Versioning](https://semver.org/).
