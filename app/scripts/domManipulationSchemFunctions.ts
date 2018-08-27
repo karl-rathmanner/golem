@@ -4,7 +4,6 @@ import { jsObjectToSchemType } from './schem/schem';
 import { isSchemFunction } from './schem/typeGuards';
 
 (function addSchemFunctions() {
-  console.log(window.golem.interpreter!.replEnv);
   window.golem.interpreter!.replEnv.addMap({
     'set-css-text': async (selector: SchemString, cssText: SchemString) => {
       const element = document.querySelector<HTMLElement>(selector.valueOf());
@@ -23,7 +22,6 @@ import { isSchemFunction } from './schem/typeGuards';
         ast = astOrCode;
       }
       const elements = document.querySelectorAll<HTMLElement>(selector.valueOf());
-      console.log(astOrCode);
       // const code = await pr_str(ast);
       for (let i = 0; i < elements.length; i++) {
         elements.item(i).addEventListener(eventName.valueOf(),
@@ -46,7 +44,5 @@ import { isSchemFunction } from './schem/typeGuards';
       }
     }
   });
-
-  console.log(window.golem.interpreter!.replEnv);
   window.golem.features.push('dom-manipulation');
 })();
