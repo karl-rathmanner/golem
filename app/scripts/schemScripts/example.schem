@@ -40,9 +40,9 @@
 ; Tail call optimization example: (if it wasn't for TCO, calling sum with high values would lead to stack overflows)
 (do
   (def sum (fn (n acc)
-    (if (= n 0)
-      acc
-      (sum (- n 1) (+ n acc)))))
+            (if (= n 0)
+              acc
+              (sum (- n 1) (+ n acc)))))
 
   (sum 4141 0))
 
@@ -106,6 +106,17 @@
 
 ; Try running this in the tiny repl:
 ; (set-css-text "body" "background-color: gray")
+
+;;; Persistent contexts
+; Open any number of web pages, run this script. Now reload any of the web pages, follow links or navigate to a different page.
+; A local "happyTab" context is automatically prepared whenever a tab is updated. The :init form is called once the page completed loading.
+(do
+  (def beautify '(set-css-text "body" "font-family: \"Comic Sans MS\", \"Comic Sans\", cursive; background-color: hotpink"))
+  (defcontext happyTab: {:tabQuery {:url "*://*/*"}
+                         :life-time "persistent"
+                         :features ["schem-interpreter" "dom-manipulation"]
+                         :init beautify})
+  (happyTab:(prn "Brace yourself.")))
 
 ;;; Local storage: (looks a little like a file system, but it's not)
 
