@@ -2,7 +2,7 @@ import { Env } from './env';
 import { Schem, schemToJs, jsObjectToSchemType } from './schem';
 import { Tabs } from 'webextension-polyfill-ts';
 import { AvailableSchemContextFeatures } from '../contextManager';
-import { isSchemKeyword, isSchemSymbol, isValidKeyType, isSchemString, isSchemNumber, isSchemMap } from './typeGuards';
+import { isSchemKeyword, isSchemSymbol, isValidKeyType, isSchemString, isSchemNumber, isSchemMap, isSchemType, isSchemList } from './typeGuards';
 
 // interfaces
 export interface Callable {
@@ -548,21 +548,45 @@ export class SchemContextSymbol extends SymbolicType implements TaggedType {
  */
 export class SchemContextDefinition implements TaggedType {
   public typeTag = SchemTypes.SchemContextDefinition;
+  public lifetime: 'inject-once' | 'persistent';
   frameId?: number;
   features?: AvailableSchemContextFeatures[];
   runAt?: 'document_start' | 'document_end' | 'document_idle';
+  parentContext?: Schem;
+  init?: AnySchemType;
 
-  constructor(public tabQuery: Tabs.QueryQueryInfoType, public lifetime: 'inject-once' | 'persist-navigation', features?: AvailableSchemContextFeatures[]) {
-    if (features != null) {
-      this.features = features;
+  constructor(public tabQuery: Tabs.QueryQueryInfoType, options: {features?: AvailableSchemContextFeatures[], 'life-time'?: SchemContextDefinition['lifetime'],  'run-at':  SchemContextDefinition['runAt'], frameId: number, init?: AnySchemType}) { // public tabQuery: Tabs.QueryQueryInfoType, public lifetime: 'inject-once' | 'persist-navigation', features?: AvailableSchemContextFeatures[]) {
+    // TODO: make DRY
+    if (options.features != null) {
+      this.features = options.features;
+    }
+    if (options['life-time'] != null) {
+      this.lifetime = options['life-time']!;
+    }
+    if (options['run-at'] != null) {
+      this.runAt = options['run-at'];
+    }
+    if (options.frameId != null) {
+      this.frameId = options.frameId;
     }
   }
 
-  static fromSchemMap(initializationMap: SchemMap): SchemContextDefinition {
+  static fromSchemMap(initializationMap: SchemMap, parentContext?: Schem): SchemContextDefinition {
     const jso = schemToJs(initializationMap);
     if (jso.tabQuery != null) {
-      return new SchemContextDefinition(jso.tabQuery, 'inject-once', jso.features);
+      const scd = new SchemContextDefinition(jso.tabQuery, jso);
+
+      if (parentContext != null) {
+        scd.parentContext = parentContext;
+        const initForm = initializationMap.get(SchemKeyword.from('init'));
+        if (isSchemType(initForm)) {
+          scd.init = initForm;
+        }
+      }
+      return scd;
     }
+
+
     throw new Error(`missing value for :tabQuery`);
   }
 }

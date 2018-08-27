@@ -184,8 +184,8 @@ export class Schem {
               case 'defcontext': {
                 const [, contextSymbol, contextDefinitionMap] = ast;
 
-                if ( isSchemContextSymbol(contextSymbol) &&  isSchemMap(contextDefinitionMap)) {
-                  env.set(contextSymbol, SchemContextDefinition.fromSchemMap(contextDefinitionMap));
+                if (isSchemContextSymbol(contextSymbol) && isSchemMap(contextDefinitionMap)) {
+                  env.set(contextSymbol, SchemContextDefinition.fromSchemMap(contextDefinitionMap, this));
                 }
 
                 return SchemBoolean.true;

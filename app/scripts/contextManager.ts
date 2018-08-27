@@ -2,12 +2,13 @@ import { SchemContextInstance, SchemContextDefinition } from './schem/types';
 import { browser, Tabs } from 'webextension-polyfill-ts';
 import { GolemContextMessage } from './contentScriptMessaging';
 import { objectPatternMatch } from './utils/utilities';
+import { pr_str } from './schem/printer';
 
 
 export type AvailableSchemContextFeatures = 'schem-interpreter' | 'lightweight-js-interop' | 'demo-functions' | 'dom-manipulation' | 'tiny-repl';
 
 export class SchemContextManager {
-  activeContextInstances = new Array<SchemContextInstance>();
+  activeContextInstances = new Map<number, SchemContextInstance>();
   private static featureNameToContentScriptPath = new Map<AvailableSchemContextFeatures, string>([
     ['schem-interpreter', 'scripts/localInterpreterCS.js'],
     ['demo-functions', 'scripts/demoContentScript.js'],
@@ -75,25 +76,20 @@ export class SchemContextManager {
       const tabId = typeof tab.id !== 'undefined' ? tab.id : -1;
 
       // instantiate new context only if the frame>tab>window doesn't already have one matching the definition
-      const matchingContextIndex = this.indexOfContextInstanceMatchingPattern({frameId: frameId, tabId: tabId, windowId: windowId, tabQuery: queryInfo});
+      const matchingContextId = this.idOfContextInstanceMatchingPattern({frameId: frameId, tabId: tabId, windowId: windowId, tabQuery: queryInfo});
 
-      if (matchingContextIndex < 0) {
-        const scd = new SchemContextDefinition(queryInfo, 'inject-once');
-        scd.frameId = frameId;
-        const newContext = new SchemContextInstance(this.getNewContextId(), tabId, windowId, scd);
-        this.activeContextInstances.push(newContext);
+      if (matchingContextId === null) {
+        if (contextDef.lifetime == null) contextDef.lifetime = 'inject-once';
+        const newContext = new SchemContextInstance(this.getNewContextId(), tabId, windowId, contextDef);
+        this.activeContextInstances.set(newContext.id, newContext);
         return newContext;
       } else {
-        return this.activeContextInstances[matchingContextIndex];
+        return this.activeContextInstances.get(matchingContextId)!;
       }
     });
 
     const contextIds = Promise.all(contexts.map(async context => {
-      if (! (await this.hasActiveBaseContentScript(context))) {
-        if (!(await this.injectBaseContentScript(context))) {
-          throw new Error(`couldn't inject base content script into context ${context.id}`);
-        }
-      }
+      await this.injectBaseContentScriptIfNecessary(context);
 
       if (contextDef.features != null) {
         await Promise.all(contextDef.features.map((feature) => {
@@ -107,6 +103,14 @@ export class SchemContextManager {
     return contextIds;
   }
 
+  private async injectBaseContentScriptIfNecessary(context: SchemContextInstance) {
+    if (!(await this.hasActiveBaseContentScript(context))) {
+      if (!(await this.injectBaseContentScript(context))) {
+        throw new Error(`couldn't inject base content script into context ${context.id}`);
+      }
+    }
+  }
+
   /** Get a pseudo-random integer that isn't currently used as a context ID */
   getNewContextId() {
     let candidateId: number;
@@ -116,18 +120,21 @@ export class SchemContextManager {
     return candidateId;
   }
 
-  indexOfContextInstanceMatchingPattern(pattern: any, ignorePropertiesNamed: string[] = []) {
-    return this.activeContextInstances.findIndex(context => {
-      return objectPatternMatch(context, pattern);
-    });
+  idOfContextInstanceMatchingPattern(pattern: any, ignorePropertiesNamed: string[] = []) {
+    for (const context of this.activeContextInstances.values()) {
+      if (objectPatternMatch(context, pattern)) {
+        return context.id;
+      }
+    }
+    return null;
   }
 
   getContextInstance(contextId: number): SchemContextInstance {
-    const index = this.activeContextInstances.findIndex(instance => instance.id === contextId);
-    if (index === -1) {
+    const c = this.activeContextInstances.get(contextId);
+    if (c == null) {
       throw new Error(`no context found for id ${contextId}`);
     }
-    return this.activeContextInstances[index];
+    return c;
   }
 
   hasContextInstance(contextId: number): boolean {
@@ -142,9 +149,16 @@ export class SchemContextManager {
   async injectFeature(context: SchemContextInstance, feature: AvailableSchemContextFeatures) {
     const contentScriptURL = SchemContextManager.featureNameToContentScriptPath.get(feature);
     return browser.tabs.executeScript(context.tabId, {file: contentScriptURL}).then(result => {
-      console.log(result);
       return true;
     }).catch(e => e);
+  }
+
+  async injectFeatureIfNecessary(context: SchemContextInstance, feature: AvailableSchemContextFeatures) {
+    const hasFeature = await this.checkFeature(context, feature);
+    if (!hasFeature) {
+      return this.injectFeature(context, feature);
+    }
+    return true;
   }
 
   async hasActiveBaseContentScript(context: SchemContextInstance): Promise<boolean> {
@@ -160,22 +174,14 @@ export class SchemContextManager {
   async checkFeature(context: SchemContextInstance, feature: AvailableSchemContextFeatures): Promise<boolean> {
     const msg: GolemContextMessage = {action: 'has-feature', args: feature};
     return browser.tabs.sendMessage(context.tabId, msg).then(result => {
-      console.log(`context ${context.id} ${result === true ? 'supports' : `doesn't support`} ${feature}`);
+      // console.log(`context ${context.id} ${result === true ? 'supports' : `doesn't support`} ${feature}`);
       return result as boolean;
     }).catch(reason => {
       throw new Error(reason.message);
     });
   }
 
-  async injectFeatureIfNecessary(context: SchemContextInstance, feature: AvailableSchemContextFeatures) {
-    const hasFeature = await this.checkFeature(context, feature);
-    if (!hasFeature) {
-      return this.injectFeature(context, feature);
-    }
-    return true;
-  }
-
-  async arepInContexts(contextIds: number[], schemCode: string, options: any) {
+  async arepInContexts(contextIds: number[], schemCode: string, options?: any) {
     const contexts = contextIds.map(id => this.getContextInstance(id));
     // inject interpreter where necessary
     await Promise.all(contexts.map(async context => this.injectFeatureIfNecessary(context, 'schem-interpreter')));
@@ -195,6 +201,26 @@ export class SchemContextManager {
 
   }
 
+  async restoreContextsAfterReload(tabId: number) {
+    const contextsInTab = Array.from(this.activeContextInstances.values()).filter(ci => {
+      return ci.tabId === tabId;
+    });
+
+    contextsInTab.forEach(async context => {
+      if (context.definition.lifetime === 'persistent') {
+        await this.injectBaseContentScriptIfNecessary(context);
+        if (context.definition.features != null) context.definition.features.forEach(feature => {
+          this.injectFeatureIfNecessary(context, feature);
+        });
+        if (context.definition.init != null) {
+          this.arepInContexts([context.id], await pr_str(await context.definition.parentContext!.evalSchem(context.definition.init)));
+        }
+      } else {
+        // this context is not needed anymore
+        this.activeContextInstances.delete(context.id);
+      }
+    });
+  }
 
   async invokeJsProcedure(contextIds: number[], qualifiedProcedureName: string, ...procedureArgs: any[]) {
     // NOT DRY!

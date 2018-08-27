@@ -1,9 +1,7 @@
 import 'chromereload/devonly';
-import { browser, Tabs } from 'webextension-polyfill-ts';
-import { SchemContextDefinition, SchemContextInstance } from './schem/types';
-import { EventPageMessage } from './eventPageMessaging';
+import { browser } from 'webextension-polyfill-ts';
 import { SchemContextManager } from './contextManager';
-import { Golem } from './golem';
+import { EventPageMessage } from './eventPageMessaging';
 
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('previousVersion', details.previousVersion);
@@ -61,11 +59,10 @@ function notify(message: string) {
   });
 }
 
-function injectCSS(tabId: number, css: string) {
-  browser.tabs.insertCSS(tabId, {code: css});
-}
-
-browser.tabs.onUpdated.addListener((id, changeInfo, tab) => {
+browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete') {
+    contextManager.restoreContextsAfterReload(tabId);
+  }
 });
 
 browser.commands.onCommand.addListener(function(command) {
