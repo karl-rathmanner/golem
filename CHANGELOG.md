@@ -1,3 +1,9 @@
+## 0.3.0
+Added "persistent" contexts, that can be automatically set up/restored whenever a page loads.
+
+## 0.2.2
+Switched type tagged types to fix runtime type checking.
+
 ## 0.2.1 - 2018-08-25
 ### Actual public release
 Added a few more 'last minute' features, fixes and better examples.
