@@ -26,7 +26,7 @@ export class SchemEditor {
       theme: 'vs-dark'
     });
     
-    window.addEventListener('resize', this.updateEditorLayout );
+    window.addEventListener('resize', this.updateEditorLayout);
     this.updateEditorLayout();
     this.monacoEditor.focus();
 
@@ -117,7 +117,7 @@ export class SchemEditor {
       
       this.evalZoneId = changeAccessor.addZone({
         afterLineNumber: afterLineNumber,
-        heightInLines: lines.length,
+        heightInLines: Math.min(lines.length, 3),
         domNode: domNode,
         marginDomNode: marginDomNode,
       });
@@ -169,7 +169,7 @@ export class SchemEditor {
     });
   }
   
-  private updateEditorLayout() {
+  private updateEditorLayout = () => {
     getHTMLElementById('monacoContainer').style.height = `${window.innerHeight}px`;
     getHTMLElementById('monacoContainer').style.width = `${window.innerWidth}px`;
     this.monacoEditor.layout();

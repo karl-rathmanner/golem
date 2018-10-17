@@ -10,28 +10,27 @@ body {
 }
 
 .evalViewZone {
-  width: 90%;
+  max-height: 3rem;
+  overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  user-select: text;
   z-index: 9001;
 }
 
 .evalViewZone:hover {
+  max-height: none;
+  overflow: visible;
   white-space: normal;
 }
 
 .evalViewZone div {
+  width: 90%;
   overflow: hidden;
   text-overflow: ellipsis;
   background-color: inherit;
   padding-left: .2rem;
 }
-
-.evalViewZone div:hover {
-  max-height: 10rem;
-  padding-bottom: .2rem;
-}
-
 
 .evalResultViewZone {
   background-color: rgb(27, 70, 27);
