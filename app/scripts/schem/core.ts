@@ -321,9 +321,6 @@ export const coreFunctions: {[symbol: string]: any} = {
     console.log(value);
     return SchemNil.instance;
   },
-  'schem->js': (value: AnySchemType, options?: SchemMap) => {
-    return schemToJs(value, options != null ? schemToJs(options, {keySerialization: 'noPrefix'}) : {keySerialization: 'noPrefix'});
-  },
   'set!': (sym: SchemSymbol, value: AnySchemType) => {
     if (SchemSymbol.refersToJavascriptObject(sym)) {
       setJsProperty(sym.name, schemToJs(value));
@@ -332,7 +329,10 @@ export const coreFunctions: {[symbol: string]: any} = {
     }
   },
   'js->schem': async (value: AnySchemType, options?: SchemMap) => {
-    return jsObjectToSchemType(value, schemToJs(options));
+    return jsObjectToSchemType(value, schemToJs(options, {keySerialization: 'toPropertyIdentifier'}));
+  },
+  'schem->js': (value: AnySchemType, options?: SchemMap) => {
+    return schemToJs(value, schemToJs(options, {keySerialization: 'toPropertyIdentifier'}));
   },
   'storage-create': async (qualifiedObjectName: SchemString, value: AnySchemType) => {
     return await VirtualFileSystem.createObject(qualifiedObjectName.valueOf(), schemToJs(value));
@@ -409,8 +409,8 @@ async function asyncStringifyAll(schemObjects: AnySchemType[], escapeStrings: bo
 }
 
 function createSchemMapFromXMLDocument(xmlDoc: XMLDocument): SchemMap {
-
-  const traverseDocument = (node: Element) => {
+  
+  const recursivelyTraverseDocument = (node: Element) => {
     const map = new SchemMap();
     map.set(SchemKeyword.from('tag'), SchemKeyword.from(node.tagName));
 
@@ -428,11 +428,17 @@ function createSchemMapFromXMLDocument(xmlDoc: XMLDocument): SchemMap {
       }
     } else {
       if (node.childElementCount === 1) {
-        map.set(SchemKeyword.from('content'), traverseDocument(node.children.item(0)));
+        const onlyChild = node.children.item(0);
+        if (onlyChild != null) {
+          map.set(SchemKeyword.from('content'), recursivelyTraverseDocument(onlyChild));
+        }
       } else {
         let content = new SchemVector();
         for (let i = 0; i < node.childElementCount; i++) {
-          content.push(traverseDocument(node.children.item(i)));
+          let oneSiblingOfMany = node.children.item(i);
+          if (oneSiblingOfMany != null) {
+            content.push(recursivelyTraverseDocument(oneSiblingOfMany));
+          }
         }
         map.set(SchemKeyword.from('content'), content);
       }
@@ -441,8 +447,11 @@ function createSchemMapFromXMLDocument(xmlDoc: XMLDocument): SchemMap {
     return map;
   };
 
-
-  return traverseDocument(xmlDoc.documentElement);
+  if (xmlDoc.documentElement != null) {
+    return recursivelyTraverseDocument(xmlDoc.documentElement);
+  } else {
+    throw Error("xml object contained no document node")
+  }
 }
 
 
