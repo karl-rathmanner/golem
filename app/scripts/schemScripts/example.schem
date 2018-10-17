@@ -119,7 +119,7 @@
   (happyTab:(prn "Brace yourself.")))
 
 ;;; requesting an xml document via http and turning it into a native map
-(xml->map (slurp "http://dbpedia.org/data/Golem.rdf"))
+(xml->map (xhr-get "http://dbpedia.org/data/Golem.rdf"))
 
 ;; if you're absolutely positive that all node and attribute names would be valid keywords (i.e. they don't contain colons or slashes and such)
 ;; then requesting a map with keyword keys will work too (otherwise :keyType defaults to "string")
