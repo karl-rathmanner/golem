@@ -1,4 +1,3 @@
-import * as $ from 'jquery';
 import { browser } from 'webextension-polyfill-ts';
 import { setJsProperty } from '../javascriptInterop';
 import { VirtualFileSystem } from '../virtualFilesystem';
@@ -155,29 +154,34 @@ export const coreFunctions: {[symbol: string]: any} = {
   'read-string': (str: SchemString) => {
     return readStr(str.valueOf());
   },
+  'xhr-get': async (url: SchemString) => {
+    return xhrPromise('GET', url.valueOf())
+  },
+  'xhr-post': async (url: SchemString, body: AnySchemType) => {
+    return xhrPromise('POST', url.valueOf(), schemToJs(body))
+  },
+  'xhr-put': async (url: SchemString, body: AnySchemType) => {
+    return xhrPromise('PUT', url.valueOf(), schemToJs(body))
+  },
+  'xhr-delete': async (url: SchemString) => {
+    return xhrPromise('DELETE', url.valueOf())
+  },
+  
   'slurp': async (url: SchemString, opts?: SchemMap) => {
     // get full URL for files packaged with the browser extension, when url begins with a slash
     const actualUrl = (url[0] === '/') ? browser.extension.getURL('/schemScripts' + url.valueOf()) : url.valueOf();
-
-    let ajaxSettings: JQueryAjaxSettings = {
-      type: 'GET',
-      url: actualUrl,
-      success: (response) => {
-        return response;
-      }
-    };
-
-    let format: any = opts ? opts.getValueForKeyword('data-type') : null;
-    if ( isSchemString(format)) {
-      ajaxSettings.dataType = format.valueOf();
-    }
-
-    const response = await $.ajax(ajaxSettings);
-    if (response instanceof XMLDocument) {
-      return createSchemMapFromXMLDocument(response);
+    return new SchemString(await xhrPromise('GET', actualUrl));
+  },
+  'xml->map': (xml: XMLDocument | string | SchemString, options?: SchemMap) => {
+    let xmlDoc: XMLDocument;
+    if (typeof xml == 'string') {
+      xmlDoc = new DOMParser().parseFromString(xml, 'text/xml');
+    } else if (isSchemString(xml)) {
+      xmlDoc = new DOMParser().parseFromString(xml.valueOf(), 'text/xml');
     } else {
-      return new SchemString(response);
+      xmlDoc = xml;
     }
+    return createSchemMapFromXMLDocument(xmlDoc, schemToJs(options));
   },
   'get': (map: SchemMap, key: SchemMapKey, defaultValue?: AnySchemType) => {
     if ( isSchemMap(map)) {
@@ -187,9 +191,6 @@ export const coreFunctions: {[symbol: string]: any} = {
         throw `map lookup only works with valid key types`;
       }
     }
-    return SchemNil.instance;
-  },
-  'parse-xml': (xmlString: SchemString) => {
     return SchemNil.instance;
   },
   'atom': (value: AnySchemType) => {
@@ -408,29 +409,36 @@ async function asyncStringifyAll(schemObjects: AnySchemType[], escapeStrings: bo
   }));
 }
 
-function createSchemMapFromXMLDocument(xmlDoc: XMLDocument): SchemMap {
+function createSchemMapFromXMLDocument(xmlDoc: XMLDocument, options: {keyType?: 'string' | 'keyword'} = {keyType: 'string'}): SchemMap {
+  function createKey(v: string) {
+    if (options.keyType === 'keyword') {
+      return SchemKeyword.from(v);
+    } else {
+      return new SchemString(v);
+    }
+  }
   
   const recursivelyTraverseDocument = (node: Element) => {
     const map = new SchemMap();
-    map.set(SchemKeyword.from('tag'), SchemKeyword.from(node.tagName));
+    map.set(createKey('tag'), new SchemString(node.tagName));
 
     if (node.attributes.length > 0) {
       let attrs = new SchemMap();
       for (let i = 0; i < node.attributes.length; i++) {
-        attrs.set(SchemKeyword.from(node.attributes.item(i)!.name), new SchemString(node.attributes.item(i)!.value));
+        attrs.set(createKey(node.attributes.item(i)!.name), new SchemString(node.attributes.item(i)!.value));
       }
-      map.set(SchemKeyword.from('attrs'), attrs);
+      map.set(createKey('attrs'), attrs);
     }
 
     if (node.childElementCount === 0) {
       if (node.textContent && node.textContent.length > 0) {
-        map.set(SchemKeyword.from('content'), new SchemString(node.textContent));
+        map.set(createKey('content'), new SchemString(node.textContent));
       }
     } else {
       if (node.childElementCount === 1) {
         const onlyChild = node.children.item(0);
         if (onlyChild != null) {
-          map.set(SchemKeyword.from('content'), recursivelyTraverseDocument(onlyChild));
+          map.set(createKey('content'), recursivelyTraverseDocument(onlyChild));
         }
       } else {
         let content = new SchemVector();
@@ -440,7 +448,7 @@ function createSchemMapFromXMLDocument(xmlDoc: XMLDocument): SchemMap {
             content.push(recursivelyTraverseDocument(oneSiblingOfMany));
           }
         }
-        map.set(SchemKeyword.from('content'), content);
+        map.set(createKey('content'), content);
       }
     }
 
@@ -491,4 +499,29 @@ function computeSimpleStringSimilarityScore(needle: string, haystack: string): n
     }
   }
   return score;
+}
+
+function xhrPromise (method: 'GET' | 'POST' | 'PUT' | 'DELETE', url: string, body: Document | BodyInit | null = null, async: boolean = true, user: string | null = null, password: string | null = null){
+      // based on https://stackoverflow.com/a/30008115
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open(method, url, async, user, password);
+        xhr.onload = function () {
+          if (this.status >= 200 && this.status < 300) {
+            resolve(xhr.response);
+          } else {
+            reject({
+              status: this.status,
+              statusText: xhr.statusText
+            });
+          }
+        };
+        xhr.onerror = function () {
+          reject({
+            status: this.status,
+            statusText: xhr.statusText
+          });
+        };
+        xhr.send(body);
+      });
 }

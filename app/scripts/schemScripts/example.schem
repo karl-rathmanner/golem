@@ -118,6 +118,18 @@
                          :init beautify})
   (happyTab:(prn "Brace yourself.")))
 
+;;; requesting an xml document via http and turning it into a native map
+(xml->map (slurp "http://dbpedia.org/data/Golem.rdf"))
+
+;; if you're absolutely positive that all node and attribute names would be valid keywords (i.e. they don't contain colons or slashes and such)
+;; then requesting a map with keyword keys will work too (otherwise :keyType defaults to "string")
+(xml->map 
+  (str "<doc>"
+        "<node1>woo</node1>"
+        "<node2 someAttribute=\"coo.\" someOtherAttribute=\"coo.\">hoo</node2>"
+       "</doc>")
+  {:keyType "keyword"})
+
 ;;; Local storage: (looks a little like a file system, but it's not)
 
 ; Storing and retrieving objects in the virtual file system:
