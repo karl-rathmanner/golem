@@ -9,18 +9,18 @@ import { VirtualFileSystem } from './virtualFilesystem';
 
 const example = require('!raw-loader!./schemScripts/example.schem');
 
-class SchemEditor {
+export class SchemEditor {
   public monacoEditor: monaco.editor.IStandaloneCodeEditor;
   private evalZoneId: number;
   private ast: AnySchemType;
   
-  constructor () {
+  constructor (container: HTMLElement) {
     const interpreter = new Schem();
     interpreter.replEnv.addMap(eventPageMessagingSchemFunctions);
     interpreter.replEnv.addMap(this.editorManipulationSchemFunctions);
     AddSchemSupportToEditor(interpreter);
     
-    this.monacoEditor = monaco.editor.create(document.getElementById('monacoContainer')!, {
+    this.monacoEditor = monaco.editor.create(container, {
       value: example,
       language: 'schem',
       theme: 'vs-dark'
@@ -175,7 +175,3 @@ class SchemEditor {
     this.monacoEditor.layout();
   }
 }
-
-window.onload = () => {
-  new SchemEditor();
-};
