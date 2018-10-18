@@ -1,7 +1,9 @@
 import * as monaco from 'monaco-editor';
-import ILanguage = monaco.languages.IMonarchLanguage;
 import { Schem } from '../schem/schem';
-import { SchemList, SchemSymbol } from '../schem/types';
+import { isSchemCollection, isSchemFunction, isSchemSymbol } from '../schem/typeGuards';
+import { AnySchemType, SchemContextSymbol, SchemList, SchemSymbol, SchemTypes } from '../schem/types';
+import ILanguage = monaco.languages.IMonarchLanguage;
+
 
 export function AddSchemSupportToEditor(interpreter: Schem) {
   registerLanguage();
@@ -42,6 +44,11 @@ function setLanguageConfiguration() {
   });
 }
 
+const specialFormsAndKeywords = [
+  'def', 'defmacro', 'defcontext', 'let', 'do', 'if', 'fn', 
+  'quote', 'quasiquote', 'macroexpand', 'macroexpand-all', 'set-interpreter-options',
+];
+
 function setMonarchTokensProvider() {
   // placeholder borrowed from: https://github.com/Microsoft/monaco-languages/blob/master/src/clojure/clojure.ts
   // TODO: revisit https://microsoft.github.io/monaco-editor/monarch.html and rewrite/adapt tokenizer
@@ -54,14 +61,8 @@ function setMonarchTokensProvider() {
       { open: '{', close: '}', token: 'delimiter.curly' },
       { open: '[', close: ']', token: 'delimiter.square' },
     ],
-    keywords: [
-      'fn',
-      'def',
-      'defn',
-      'defmacro'
-    ],
+    keywords: specialFormsAndKeywords,
     constants: ['true', 'false', 'nil'],
-    operators: ['=', 'not=', '<', '<=', '>', '>=', 'and', 'or', 'not', 'inc', 'dec', 'max', 'min', 'rem', 'bit-and', 'bit-or', 'bit-xor', 'bit-not'],
     tokenizer: {
       root: [
         // [/#[xXoObB][0-9a-fA-F]+/, 'number.hex'],
@@ -73,7 +74,6 @@ function setMonarchTokensProvider() {
             cases: {
               '@keywords': 'keyword',
               '@constants': 'constant',
-              '@operators': 'operators',
               '@default': 'identifier',
             },
           },
@@ -108,19 +108,79 @@ function setMonarchTokensProvider() {
 }
 
 function registerCompletionItemProvider(interpreter: Schem) {
+  let reservedKeywordCompletionItems: monaco.languages.CompletionItem[] = [];
+
+  specialFormsAndKeywords.forEach(kw => {
+    reservedKeywordCompletionItems.push({
+        label: kw,
+        kind: monaco.languages.CompletionItemKind.Keyword,
+        insertText: kw + ' ',
+        detail: 'special form or reserved word'
+    });
+  });
+
   monaco.languages.registerCompletionItemProvider('schem', {
     provideCompletionItems: async (textModel, position) => {
-      let wordAtCursor = textModel.getWordAtPosition(position).word;
-      let symbols = await interpreter.readEval(`(sort-and-filter-by-string-similarity "${wordAtCursor}" (list-symbols))`);
-
+      
+      // let wordAtCursor = textModel.getWordAtPosition(position).word;
+      // let symbols = await interpreter.readEval(`(sort-and-filter-by-string-similarity "${wordAtCursor}" (list-symbols))`);
+      let symbols = await interpreter.readEval(`(list-symbols)`);
       if (symbols instanceof SchemList) {
-        let completionItems: monaco.languages.CompletionItem[] = symbols.map((sym: SchemSymbol) => {
+        let completionItems: monaco.languages.CompletionItem[] = symbols.map((sym: SchemSymbol): monaco.languages.CompletionItem => {
+          const resolvedValue = interpreter.replEnv.get(sym);
+
+          const pickKind = (t: SchemTypes) => {
+            // Not caring about the semantics here, just trying to pick ones with a fitting icon
+            // TODO: see if CompletionItemKind can be extended or customized
+            switch (t) {
+              case SchemTypes.SchemFunction: return monaco.languages.CompletionItemKind.Function;
+              case SchemTypes.SchemSymbol: return monaco.languages.CompletionItemKind.Variable;
+              case SchemTypes.SchemContextSymbol: 
+              case SchemTypes.SchemContextDefinition:
+              case SchemTypes.SchemContextInstance:
+                return monaco.languages.CompletionItemKind.Reference;
+              default: 
+                return monaco.languages.CompletionItemKind.Value;
+            }
+          }
+
+          const pickInsertText = (symbol: SchemSymbol | SchemContextSymbol, schemValue: AnySchemType) => {
+            if (isSchemSymbol(symbol)) {
+              if (schemValue.typeTag === SchemTypes.SchemFunction) {
+                return {
+                  value: '(' + symbol.name + ' $0)'
+                };
+              } else {
+                return symbol.name + ' ';
+              }
+            } else {
+              return symbol.name + ': ';
+            }
+          };
+
+          const pickDetail = (schemValue: AnySchemType) => {
+            if (isSchemFunction(schemValue)) {
+              if (schemValue.isMacro) {
+                return `Macro: ${schemValue.metadata}`;
+              } else {
+                return `Function: ${schemValue.metadata}`;
+              }
+            } else if (isSchemCollection(schemValue)) {
+              return `${SchemTypes[schemValue.typeTag]} with ${schemValue.count()} items`; // printing a collection would be asynchronous and might have side effects, so I won't do that for now 
+            } else {
+              return `${SchemTypes[schemValue.typeTag]}: ${schemValue.toString()}`;
+            }
+          }
+
           return {
             label: sym.name,
-            kind: monaco.languages.CompletionItemKind.Keyword,
-            insertText: sym.name + ' '
+            kind: pickKind(resolvedValue.typeTag),
+            insertText: pickInsertText(sym, resolvedValue),
+            detail: pickDetail(resolvedValue)
           };
         });
+
+        completionItems.push(...reservedKeywordCompletionItems);
         return completionItems;
       }
 

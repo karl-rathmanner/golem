@@ -1,4 +1,4 @@
-import { AnySchemType, SchemVector, SchemList, SchemMap, SchemNumber, SchemContextSymbol, SchemNil, SchemString, SchemRegExp, SchemFunction, SchemBoolean, SchemAtom, SchemLazyVector, SchemSymbol, SchemKeyword, Callable, SchemMapKey, Sequable, SchemTypes } from './types';
+import { AnySchemType, SchemVector, SchemList, SchemMap, SchemNumber, SchemContextSymbol, SchemNil, SchemString, SchemRegExp, SchemFunction, SchemBoolean, SchemAtom, SchemLazyVector, SchemSymbol, SchemKeyword, Callable, SchemMapKey, Sequable, SchemTypes, RegularSchemCollection } from './types';
 //
 export function isSequential(object: AnySchemType): object is SchemList | SchemVector {
   return (object instanceof SchemList ||  isSchemVector(object));
@@ -21,7 +21,7 @@ export function isSchemType(o: any): o is AnySchemType {
           isSchemAtom(o));
 }
 
-export function isSchemCollection(o: any): boolean {
+export function isSchemCollection(o: any): o is RegularSchemCollection {
   return (o instanceof SchemList ||
            isSchemVector(o) ||
            isSchemMap(o) ||
