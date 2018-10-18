@@ -132,16 +132,22 @@ export class Env {
   }
 
   /** Returns all symbols defined in this and all outer environments */
-  getSymbols(): Array<SchemSymbol> {
+  getSymbols(): Array<SchemSymbol | SchemContextSymbol> {
 
-    let schemSymbols = Array.from(this.symbolValueMap.keys()).map(symbol => {
+    let symbols: Array<SchemSymbol | SchemContextSymbol>;
+    
+    symbols = Array.from(this.symbolValueMap.keys()).map(symbol => {
       return SchemSymbol.from(Symbol.keyFor(symbol)!);
     });
 
+    symbols.push(...Array.from(this.contextSymbolMap.keys()).map(symbol => {
+      return SchemContextSymbol.from(symbol);
+    }));
+
     if (this.outer) {
-      return schemSymbols.concat(this.outer.getSymbols());
+      return symbols.concat(this.outer.getSymbols());
     } else {
-      return schemSymbols;
+      return symbols;
     }
   }
 
