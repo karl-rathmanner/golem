@@ -35,7 +35,7 @@ export const coreFunctions: {[symbol: string]: any} = {
   },
   'sqr': (d: SchemNumber) => new SchemNumber(d.valueOf() * d.valueOf()),
   '=': (...args: AnySchemType[]) => {
-    throwErrorIfArityIsInalid(args.length, 1);
+    throwErrorIfArityIsInvalid(args.length, 1);
     // If passed a single value (= x) the result is always true.
     if (args.length === 1) return SchemBoolean.true;
 
@@ -381,7 +381,7 @@ function doNumericComparisonForEachConsecutivePairInArray(predicate: (a: number,
   return SchemBoolean.true;
 }
 
-function throwErrorIfArityIsInalid(argsLength: number, min: number = 1, max: number = Infinity, even: boolean = false) {
+function throwErrorIfArityIsInvalid(argsLength: number, min: number = 1, max: number = Infinity, even: boolean = false) {
   if (argsLength < min) {
     throw `Unexpected number of argunents (${argsLength}), minimum number of arguments is ${min}.`;
   } else if (argsLength > max) {
