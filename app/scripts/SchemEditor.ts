@@ -67,10 +67,12 @@ export class SchemEditor {
           this.addEvaluationViewZone(viewZoneAfterLineNumber, schemUnescape(result), 'evalResultViewZone');
         }).catch(error => {
           console.error(error);
-          let errorMessage = (typeof error === 'string') ? error : error.error; // I still throw many plain strings as errors. This band-aid 'fixes' that.
-          if (typeof errorMessage !== 'string') {
-            errorMessage = JSON.stringify(errorMessage); // And this is a band-aid for the band-aid.
-          }
+
+          let errorMessage = (typeof error === 'string') ? error :  // I still throw many plain strings as errors. This band-aid 'fixes' that.
+                             ('error' in error) ? error.error :     // I also throw whatever that is. Somewhere. This clearly calls for more band-aids.
+                             ('message' in error) ? error.message : // This is what an error is supposed to look like...
+                             `Unknown error type thrown. Trey checking the browser's console for more information !`; // ...but if it doesn't, at least tell the user.
+
           this.addEvaluationViewZone(viewZoneAfterLineNumber, errorMessage, 'evalErrorViewZone');
         });
         // handle decoration stuff
