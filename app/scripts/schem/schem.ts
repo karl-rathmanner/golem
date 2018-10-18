@@ -41,11 +41,7 @@ export class Schem {
       }
     });
 
-    // TODO: add the 'special' symbols to the environment instead of faking it
-    this.replEnv.set('list-symbols', () => new SchemList(...this.replEnv.getSymbols().concat(
-      SchemSymbol.from('def'), SchemSymbol.from('defmacro'), SchemSymbol.from('macroexpand'), SchemSymbol.from('macroexpand-all'), SchemSymbol.from('let'), SchemSymbol.from('do'),
-      SchemSymbol.from('if'), SchemSymbol.from('quote'), SchemSymbol.from('quasiquote'), SchemSymbol.from('set-interpreter-options')
-    )));
+    this.replEnv.set('list-symbols', () => new SchemList(...this.replEnv.getSymbols()));
 
     if (browser.extension != null) {
 
