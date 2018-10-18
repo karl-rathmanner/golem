@@ -161,13 +161,14 @@ function registerCompletionItemProvider(interpreter: Schem) {
           const pickDetail = (schemValue: AnySchemType) => {
             if (isSchemFunction(schemValue)) {
               if (schemValue.isMacro) {
-                return `Macro: ${schemValue.metadata}`;
+                return `Macro`;
               } else {
-                return `Function: ${schemValue.metadata}`;
+                return `Function`;
               }
             } else if (isSchemCollection(schemValue)) {
               return `${SchemTypes[schemValue.typeTag]} with ${schemValue.count()} items`; // printing a collection would be asynchronous and might have side effects, so I won't do that for now 
             } else {
+              // TODO: handle keywords, atoms etc.
               return `${SchemTypes[schemValue.typeTag]}: ${schemValue.toString()}`;
             }
           }

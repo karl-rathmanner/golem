@@ -1,3 +1,6 @@
+## 0.4.0
+Improved Schem language support in the editor: autocompletion now shows all defined symbols in the editor's environment (both 'regular' and 'context' ones) and it is aware of the values they are bound to. Also added some xhr functions and one that turns xml documents into maps.
+
 ## 0.3.0
 Added "persistent" contexts, that can be automatically set up/restored whenever a page loads.
 
