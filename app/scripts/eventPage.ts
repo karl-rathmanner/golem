@@ -1,7 +1,11 @@
 import 'chromereload/devonly';
-import { browser } from 'webextension-polyfill-ts';
+import { browser, Omnibox } from 'webextension-polyfill-ts';
 import { SchemContextManager } from './contextManager';
 import { EventPageMessage } from './eventPageMessaging';
+import { Schem } from './schem/schem';
+import { isSchemList, isSchemSymbol } from './schem/typeGuards';
+import { CommandHistory } from './utils/commandHistory';
+import { extractErrorMessage, addParensAsNecessary, escapeXml } from './utils/utilities';
 
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('previousVersion', details.previousVersion);
@@ -16,9 +20,10 @@ window.golem = {
 };
 
 const contextManager = window.golem.priviledgedContext!.contextManager;
+const omniboxInterpreter = new Schem();
+const omniboxHistory = new CommandHistory();
 
 browser.runtime.onMessage.addListener(async (message: EventPageMessage, sender): Promise<any> => {
-
   switch (message.action) {
     case 'forward-context-action': {
       if (message.contextIds != null && message.contextMessage != null) {
@@ -50,11 +55,11 @@ browser.runtime.onMessage.addListener(async (message: EventPageMessage, sender):
   }
 });
 
-function notify(message: string) {
+function notify(message: string, title?: string) {
   browser.notifications.create('noty', {
     'type': 'basic',
     'iconUrl': browser.extension.getURL('images/icon-48.png'),
-    'title': 'Golem says:',
+    'title': title ? title : 'Golem says:',
     'message': message
   });
 }
@@ -94,6 +99,60 @@ browser.commands.onCommand.addListener(function(command) {
   }
 });
 
+browser.omnibox.onInputChanged.addListener((text: string, suggest) => {
+  
+  const defaultSuggestion = addParensAsNecessary(text);
+  browser.omnibox.setDefaultSuggestion({description: '> ' + escapeXml(defaultSuggestion)});
+
+  // we don't know the cursor position, so autocomplete will just always consider the rightmost token
+  const matches = /(.*?)([a-zA-Z_#][a-zA-Z0-9_\-\?\!\*]*)$/.exec(text); // token regex (the second capturing group) taken from schemLanguage.ts
+  const everythingBeforeTheLastToken = matches != null ? matches[1] : null;
+  const lastToken = matches != null ? matches[2] : null;
+ 
+  // get a list of bound symbols and turn them into SuggestionResults
+  omniboxInterpreter.readEval(`(sort-and-filter-by-string-similarity "${lastToken}" (list-symbols))`).then(async (result) => {
+    let suggestions: Omnibox.SuggestResult[] = [];
+
+    // add at most three autocomplete suggestions (to leave some space for command history items)
+    if (isSchemList(result)) {
+      suggestions = result.slice(0,3).map((symbol) => {
+        if (isSchemSymbol(symbol)) {
+          const encodedCode = escapeXml(everythingBeforeTheLastToken + symbol.name);
+          return {
+            content: encodedCode, 
+            description: '[ac]: ' + addParensAsNecessary(encodedCode)
+          }; 
+        } else {
+          return {content: 'errors', description: 'this should never happen!'}
+        }
+      });        
+    }
+
+    // add at most five command history suggestions
+    const lastCommands = (await omniboxHistory.lastNCommands(5)).reverse();
+    suggestions.push(...lastCommands.map( command => {
+      const encodedCode = escapeXml(command);
+      return {
+        content: encodedCode,
+        description: '[ch]: ' + addParensAsNecessary(encodedCode)
+      };
+    }));
+
+    suggest(suggestions);
+  });
+});
+
+browser.omnibox.onInputEntered.addListener((text: string) => {
+  // evaluate omnibox expression and display results in a notification
+  text = addParensAsNecessary(text);
+  omniboxHistory.addCommandToHistory(text);
+
+  omniboxInterpreter.arep(text).then(
+    result => notify(result, 'Result:')
+  ).catch(
+    e => notify(extractErrorMessage(e), 'Error:')
+  );
+});
 
 export function openEditor(fileName?: string) {
   browser.windows.getCurrent().then(currentWindow => {

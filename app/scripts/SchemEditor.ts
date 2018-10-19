@@ -6,6 +6,7 @@ import { filterRecursively, Schem } from './schem/schem';
 import { SchemList, AnySchemType, SchemString, SchemBoolean } from './schem/types';
 import { getHTMLElementById } from './utils/domManipulation';
 import { VirtualFileSystem } from './virtualFilesystem';
+import { extractErrorMessage } from './utils/utilities';
 
 const example = require('!raw-loader!./schemScripts/example.schem');
 
@@ -24,8 +25,8 @@ export class SchemEditor {
       value: example,
       language: 'schem',
       theme: 'vs-dark'
+      
     });
-    
     window.addEventListener('resize', this.updateEditorLayout);
     this.updateEditorLayout();
     this.monacoEditor.focus();
@@ -67,13 +68,7 @@ export class SchemEditor {
           this.addEvaluationViewZone(viewZoneAfterLineNumber, schemUnescape(result), 'evalResultViewZone');
         }).catch(error => {
           console.error(error);
-
-          let errorMessage = (typeof error === 'string') ? error :  // I still throw many plain strings as errors. This band-aid 'fixes' that.
-                             ('error' in error) ? error.error :     // I also throw whatever that is. Somewhere. This clearly calls for more band-aids.
-                             ('message' in error) ? error.message : // This is what an error is supposed to look like...
-                             `Unknown error type thrown. Trey checking the browser's console for more information !`; // ...but if it doesn't, at least tell the user.
-
-          this.addEvaluationViewZone(viewZoneAfterLineNumber, errorMessage, 'evalErrorViewZone');
+          this.addEvaluationViewZone(viewZoneAfterLineNumber, extractErrorMessage(error), 'evalErrorViewZone');
         });
         // handle decoration stuff
         let evalDecoration = Array<string>();

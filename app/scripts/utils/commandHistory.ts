@@ -27,6 +27,11 @@ export class CommandHistory {
     return this.nthToLastPosition === 0 ? '' : this.commandHistory[this.commandHistory.length - this.nthToLastPosition];
   }
 
+  async lastNCommands(n: number): Promise<string[]> {
+    await this.loadCommandHistory();
+    return this.commandHistory.slice(-n);
+  }
+
   resetHistoryPosition() {
     this.nthToLastPosition = 0;
   }

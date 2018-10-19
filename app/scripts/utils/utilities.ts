@@ -23,3 +23,29 @@ export function objectPatternMatch(object: any, needle: any) {
   // return true if *none* of the properties were *unequal*
   return (invertedMatch === -1);
 }
+
+/** Tries to return a string containing the error message of ill defined error objects. TODO: fix the cause instead of treating the symptom */
+export function extractErrorMessage(error: any) {
+  return (typeof error === 'string') ? error :  // I still throw many plain strings as errors. This band-aid 'fixes' that.
+         ('error' in error) ? error.error :     // I also throw whatever that is. Somewhere. This clearly calls for more band-aids.
+         ('message' in error) ? error.message : // This is what an error is supposed to look like...
+         `Unknown error type thrown. Trey checking the browser's console for more information !`; // ...but if it doesn't, at least tell the user.
+}
+
+/** Surrounds a string with some sensible number of parens, trying to turn it into an s-expression. */
+export function addParensAsNecessary(s: string) {
+  // add one opening paren at the beginning if there isn't one already
+  s = (/^\(/.test(s)?'':'(') + s
+  // adds as least as many closing ones as necessary* to the end
+  // *(number of '(' minus number of ')', but not less than zero)
+  s += ')'.repeat(Math.max(0, (s.match(/\(/g)||[]).length - (s.match(/\)/g)||[]).length)); 
+  return s;
+};
+
+/** Escapes xml entities in a string*/
+export const escapeXml = (s: string) => {
+  // credit: https://stackoverflow.com/a/35802512
+  var holder = document.createElement('div');
+  holder.textContent = s;
+  return holder.innerHTML;
+}
