@@ -63,7 +63,7 @@ export interface TaggedType {
 // types
 
 // TODO: figure out how LazyVectors schould be handled
-export type AnySchemType = SchemList | SchemVector| SchemMap | SchemNumber | SchemSymbol | SchemKeyword | SchemNil | SchemString | SchemRegExp | SchemFunction | SchemBoolean | SchemAtom | SchemContextSymbol | SchemContextDefinition | SchemContextInstance;
+export type AnySchemType = SchemList | SchemVector | SchemMap | SchemNumber | SchemSymbol | SchemKeyword | SchemNil | SchemString | SchemRegExp | SchemFunction | SchemBoolean | SchemAtom | SchemContextSymbol | SchemContextDefinition | SchemContextInstance;
 export type RegularSchemCollection = SchemList | SchemVector | SchemMap;
 export type SchemMapKey = SchemSymbol | SchemKeyword | SchemString | SchemNumber;
 
@@ -79,12 +79,12 @@ export type SchemMetadata = {
 
 export class SchemFunction implements Callable, Metadatable, TaggedType {
   public isMacro = false;
-  public typeTag = SchemTypes.SchemFunction;
+  public typeTag: SchemTypes.SchemFunction;
 
 
   constructor(public f: Function,
     public metadata?: SchemMetadata,
-    public fnContext?: {ast: AnySchemType, params: SchemSymbol[], env: Env}) {
+    public fnContext?: { ast: AnySchemType, params: SchemSymbol[], env: Env }) {
     // bind a function's name to itself within its environment
     // this allows recursion even in 'anonymous' functions
     if (this.fnContext && metadata && metadata.name && metadata.name.length > 0) {
@@ -96,7 +96,7 @@ export class SchemFunction implements Callable, Metadatable, TaggedType {
     return new SchemFunction(async (...args: AnySchemType[]) => {
 
       return await that.evalSchem(functionBody, new Env(env, params, args));
-    }, metadata, {ast: functionBody, params: params, env: env});
+    }, metadata, { ast: functionBody, params: params, env: env });
   }
 
   newEnv(args: AnySchemType[]): Env {
@@ -116,7 +116,7 @@ export class SchemFunction implements Callable, Metadatable, TaggedType {
 
 export class SchemList extends Array<AnySchemType> implements Reducible, Countable, Indexable, Metadatable, Sequable, TaggedType {
   static isCollection = true;
-  public typeTag = SchemTypes.SchemList;
+  public typeTag: SchemTypes.SchemList;
   metadata: SchemMetadata;
 
   /** Makes sure that all elements of the list are SchemSymbols and returns them in an array.*/
@@ -163,7 +163,7 @@ export class SchemList extends Array<AnySchemType> implements Reducible, Countab
 }
 
 export class SchemVector extends Array<AnySchemType> implements Callable, Indexable, Countable, Metadatable, Sequable, TaggedType {
-  public typeTag = SchemTypes.SchemVector;
+  public typeTag: SchemTypes.SchemVector;
   static isCollection = true;
   metadata: SchemMetadata;
 
@@ -191,7 +191,7 @@ export class SchemVector extends Array<AnySchemType> implements Callable, Indexa
   }
 
   invoke(...args: AnySchemType[]) {
-    const index = ( isSchemNumber(args[0])) ? (args[0] as SchemNumber).valueOf() : NaN;
+    const index = (isSchemNumber(args[0])) ? (args[0] as SchemNumber).valueOf() : NaN;
     if (Number.isInteger(index) && index >= 0 && index < this.length) {
       return this[index];
     }
@@ -216,7 +216,7 @@ export class SchemVector extends Array<AnySchemType> implements Callable, Indexa
 }
 
 export class SchemMap implements Callable, Reducible, Countable, Metadatable, TaggedType {
-  public typeTag = SchemTypes.SchemMap;
+  public typeTag: SchemTypes.SchemMap;
   static isCollection = true;
   metadata: SchemMetadata;
 
@@ -235,10 +235,10 @@ export class SchemMap implements Callable, Reducible, Countable, Metadatable, Ta
 
   private turnIntoKeyString(key: SchemMapKey): string {
     let keyString: string;
-    if ( isSchemString(key)) {
-      keyString = 's'  + key.valueOf();
-    } else if ( isSchemNumber(key)) {
-      keyString = 'n'  + key.valueOf();
+    if (isSchemString(key)) {
+      keyString = 's' + key.valueOf();
+    } else if (isSchemNumber(key)) {
+      keyString = 'n' + key.valueOf();
     } else if (isSchemKeyword(key)) {
       keyString = 'k' + key.name;
     } else if (isSchemSymbol(key)) {
@@ -252,7 +252,7 @@ export class SchemMap implements Callable, Reducible, Countable, Metadatable, Ta
 
   // private getOriginalKeyObject
 
-  set(key: SchemMapKey, value: AnySchemType ): void {
+  set(key: SchemMapKey, value: AnySchemType): void {
     this.nativeMap.set(this.turnIntoKeyString(key), value);
   }
 
@@ -314,7 +314,7 @@ export class SchemMap implements Callable, Reducible, Countable, Metadatable, Ta
   }
 }
 export class SchemLazyVector implements Countable, Indexable, TaggedType {
-  public typeTag = SchemTypes.SchemLazyVector;
+  public typeTag: SchemTypes.SchemLazyVector;
   static isCollection = true;
 
   private cachedValues: Map<number, AnySchemType>;
@@ -365,13 +365,13 @@ export class SchemLazyVector implements Countable, Indexable, TaggedType {
 /// classes - Schem value types
 
 export class SchemNil implements TaggedType {
-  public typeTag = SchemTypes.SchemNil;
+  public typeTag: SchemTypes.SchemNil;
   static instance = new SchemNil();
-  private constructor() {}
+  private constructor() { }
 }
 
 export class SchemBoolean extends Boolean implements TaggedType {
-  public typeTag = SchemTypes.SchemBoolean;
+  public typeTag: SchemTypes.SchemBoolean;
   static false = new SchemBoolean(false);
   static true = new SchemBoolean(true);
 
@@ -385,7 +385,7 @@ export class SchemBoolean extends Boolean implements TaggedType {
 }
 
 export class SchemNumber extends Number implements Callable, TaggedType {
-  public typeTag = SchemTypes.SchemNumber;
+  public typeTag: SchemTypes.SchemNumber;
 
   // TODO: make methods static?
   invoke(...args: AnySchemType[]) {
@@ -407,7 +407,7 @@ export class SchemNumber extends Number implements Callable, TaggedType {
 }
 
 export class SchemString extends String implements TaggedType {
-  public typeTag = SchemTypes.SchemString;
+  public typeTag: SchemTypes.SchemString;
 
   // can't hide toString()
   getStringRepresentation(): string {
@@ -416,7 +416,7 @@ export class SchemString extends String implements TaggedType {
 }
 
 export class SchemRegExp extends RegExp implements TaggedType {
-  public typeTag = SchemTypes.SchemRegExp;
+  public typeTag: SchemTypes.SchemRegExp;
   getStringRepresentation() {
     if (this.flags.length > 0) {
       return `#"(?${this.flags})${this.source}"`;
@@ -434,7 +434,7 @@ class SymbolicType {
   }
 
   static from(name: string | SchemString) {
-    if ( isSchemString(name)) {
+    if (isSchemString(name)) {
       name = name.valueOf();
     }
 
@@ -454,7 +454,7 @@ class SymbolicType {
 }
 
 export class SchemSymbol extends SymbolicType implements Metadatable, TaggedType {
-  public typeTag = SchemTypes.SchemSymbol;
+  public typeTag: SchemTypes.SchemSymbol;
   metadata: SchemMetadata;
 
   static refersToJavascriptObject(sym: SchemSymbol): boolean {
@@ -468,7 +468,7 @@ export class SchemSymbol extends SymbolicType implements Metadatable, TaggedType
   }
 
   static from(name: string | SchemString) {
-    if ( isSchemString(name)) {
+    if (isSchemString(name)) {
       name = name.valueOf();
     }
 
@@ -486,11 +486,11 @@ export class SchemSymbol extends SymbolicType implements Metadatable, TaggedType
 
 
 export class SchemKeyword extends SymbolicType implements Callable, TaggedType {
-  public typeTag = SchemTypes.SchemKeyword;
+  public typeTag: SchemTypes.SchemKeyword;
   static registeredSymbols: Map<symbol, SchemKeyword> = new Map<symbol, SchemKeyword>();
 
   static from(name: string | SchemString): SchemKeyword {
-    if ( isSchemString(name)) {
+    if (isSchemString(name)) {
       name = name.valueOf();
     }
 
@@ -515,7 +515,7 @@ export class SchemKeyword extends SymbolicType implements Callable, TaggedType {
     if (args.length === 0) {
       throw `Tried to invoke a keywords without passing a collection. Did you accidentally put it in the head position of a form that wasn't supposed to be evaluated?`;
     }
-    if ( isSchemMap(args[0])) {
+    if (isSchemMap(args[0])) {
       return (args[0] as SchemMap).get(this, args[1]);
     } else {
       throw 'First argument to keyword lookup must be a map';
@@ -524,9 +524,9 @@ export class SchemKeyword extends SymbolicType implements Callable, TaggedType {
 }
 
 export class SchemContextSymbol extends SymbolicType implements TaggedType {
-  public typeTag = SchemTypes.SchemContextSymbol;
+  public typeTag: SchemTypes.SchemContextSymbol;
   static from(name: string | SchemString): SchemContextSymbol {
-    if ( isSchemString(name)) {
+    if (isSchemString(name)) {
       name = name.valueOf();
     }
 
@@ -547,7 +547,7 @@ export class SchemContextSymbol extends SymbolicType implements TaggedType {
  * In theory.
  */
 export class SchemContextDefinition implements TaggedType {
-  public typeTag = SchemTypes.SchemContextDefinition;
+  public typeTag: SchemTypes.SchemContextDefinition;
   public lifetime: 'inject-once' | 'persistent';
   frameId?: number;
   features?: AvailableSchemContextFeatures[];
@@ -555,7 +555,7 @@ export class SchemContextDefinition implements TaggedType {
   parentContext?: Schem;
   init?: AnySchemType;
 
-  constructor(public tabQuery: Tabs.QueryQueryInfoType, options: {features?: AvailableSchemContextFeatures[], 'life-time'?: SchemContextDefinition['lifetime'],  'run-at':  SchemContextDefinition['runAt'], frameId: number, init?: AnySchemType}) { // public tabQuery: Tabs.QueryQueryInfoType, public lifetime: 'inject-once' | 'persist-navigation', features?: AvailableSchemContextFeatures[]) {
+  constructor(public tabQuery: Tabs.QueryQueryInfoType, options: { features?: AvailableSchemContextFeatures[], 'life-time'?: SchemContextDefinition['lifetime'], 'run-at': SchemContextDefinition['runAt'], frameId: number, init?: AnySchemType }) { // public tabQuery: Tabs.QueryQueryInfoType, public lifetime: 'inject-once' | 'persist-navigation', features?: AvailableSchemContextFeatures[]) {
     // TODO: make DRY
     if (options.features != null) {
       this.features = options.features;
@@ -593,7 +593,7 @@ export class SchemContextDefinition implements TaggedType {
 
 /** These can't be passed around as messages. Contains... callbacks, information about what was already injected and stuff that's necessary for context persistence? I think only the event page will need to handle instances of contexts. */
 export class SchemContextInstance implements TaggedType {
-  public typeTag = SchemTypes.SchemContextInstance;
+  public typeTag: SchemTypes.SchemContextInstance;
   baseContentScriptIsLoaded: boolean = false;
   activeFeatures: Set<SchemContextDefinition['features']>;
 
@@ -618,7 +618,7 @@ export class SchemContextInstance implements TaggedType {
 /// classes - other Schem types
 
 export class SchemAtom implements TaggedType {
-  public typeTag = SchemTypes.SchemAtom;
+  public typeTag: SchemTypes.SchemAtom;
   constructor(public value: AnySchemType) {
   }
 }
@@ -626,10 +626,10 @@ export class SchemAtom implements TaggedType {
 // type conversion
 
 export function toSchemMapKey(key: SchemMapKey): string {
-  if ( isSchemString(key)) {
-    return 's'  + key.valueOf();
-  } else if ( isSchemNumber(key)) {
-    return 'n'  + key.valueOf();
+  if (isSchemString(key)) {
+    return 's' + key.valueOf();
+  } else if (isSchemNumber(key)) {
+    return 'n' + key.valueOf();
   } else if (isSchemKeyword(key)) {
     return 'k' + key.name;
   } else if (isSchemSymbol(key)) {
