@@ -32,65 +32,63 @@ export function isSchemCollection(o: any): o is RegularSchemCollection {
 // TODO: review if there really is no way to do this in a more generic way...
 
 export function isSchemFunction(o: any): o is SchemFunction {
-  return (typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemFunction);
+  return (o != null && typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemFunction);
 }
 
 export function isSchemList(o: any): o is SchemList {
-  return (typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemList);
+  return (o != null && typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemList);
 }
 
 export function isSchemSymbol(o: any): o is SchemSymbol {
-  return (typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemSymbol);
+  return (o != null && typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemSymbol);
 }
 
 export function isSchemKeyword(o: any): o is SchemKeyword {
-  return (typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemKeyword);
+  return (o != null && typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemKeyword);
 }
 
 export function isSchemVector(o: any): o is SchemVector {
-  return (typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemVector);
+  return (o != null && typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemVector);
 }
 
 export function isSchemMap(o: any): o is SchemMap {
-  return (typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemMap);
+  return (o != null && typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemMap);
 }
 
-
 export function isSchemContextSymbol(o: any): o is SchemContextSymbol {
-  return (typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemContextSymbol);
+  return (o != null && typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemContextSymbol);
 }
 
 export function isSchemNumber(o: any): o is SchemNumber {
-  return (typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemNumber);
+  return (o != null && typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemNumber);
 }
 
 export function isSchemString(o: any): o is SchemString {
-  return (typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemString);
+  return (o != null && typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemString);
 }
 
 export function isSchemRegExp(o: any): o is SchemRegExp {
-  return (typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemRegExp);
+  return (o != null && typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemRegExp);
 }
 
 export function isSchemBoolean(o: any): o is SchemBoolean {
-  return (typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemBoolean);
+  return (o != null && typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemBoolean);
+}
+
+export function isSchemNil(o: any): o is SchemNil {
+  return (o != null && typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemNil);
 }
 
 export function isSchemAtom(o: any): o is SchemAtom {
-  return (typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemAtom);
+  return (o != null && typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemAtom);
 }
 
 export function isSchemLazyVector(o: any): o is SchemLazyVector {
-  return (typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemLazyVector);
-}
-
-
-export function isSchemNil(o: any): o is SchemNil {
-  return (typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemNil);
+  return (o != null && typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemLazyVector);
 }
 
 export function isCallable(o: any): o is Callable {
-  return (typeof o === 'object' && typeof o.invoke === 'function');
+  return (o != null && typeof o === 'object' && typeof o.invoke === 'function');
 }
 
 export function isValidKeyType(o: any): o is SchemMapKey {
@@ -100,7 +98,8 @@ export function isValidKeyType(o: any): o is SchemMapKey {
 }
 
 export function isSequable(o: any): o is Sequable {
-  return (typeof o === 'object' &&
+  return (o != null &&
+          typeof o === 'object' &&
           typeof o.first === 'function' &&
           typeof o.next === 'function' &&
           typeof o.rest === 'function' &&
