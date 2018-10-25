@@ -5,7 +5,7 @@ import { objectPatternMatch } from './utils/utilities';
 import { pr_str } from './schem/printer';
 
 
-export type AvailableSchemContextFeatures = 'schem-interpreter' | 'lightweight-js-interop' | 'demo-functions' | 'dom-manipulation' | 'tiny-repl';
+export type AvailableSchemContextFeatures = 'schem-interpreter' | 'lightweight-js-interop' | 'demo-functions' | 'dom-manipulation' | 'tiny-repl' | 'shlukerts';
 
 export class SchemContextManager {
   activeContextInstances = new Map<number, SchemContextInstance>();
@@ -14,7 +14,8 @@ export class SchemContextManager {
     ['demo-functions', 'scripts/demoContentScript.js'],
     ['lightweight-js-interop', 'scripts/lightweightJavascriptInterop.js'],
     ['dom-manipulation', 'scripts/domManipulationSchemFunctions.js'],
-    ['tiny-repl', 'scripts/tinyReplCS.js']
+    ['tiny-repl', 'scripts/tinyReplCS.js'],
+    ['shlukerts', 'scripts/shlukertsCS.js']
   ]);
 
   constructor() {

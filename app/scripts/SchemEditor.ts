@@ -7,6 +7,7 @@ import { SchemList, AnySchemType, SchemString, SchemBoolean } from './schem/type
 import { getHTMLElementById } from './utils/domManipulation';
 import { VirtualFileSystem } from './virtualFilesystem';
 import { extractErrorMessage } from './utils/utilities';
+import { shlukerts } from './shlukerts';
 
 const example = require('!raw-loader!./schemScripts/example.schem');
 
@@ -19,6 +20,8 @@ export class SchemEditor {
     const interpreter = new Schem();
     interpreter.replEnv.addMap(eventPageMessagingSchemFunctions);
     interpreter.replEnv.addMap(this.editorManipulationSchemFunctions);
+    interpreter.replEnv.addMap(shlukerts);
+
     AddSchemSupportToEditor(interpreter);
     
     this.monacoEditor = monaco.editor.create(container, {
