@@ -79,7 +79,7 @@ export type SchemMetadata = {
 
 export class SchemFunction implements Callable, Metadatable, TaggedType {
   public isMacro = false;
-  public typeTag: SchemTypes.SchemFunction;
+  public typeTag: SchemTypes.SchemFunction = SchemTypes.SchemFunction;
 
 
   constructor(public f: Function,
@@ -116,7 +116,7 @@ export class SchemFunction implements Callable, Metadatable, TaggedType {
 
 export class SchemList extends Array<AnySchemType> implements Reducible, Countable, Indexable, Metadatable, Sequable, TaggedType {
   static isCollection = true;
-  public typeTag: SchemTypes.SchemList;
+  public typeTag: SchemTypes.SchemList = SchemTypes.SchemList;
   metadata: SchemMetadata;
 
   /** Makes sure that all elements of the list are SchemSymbols and returns them in an array.*/
@@ -163,7 +163,7 @@ export class SchemList extends Array<AnySchemType> implements Reducible, Countab
 }
 
 export class SchemVector extends Array<AnySchemType> implements Callable, Indexable, Countable, Metadatable, Sequable, TaggedType {
-  public typeTag: SchemTypes.SchemVector;
+  public typeTag: SchemTypes.SchemVector = SchemTypes.SchemVector;
   static isCollection = true;
   metadata: SchemMetadata;
 
@@ -216,7 +216,7 @@ export class SchemVector extends Array<AnySchemType> implements Callable, Indexa
 }
 
 export class SchemMap implements Callable, Reducible, Countable, Metadatable, TaggedType {
-  public typeTag: SchemTypes.SchemMap;
+  public typeTag: SchemTypes.SchemMap = SchemTypes.SchemMap;
   static isCollection = true;
   metadata: SchemMetadata;
 
@@ -314,7 +314,7 @@ export class SchemMap implements Callable, Reducible, Countable, Metadatable, Ta
   }
 }
 export class SchemLazyVector implements Countable, Indexable, TaggedType {
-  public typeTag: SchemTypes.SchemLazyVector;
+  public typeTag: SchemTypes.SchemLazyVector = SchemTypes.SchemLazyVector;
   static isCollection = true;
 
   private cachedValues: Map<number, AnySchemType>;
@@ -365,13 +365,13 @@ export class SchemLazyVector implements Countable, Indexable, TaggedType {
 /// classes - Schem value types
 
 export class SchemNil implements TaggedType {
-  public typeTag: SchemTypes.SchemNil;
+  public typeTag: SchemTypes.SchemNil = SchemTypes.SchemNil;
   static instance = new SchemNil();
   private constructor() { }
 }
 
 export class SchemBoolean extends Boolean implements TaggedType {
-  public typeTag: SchemTypes.SchemBoolean;
+  public typeTag: SchemTypes.SchemBoolean = SchemTypes.SchemBoolean;
   static false = new SchemBoolean(false);
   static true = new SchemBoolean(true);
 
@@ -385,7 +385,7 @@ export class SchemBoolean extends Boolean implements TaggedType {
 }
 
 export class SchemNumber extends Number implements Callable, TaggedType {
-  public typeTag: SchemTypes.SchemNumber;
+  public typeTag: SchemTypes.SchemNumber = SchemTypes.SchemNumber;
 
   // TODO: make methods static?
   invoke(...args: AnySchemType[]) {
@@ -407,7 +407,7 @@ export class SchemNumber extends Number implements Callable, TaggedType {
 }
 
 export class SchemString extends String implements TaggedType {
-  public typeTag: SchemTypes.SchemString;
+  public typeTag: SchemTypes.SchemString = SchemTypes.SchemString;
 
   // can't hide toString()
   getStringRepresentation(): string {
@@ -416,7 +416,7 @@ export class SchemString extends String implements TaggedType {
 }
 
 export class SchemRegExp extends RegExp implements TaggedType {
-  public typeTag: SchemTypes.SchemRegExp;
+  public typeTag: SchemTypes.SchemRegExp = SchemTypes.SchemRegExp;
   getStringRepresentation() {
     if (this.flags.length > 0) {
       return `#"(?${this.flags})${this.source}"`;
@@ -454,7 +454,7 @@ class SymbolicType {
 }
 
 export class SchemSymbol extends SymbolicType implements Metadatable, TaggedType {
-  public typeTag: SchemTypes.SchemSymbol;
+  public typeTag: SchemTypes.SchemSymbol = SchemTypes.SchemSymbol;
   metadata: SchemMetadata;
 
   static refersToJavascriptObject(sym: SchemSymbol): boolean {
@@ -486,7 +486,7 @@ export class SchemSymbol extends SymbolicType implements Metadatable, TaggedType
 
 
 export class SchemKeyword extends SymbolicType implements Callable, TaggedType {
-  public typeTag: SchemTypes.SchemKeyword;
+  public typeTag: SchemTypes.SchemKeyword = SchemTypes.SchemKeyword;
   static registeredSymbols: Map<symbol, SchemKeyword> = new Map<symbol, SchemKeyword>();
 
   static from(name: string | SchemString): SchemKeyword {
@@ -524,7 +524,7 @@ export class SchemKeyword extends SymbolicType implements Callable, TaggedType {
 }
 
 export class SchemContextSymbol extends SymbolicType implements TaggedType {
-  public typeTag: SchemTypes.SchemContextSymbol;
+  public typeTag: SchemTypes.SchemContextSymbol = SchemTypes.SchemContextSymbol;
   static from(name: string | SchemString): SchemContextSymbol {
     if (isSchemString(name)) {
       name = name.valueOf();
@@ -547,7 +547,7 @@ export class SchemContextSymbol extends SymbolicType implements TaggedType {
  * In theory.
  */
 export class SchemContextDefinition implements TaggedType {
-  public typeTag: SchemTypes.SchemContextDefinition;
+  public typeTag: SchemTypes.SchemContextDefinition = SchemTypes.SchemContextDefinition;
   public lifetime: 'inject-once' | 'persistent';
   frameId?: number;
   features?: AvailableSchemContextFeatures[];
@@ -593,7 +593,7 @@ export class SchemContextDefinition implements TaggedType {
 
 /** These can't be passed around as messages. Contains... callbacks, information about what was already injected and stuff that's necessary for context persistence? I think only the event page will need to handle instances of contexts. */
 export class SchemContextInstance implements TaggedType {
-  public typeTag: SchemTypes.SchemContextInstance;
+  public typeTag: SchemTypes.SchemContextInstance = SchemTypes.SchemContextInstance;
   baseContentScriptIsLoaded: boolean = false;
   activeFeatures: Set<SchemContextDefinition['features']>;
 
@@ -618,7 +618,7 @@ export class SchemContextInstance implements TaggedType {
 /// classes - other Schem types
 
 export class SchemAtom implements TaggedType {
-  public typeTag: SchemTypes.SchemAtom;
+  public typeTag: SchemTypes.SchemAtom = SchemTypes.SchemAtom;
   constructor(public value: AnySchemType) {
   }
 }
