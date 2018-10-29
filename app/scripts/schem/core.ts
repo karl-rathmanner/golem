@@ -1,5 +1,5 @@
 import { browser } from 'webextension-polyfill-ts';
-import { setJsProperty } from '../javascriptInterop';
+import { setJsProperty, getJsProperty, resolveJSPropertyChain } from '../javascriptInterop';
 import { VirtualFileSystem } from '../virtualFilesystem';
 import { prettyPrint, pr_str } from './printer';
 import { readStr } from './reader';
@@ -362,6 +362,10 @@ export const coreFunctions: {[symbol: string]: any} = {
   'storage-get-vfstree': async() => {
     const vfst = await VirtualFileSystem.getVFSTree();
     return jsObjectToSchemType(vfst, {depth: 900});
+  },
+  'resolve-js-property-chain': (jsObject: any, ...propertyNames: Array<SchemString | SchemKeyword>) => {
+    const pNames: string[] = propertyNames.map(e => isSchemKeyword(e) ? e.name : e.valueOf());
+    return resolveJSPropertyChain(jsObject, ...pNames);
   }
 };
 
