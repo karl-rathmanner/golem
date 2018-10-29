@@ -15,7 +15,7 @@ export class SchemEditor {
   public monacoEditor: monaco.editor.IStandaloneCodeEditor;
   private evalZoneId: number;
   private ast: AnySchemType;
-  
+
   constructor (container: HTMLElement) {
     const interpreter = new Schem();
     interpreter.replEnv.addMap(eventPageMessagingSchemFunctions);
@@ -23,12 +23,12 @@ export class SchemEditor {
     interpreter.replEnv.addMap(shlukerts);
 
     AddSchemSupportToEditor(interpreter);
-    
+
     this.monacoEditor = monaco.editor.create(container, {
       value: example,
       language: 'schem',
       theme: 'vs-dark'
-      
+
     });
     window.addEventListener('resize', this.updateEditorLayout);
     this.updateEditorLayout();
@@ -57,7 +57,7 @@ export class SchemEditor {
       return result;
     }
   };
-  
+
   private addFormEvaluationCommand(interpreter: Schem) {
     this.monacoEditor.createContextKey('evalEnabled', true);
 
@@ -95,7 +95,7 @@ export class SchemEditor {
     domNode.className = 'monaco-lines';
     domNode.classList.add('evalViewZone');
     domNode.classList.add(className);
-    
+
     // make sure content is always some kind of string
     if (typeof content !== 'string') {
       content = JSON.stringify(content);
@@ -103,18 +103,18 @@ export class SchemEditor {
     // turn escaped newlines into actual newlines
     content = content.replace(/(\\r)?(\\n)/, '\n');
     const lines = content.split(/\n/g);
-    
+
     lines.forEach(line => {
       const lineNode = document.createElement('div');
       lineNode.textContent = line;
       domNode.appendChild(lineNode);
     });
-    
+
     let marginDomNode = this.createEvalMarginDomNode();
-    
+
     this.monacoEditor.changeViewZones((changeAccessor) => {
       changeAccessor.removeZone(this.evalZoneId);
-      
+
       this.evalZoneId = changeAccessor.addZone({
         afterLineNumber: afterLineNumber,
         heightInLines: Math.min(lines.length, 3),
@@ -123,7 +123,7 @@ export class SchemEditor {
       });
     });
   }
-  
+
   private createEvalMarginDomNode(): HTMLDivElement {
     let marginDomNode = document.createElement('div');
     marginDomNode.classList.add('line-numbers');
@@ -131,7 +131,7 @@ export class SchemEditor {
     marginDomNode.textContent = '=>';
     return marginDomNode;
   }
-  
+
   private updateAst() {
     try {
       // wrap source with a 'do' form so every list gets read
@@ -140,13 +140,13 @@ export class SchemEditor {
       console.log(e);
     }
   }
-  
+
   private getRangesOfSchemCollectionsAroundCursor(): monaco.Range[] {
     const textModel = this.monacoEditor.getModel();
     this.updateAst();
     // offset cursorIndex by four to compensate for the 'do' form
     const cursorIndex = textModel.getOffsetAt(this.monacoEditor.getPosition()) + 4;
-    
+
     // I'm sorry...
     const collectionsAroundCursor = filterRecursively(this.ast, (element) => {
       if (element != null && 'metadata' in element && element.metadata !== undefined &&
@@ -157,18 +157,18 @@ export class SchemEditor {
         return false;
       }
     });
-    
+
     return collectionsAroundCursor.map(element => {
       let metadata = (element as SchemList).metadata!;
-      
+
       // offset positions to compensate for the 'do' form (and make endPos include the last character)
       let startPos = textModel.getPositionAt(metadata.sourceIndexStart! - 4);
       let endPos = textModel.getPositionAt(metadata.sourceIndexEnd! - 3);
-      
+
       return new monaco.Range(startPos.lineNumber, startPos.column, endPos.lineNumber, endPos.column);
     });
   }
-  
+
   private updateEditorLayout = () => {
     getHTMLElementById('monacoContainer').style.height = `${window.innerHeight}px`;
     getHTMLElementById('monacoContainer').style.width = `${window.innerWidth}px`;

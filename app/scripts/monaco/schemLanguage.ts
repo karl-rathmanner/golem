@@ -45,7 +45,7 @@ function setLanguageConfiguration() {
 }
 
 const specialFormsAndKeywords = [
-  'def', 'defmacro', 'defcontext', 'let', 'do', 'if', 'fn', 
+  'def', 'defmacro', 'defcontext', 'let', 'do', 'if', 'fn',
   'quote', 'quasiquote', 'macroexpand', 'macroexpand-all', 'set-interpreter-options',
 ];
 
@@ -121,7 +121,7 @@ function registerCompletionItemProvider(interpreter: Schem) {
 
   monaco.languages.registerCompletionItemProvider('schem', {
     provideCompletionItems: async (textModel, position) => {
-      
+
       // let wordAtCursor = textModel.getWordAtPosition(position).word;
       // let symbols = await interpreter.readEval(`(sort-and-filter-by-string-similarity "${wordAtCursor}" (list-symbols))`);
       let symbols = await interpreter.readEval(`(list-symbols)`);
@@ -135,14 +135,14 @@ function registerCompletionItemProvider(interpreter: Schem) {
             switch (t) {
               case SchemTypes.SchemFunction: return monaco.languages.CompletionItemKind.Function;
               case SchemTypes.SchemSymbol: return monaco.languages.CompletionItemKind.Variable;
-              case SchemTypes.SchemContextSymbol: 
+              case SchemTypes.SchemContextSymbol:
               case SchemTypes.SchemContextDefinition:
               case SchemTypes.SchemContextInstance:
                 return monaco.languages.CompletionItemKind.Reference;
-              default: 
+              default:
                 return monaco.languages.CompletionItemKind.Value;
             }
-          }
+          };
 
           const pickInsertText = (symbol: SchemSymbol | SchemContextSymbol, schemValue: AnySchemType) => {
             if (isSchemSymbol(symbol)) {
@@ -166,12 +166,12 @@ function registerCompletionItemProvider(interpreter: Schem) {
                 return `Function`;
               }
             } else if (isSchemCollection(schemValue)) {
-              return `${SchemTypes[schemValue.typeTag]} with ${schemValue.count()} items`; // printing a collection would be asynchronous and might have side effects, so I won't do that for now 
+              return `${SchemTypes[schemValue.typeTag]} with ${schemValue.count()} items`; // printing a collection would be asynchronous and might have side effects, so I won't do that for now
             } else {
               // TODO: handle keywords, atoms etc.
               return `${SchemTypes[schemValue.typeTag]}: ${schemValue.toString()}`;
             }
-          }
+          };
 
           return {
             label: sym.name,

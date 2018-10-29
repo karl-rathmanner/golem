@@ -155,18 +155,18 @@ export const coreFunctions: {[symbol: string]: any} = {
     return readStr(str.valueOf());
   },
   'xhr-get': async (url: SchemString) => {
-    return xhrPromise('GET', url.valueOf())
+    return xhrPromise('GET', url.valueOf());
   },
   'xhr-post': async (url: SchemString, body: AnySchemType) => {
-    return xhrPromise('POST', url.valueOf(), schemToJs(body))
+    return xhrPromise('POST', url.valueOf(), schemToJs(body));
   },
   'xhr-put': async (url: SchemString, body: AnySchemType) => {
-    return xhrPromise('PUT', url.valueOf(), schemToJs(body))
+    return xhrPromise('PUT', url.valueOf(), schemToJs(body));
   },
   'xhr-delete': async (url: SchemString) => {
-    return xhrPromise('DELETE', url.valueOf())
+    return xhrPromise('DELETE', url.valueOf());
   },
-  
+
   'slurp': async (url: SchemString, opts?: SchemMap) => {
     // get full URL for files packaged with the browser extension, when url begins with a slash
     const actualUrl = (url[0] === '/') ? browser.extension.getURL('/schemScripts' + url.valueOf()) : url.valueOf();
@@ -174,7 +174,7 @@ export const coreFunctions: {[symbol: string]: any} = {
   },
   'xml->map': (xml: XMLDocument | string | SchemString, options?: SchemMap) => {
     let xmlDoc: XMLDocument;
-    if (typeof xml == 'string') {
+    if (typeof xml === 'string') {
       xmlDoc = new DOMParser().parseFromString(xml, 'text/xml');
     } else if (isSchemString(xml)) {
       xmlDoc = new DOMParser().parseFromString(xml.valueOf(), 'text/xml');
@@ -417,7 +417,7 @@ function createSchemMapFromXMLDocument(xmlDoc: XMLDocument, options: {keyType?: 
       return new SchemString(v);
     }
   }
-  
+
   const recursivelyTraverseDocument = (node: Element) => {
     const map = new SchemMap();
     map.set(createKey('tag'), new SchemString(node.tagName));
@@ -458,7 +458,7 @@ function createSchemMapFromXMLDocument(xmlDoc: XMLDocument, options: {keyType?: 
   if (xmlDoc.documentElement != null) {
     return recursivelyTraverseDocument(xmlDoc.documentElement);
   } else {
-    throw Error("xml object contained no document node")
+    throw Error('xml object contained no document node');
   }
 }
 
@@ -501,7 +501,7 @@ function computeSimpleStringSimilarityScore(needle: string, haystack: string): n
   return score;
 }
 
-function xhrPromise (method: 'GET' | 'POST' | 'PUT' | 'DELETE', url: string, body: Document | BodyInit | null = null, async: boolean = true, user: string | null = null, password: string | null = null){
+function xhrPromise (method: 'GET' | 'POST' | 'PUT' | 'DELETE', url: string, body: Document | BodyInit | null = null, async: boolean = true, user: string | null = null, password: string | null = null) {
       // based on https://stackoverflow.com/a/30008115
       return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();

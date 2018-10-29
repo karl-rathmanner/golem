@@ -35,17 +35,17 @@ export function extractErrorMessage(error: any) {
 /** Surrounds a string with some sensible number of parens, trying to turn it into an s-expression. */
 export function addParensAsNecessary(s: string) {
   // add one opening paren at the beginning if there isn't one already
-  s = (/^\(/.test(s)?'':'(') + s
+  s = (/^\(/.test(s) ? '' : '(') + s;
   // adds as least as many closing ones as necessary* to the end
   // *(number of '(' minus number of ')', but not less than zero)
-  s += ')'.repeat(Math.max(0, (s.match(/\(/g)||[]).length - (s.match(/\)/g)||[]).length)); 
+  s += ')'.repeat(Math.max(0, (s.match(/\(/g) || []).length - (s.match(/\)/g) || []).length));
   return s;
-};
+}
 
 /** Escapes xml entities in a string*/
 export const escapeXml = (s: string) => {
   // credit: https://stackoverflow.com/a/35802512
-  var holder = document.createElement('div');
+  let holder = document.createElement('div');
   holder.textContent = s;
   return holder.innerHTML;
-}
+};

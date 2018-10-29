@@ -1,12 +1,12 @@
-import { AnySchemType, SchemVector, SchemNil, SchemBoolean, SchemMap } from "./schem/types";
-import { isSchemNil, isSchemVector, isSchemKeyword, isSchemMap, isSchemString } from "./schem/typeGuards";
+import { AnySchemType, SchemVector, SchemNil, SchemBoolean, SchemMap } from './schem/types';
+import { isSchemNil, isSchemVector, isSchemKeyword, isSchemMap, isSchemString } from './schem/typeGuards';
 
 export const shlukerts: {[symbol: string]: any} = {
   'shluk': (input: SchemVector | SchemNil, e: AnySchemType): HTMLElement | void => {
     // [:div {:id "foo"} "I <3 content!"]
     return createHTMLElement(input);
   }
-}
+};
 
 
 function createHTMLElement(input: SchemVector | SchemNil): HTMLElement | void {
@@ -19,7 +19,7 @@ function createHTMLElement(input: SchemVector | SchemNil): HTMLElement | void {
 
     if (isSchemKeyword(tag)) {
       const node = document.createElement(tag.name);
-      
+
       content.forEach( element => {
         if (isSchemString(element)) {
           node.appendChild(document.createTextNode(element.valueOf()));

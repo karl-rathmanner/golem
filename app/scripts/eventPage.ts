@@ -100,7 +100,7 @@ browser.commands.onCommand.addListener(function(command) {
 });
 
 browser.omnibox.onInputChanged.addListener((text: string, suggest) => {
-  
+
   const defaultSuggestion = addParensAsNecessary(text);
   browser.omnibox.setDefaultSuggestion({description: '> ' + escapeXml(defaultSuggestion)});
 
@@ -108,24 +108,24 @@ browser.omnibox.onInputChanged.addListener((text: string, suggest) => {
   const matches = /(.*?)([a-zA-Z_#][a-zA-Z0-9_\-\?\!\*]*)$/.exec(text); // token regex (the second capturing group) taken from schemLanguage.ts
   const everythingBeforeTheLastToken = matches != null ? matches[1] : null;
   const lastToken = matches != null ? matches[2] : null;
- 
+
   // get a list of bound symbols and turn them into SuggestionResults
   omniboxInterpreter.readEval(`(sort-and-filter-by-string-similarity "${lastToken}" (list-symbols))`).then(async (result) => {
     let suggestions: Omnibox.SuggestResult[] = [];
 
     // add at most three autocomplete suggestions (to leave some space for command history items)
     if (isSchemList(result)) {
-      suggestions = result.slice(0,3).map((symbol) => {
+      suggestions = result.slice(0, 3).map((symbol) => {
         if (isSchemSymbol(symbol)) {
           const encodedCode = escapeXml(everythingBeforeTheLastToken + symbol.name);
           return {
-            content: encodedCode, 
+            content: encodedCode,
             description: '[ac]: ' + addParensAsNecessary(encodedCode)
-          }; 
+          };
         } else {
-          return {content: 'errors', description: 'this should never happen!'}
+          return {content: 'errors', description: 'this should never happen!'};
         }
-      });        
+      });
     }
 
     // add at most five command history suggestions

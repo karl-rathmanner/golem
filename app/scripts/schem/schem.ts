@@ -596,7 +596,7 @@ export function filterRecursively(ast: AnySchemType, predicate: (element: AnySch
  * There's also 'toPropertyIdentifier' that tries to turn keys into valid, camel cased javascript identifiers that can be used in dot notation. (By removing illegal characters, turning a lowercase character following a dash into an uppercase character. It's not checking for reserved words!)
  * e.g.: ':some-random!-identifier' -> 'someRandomIdentifier'
  * or: '1-bad-identifier' -> 'badIdentifier'
- * 
+ *
  * @param {object} options Indicates how map keys should be handled. Choose wisely.
 */
 // TODO: as isSerializable check and throw error when trying to convert a schemObject that isn't
@@ -621,13 +621,13 @@ export function schemToJs(schemObject?: AnySchemType | null, options: {keySerial
         if (options.keySerialization === 'toPropertyIdentifier') {
           jsKey = jsKey.replace(/^\d*/, ''); // remove numerical characters at the beginning of the key
           jsKey = jsKey.replace(/[^a-zA-Z0-9$_-]/g, ''); // remove any non alphanumeric character except '$', '_' or '-'
-          jsKey = jsKey.replace(/^-*/,''); // remove dashes at beginning
-          jsKey = jsKey.replace(/-+/g,'-'); // turn repeated dashes into a single one
+          jsKey = jsKey.replace(/^-*/, ''); // remove dashes at beginning
+          jsKey = jsKey.replace(/-+/g, '-'); // turn repeated dashes into a single one
           let camelCasedKey = '';
           for (let i = 0; i < jsKey.length; i++) {
             if (jsKey[i] === '-') {
               // turn characters following a dash into uppercase version, skip the dash itself
-              camelCasedKey += jsKey[i+1].toUpperCase();
+              camelCasedKey += jsKey[i + 1].toUpperCase();
               i++;
             } else {
               camelCasedKey += jsKey[i];

@@ -135,7 +135,7 @@ export class Env {
   getSymbols(): Array<SchemSymbol | SchemContextSymbol> {
 
     let symbols: Array<SchemSymbol | SchemContextSymbol>;
-    
+
     symbols = Array.from(this.symbolValueMap.keys()).map(symbol => {
       return SchemSymbol.from(Symbol.keyFor(symbol)!);
     });
