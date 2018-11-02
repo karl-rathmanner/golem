@@ -5,6 +5,7 @@ export const shlukerts: {[symbol: string]: any} = {
   'shluk': (input: SchemVector | SchemNil, e: AnySchemType): HTMLElement | void => {
     // [:div {:id "foo"} "I <3 content!"]
     return createHTMLElement(input);
+    // todo: automatic :p for text node vectors?
   }
 };
 
@@ -20,6 +21,11 @@ function createHTMLElement(input: SchemVector | SchemNil): HTMLElement | void {
     if (isSchemKeyword(tag)) {
       const node = document.createElement(tag.name);
 
+      if (attributes != null) attributes.forEach((key, value) => {
+        const attributeName = isSchemKeyword(key) ? key.name : key.getStringRepresentation();
+        node.setAttribute(attributeName, value.toString()); 
+      });
+      
       content.forEach( element => {
         if (isSchemString(element)) {
           node.appendChild(document.createTextNode(element.valueOf()));
