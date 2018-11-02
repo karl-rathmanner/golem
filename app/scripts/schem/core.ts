@@ -5,7 +5,7 @@ import { prettyPrint, pr_str } from './printer';
 import { readStr } from './reader';
 import { jsObjectToSchemType, schemToJs } from './schem';
 import { isSchemKeyword, isSchemString, isSchemSymbol, isSequential, isValidKeyType, isSchemLazyVector, isSchemMap, isSchemNumber, isSchemList, isSchemVector } from './typeGuards';
-import { SchemAtom, SchemBoolean, SchemFunction, SchemKeyword, SchemLazyVector, SchemList, SchemMap, SchemMapKey, SchemNil, SchemNumber, SchemRegExp, SchemString, SchemSymbol, AnySchemType, SchemVector } from './types';
+import { SchemAtom, SchemBoolean, SchemFunction, SchemKeyword, SchemLazyVector, SchemList, SchemMap, SchemMapKey, SchemNil, SchemNumber, SchemRegExp, SchemString, SchemSymbol, AnySchemType, SchemVector, RegularSchemCollection } from './types';
 
 export const coreFunctions: {[symbol: string]: any} = {
   '+': (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue: SchemNumber, currentIndex: number) => {
@@ -85,6 +85,17 @@ export const coreFunctions: {[symbol: string]: any} = {
   },
   'vector': (...args: AnySchemType[]) => {
     return new SchemVector().concat(args);
+  },
+  'vec': (coll: RegularSchemCollection) => {
+    if (isSchemList(coll)) {
+      return new SchemVector(...coll);
+    } else if (isSchemMap(coll)) {
+      return new SchemVector(...coll.flatten());
+    } else if (isSchemVector(coll)) {
+      return coll;
+    } else {
+      return new SchemVector();
+    }
   },
   'vector?': (arg: AnySchemType) => {
     return SchemBoolean.fromBoolean(arg instanceof SchemVector);
