@@ -27,9 +27,6 @@ import { isSchemFunction } from './schem/typeGuards';
         elements.item(i).addEventListener(eventName.valueOf(),
           (e) => {
 
-
-
-
             if (isSchemFunction(astOrCode)) {
               // TODO: add some 'wrapped js object' Schem Type, that could be used here instead of converting e
               const newForm = new SchemList(astOrCode, jsObjectToSchemType(e));
