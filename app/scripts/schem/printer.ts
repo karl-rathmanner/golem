@@ -7,7 +7,6 @@ export async function pr_str(ast: AnySchemType, escapeStrings: boolean = true): 
   } else if (isSchemNumber(ast)) {
     return ast.toString();
   } else if (ast instanceof SchemNil) { // wat? -> isSchemNil(ast)) {
-    console.log(ast);
     return 'nil';
   } else if (isSchemSymbol(ast) || isSchemKeyword(ast) ||  isSchemRegExp(ast) ||  isSchemContextSymbol(ast)) {
     return ast.getStringRepresentation();
