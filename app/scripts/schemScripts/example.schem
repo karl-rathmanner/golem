@@ -20,7 +20,7 @@
 ; Calculate numbers with your calculating machine:
 (* 7 (+ 3 2 1))
 
-; Implementing fizz-buzz using a lazy vector: (very lispy)
+; 1) Implementing fizz-buzz using a lazy vector: (very lispy)
 (defn fizz-buzz (start end)
   ; Subvec realizes a range of values in a lazy-vector, memoizing the values.
   ; This would save time if you needed to access an element more than once and if accessing it was expensive,
@@ -36,6 +36,15 @@
     start end))
 
 (fizz-buzz 0 100)
+
+; 2) Turn the output of fizz-buzz into a div containing an unordered list (creating DOM nodes, not HTML code)
+(let
+  [to-li #(vector :li (str %))]
+  (console-log 
+    (shluk
+      [:div 
+        (vec (concat [:ul] (vec (map to-li (fizz-buzz 0 42)))))])))
+    
 
 ; Tail call optimization example: (if it wasn't for TCO, calling sum with high values would lead to stack overflows)
 (do
