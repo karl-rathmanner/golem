@@ -8,6 +8,7 @@ import { isSchemKeyword, isSchemString, isSchemSymbol, isSequential, isValidKeyT
 import { SchemAtom, SchemBoolean, SchemFunction, SchemKeyword, SchemLazyVector, SchemList, SchemMap, SchemMapKey, SchemNil, SchemNumber, SchemRegExp, SchemString, SchemSymbol, AnySchemType, SchemVector, RegularSchemCollection } from './types';
 
 export const coreFunctions: {[symbol: string]: any} = {
+  'identity': (x: AnySchemType) => x,
   '+': (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue: SchemNumber, currentIndex: number) => {
     if (currentIndex === 0) return currentValue.valueOf();
     else return accumulator + currentValue.valueOf();
@@ -140,7 +141,6 @@ export const coreFunctions: {[symbol: string]: any} = {
     }
     return sequential.nth(index.valueOf());
   },
-
   /** calls pr_str (escaped) on each argument, joins the results, seperated by ' ' */
   'pr-str': async (...args: AnySchemType[]) => {
     return new SchemString(
