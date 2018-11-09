@@ -91,7 +91,7 @@ browser.commands.onCommand.addListener(function(command) {
       break;
 
     case 'open-editor':
-      openEditor();
+      openEditor(false);
       break;
 
     case 'advanceSchemInterpreter':
@@ -154,23 +154,27 @@ browser.omnibox.onInputEntered.addListener((text: string) => {
   );
 });
 
-export function openEditor(fileName?: string) {
+export function openEditor(inNewWindow: boolean = true, fileName?: string) {
   browser.windows.getCurrent().then(currentWindow => {
-    const halfHorizontalResolution = window.screen.width / 2;
-    const currentWindowWidth = currentWindow.width ? currentWindow.width : 100;
-    let editorWindowWidth = currentWindow.width;
-    let editorWindowLeft = currentWindow.left;
+    if (inNewWindow) {
+      const halfHorizontalResolution = window.screen.width / 2;
+      const currentWindowWidth = currentWindow.width ? currentWindow.width : 100;
+      let editorWindowWidth = currentWindow.width;
+      let editorWindowLeft = currentWindow.left;
 
-    // put current window and editor window in a split layout, if the current window is smaller than about half the screen resolution
-    if (currentWindowWidth < halfHorizontalResolution + 20) {
-      currentWindow.width = editorWindowWidth = halfHorizontalResolution;
-      currentWindow.left = 0;
-      editorWindowLeft = halfHorizontalResolution;
+      // put current window and editor window in a split layout, if the current window is smaller than about half the screen resolution
+      if (currentWindowWidth < halfHorizontalResolution + 20) {
+        currentWindow.width = editorWindowWidth = halfHorizontalResolution;
+        currentWindow.left = 0;
+        editorWindowLeft = halfHorizontalResolution;
+      }
+      browser.windows.create({
+        url: './pages/editor.html' + (fileName ? `#${fileName}` : ''),
+        top: currentWindow.top, left: editorWindowLeft,
+        height: currentWindow.height, width: editorWindowWidth
+      });
+    } else {
+      browser.tabs.create({url: './pages/editor.html' + (fileName ? `#${fileName}` : '')});
     }
-    browser.windows.create({
-      url: './pages/editor.html' + (fileName ? `#${fileName}` : ''),
-      top: currentWindow.top, left: editorWindowLeft,
-      height: currentWindow.height, width: editorWindowWidth
-    });
   });
 }
