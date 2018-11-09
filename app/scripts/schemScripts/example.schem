@@ -95,7 +95,7 @@
 ; 2) Defining a context with specific features: (instead of relying on on-demand feature aggregation)
 (defcontext xkcd: { :tabQuery {:url "*://*.xkcd.com/*"}
                     ; dom-manipulation and tiny-reply both depend on schem-interpreter, so the order in which they will be injected does matter
-                    :features ["schem-interpreter" "dom-manipulation" "tiny-repl"]})
+                    :features ["schem-interpreter" "dom-manipulation" "tiny-repl" "shlukerts"]})
 
 ; 3) Adding an event listener in foreign contexts: (and doing something with local state)
 (xkcd:
@@ -113,8 +113,12 @@
 ; The tiny reply allows you to evaluate Schem code within the respective local context.
 (xkcd:(tiny-repl-show))
 
-; Try running this in the tiny repl:
+; 6) Now try running this in the tiny repl:
 ; (set-css-text "body" "background-color: gray")
+
+; 7,8) Crummy examples for using JSReferences
+(xkcd: ((js-ref (window.document.querySelector "#ctitle") "append") (shluk [:div "Y'ello!"])))
+(xkcd: (set! (js-ref (window.document.querySelector "title") "text") "Y'orange!"))
 
 ;;; Persistent contexts
 ; Open any number of web pages, run this script. Now reload any of the web pages, follow links or navigate to a different page.
