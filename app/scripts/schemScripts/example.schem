@@ -41,10 +41,10 @@
 (let
   [to-li #(vector :li (str %))]
   (console-log 
-    (shluk
-      [:div 
-        (vec (concat [:ul] (vec (map to-li (fizz-buzz 0 42)))))])))
-    
+    (shluk 
+      [:ul 
+        (map to-li (fizz-buzz 0 10))])))
+ 
 
 ; Tail call optimization example: (if it wasn't for TCO, calling sum with high values would lead to stack overflows)
 (do
