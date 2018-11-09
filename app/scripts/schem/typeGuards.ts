@@ -1,4 +1,4 @@
-import { AnySchemType, SchemVector, SchemList, SchemMap, SchemNumber, SchemContextSymbol, SchemNil, SchemString, SchemRegExp, SchemFunction, SchemBoolean, SchemAtom, SchemLazyVector, SchemSymbol, SchemKeyword, Callable, SchemMapKey, Sequable, SchemTypes, RegularSchemCollection } from './types';
+import { AnySchemType, SchemVector, SchemList, SchemMap, SchemNumber, SchemContextSymbol, SchemNil, SchemString, SchemRegExp, SchemFunction, SchemBoolean, SchemAtom, SchemLazyVector, SchemSymbol, SchemKeyword, Callable, SchemMapKey, Sequable, SchemTypes, RegularSchemCollection, SchemJSReference } from './types';
 //
 export function isSequential(object: AnySchemType): object is SchemList | SchemVector {
   return (object instanceof SchemList ||  isSchemVector(object));
@@ -18,7 +18,8 @@ export function isSchemType(o: any): o is AnySchemType {
           isSchemFunction(o) ||
           isSchemBoolean(o) ||
           isSchemLazyVector(o) ||
-          isSchemAtom(o));
+          isSchemAtom(o)) ||
+          isSchemJSReference(o);
 }
 
 export function isSchemCollection(o: any): o is RegularSchemCollection {
@@ -85,6 +86,10 @@ export function isSchemAtom(o: any): o is SchemAtom {
 
 export function isSchemLazyVector(o: any): o is SchemLazyVector {
   return (o != null && typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemLazyVector);
+}
+
+export function isSchemJSReference(o: any): o is SchemJSReference {
+  return (o != null && typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemJSReference);
 }
 
 export function isCallable(o: any): o is Callable {

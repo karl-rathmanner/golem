@@ -5,7 +5,7 @@ import { coreFunctions } from './core';
 import { Env, EnvSetupMap } from './env';
 import { pr_str } from './printer';
 import { readStr } from './reader';
-import { isCallable, isSchemBoolean, isSchemCollection, isSchemContextSymbol, isSchemFunction, isSchemKeyword, isSchemLazyVector, isSchemList, isSchemMap, isSchemNil, isSchemString, isSchemSymbol, isSchemType, isSequable, isSequential, isValidKeyType, isSchemNumber } from './typeGuards';
+import { isCallable, isSchemBoolean, isSchemCollection, isSchemContextSymbol, isSchemFunction, isSchemKeyword, isSchemLazyVector, isSchemList, isSchemMap, isSchemNil, isSchemString, isSchemSymbol, isSchemType, isSequable, isSequential, isValidKeyType, isSchemNumber, isSchemJSReference } from './typeGuards';
 import { SchemAtom, SchemBoolean, SchemContextDefinition, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemNumber, SchemString, SchemSymbol, AnySchemType, SchemVector, toSchemMapKey } from './types';
 
 export class Schem {
@@ -417,6 +417,9 @@ export class Schem {
           // (let [x 'window.example] (x args)) <- invokes window.example with args
           } else if (isSchemSymbol(f) && SchemSymbol.refersToJavascriptObject(f)) {
             return await invokeJsProcedure(f.name, args);
+          // Invoke JSReferences if they 'point' to a js function
+          } else if (isSchemJSReference(f) && f.typeof() === 'function') {
+            f.invoke(...args);
           } else {
             console.log(first);
             throw new Error(`Invalid form: first element "${first}" is not callable`);

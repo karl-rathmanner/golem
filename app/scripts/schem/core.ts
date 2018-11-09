@@ -4,8 +4,8 @@ import { VirtualFileSystem } from '../virtualFilesystem';
 import { prettyPrint, pr_str } from './printer';
 import { readStr } from './reader';
 import { jsObjectToSchemType, schemToJs } from './schem';
-import { isSchemKeyword, isSchemString, isSchemSymbol, isSequential, isValidKeyType, isSchemLazyVector, isSchemMap, isSchemNumber, isSchemList, isSchemVector } from './typeGuards';
-import { SchemAtom, SchemBoolean, SchemFunction, SchemKeyword, SchemLazyVector, SchemList, SchemMap, SchemMapKey, SchemNil, SchemNumber, SchemRegExp, SchemString, SchemSymbol, AnySchemType, SchemVector, RegularSchemCollection } from './types';
+import { isSchemKeyword, isSchemString, isSchemSymbol, isSequential, isValidKeyType, isSchemLazyVector, isSchemMap, isSchemNumber, isSchemList, isSchemVector, isSchemFunction, isSchemJSReference } from './typeGuards';
+import { SchemAtom, SchemBoolean, SchemFunction, SchemKeyword, SchemLazyVector, SchemList, SchemMap, SchemMapKey, SchemNil, SchemNumber, SchemRegExp, SchemString, SchemSymbol, AnySchemType, SchemVector, RegularSchemCollection, SchemJSReference } from './types';
 
 export const coreFunctions: {[symbol: string]: any} = {
   'identity': (x: AnySchemType) => x,
@@ -288,9 +288,13 @@ export const coreFunctions: {[symbol: string]: any} = {
     return new SchemString(input);
 
   },
-  'apply': async (fn: SchemFunction, argList: SchemList | SchemVector) => {
+  'apply': async (fn: SchemFunction | Function, argList: SchemList | SchemVector) => {
     throwErrorForNonSequentialArguments(argList);
-    return await fn.invoke(...argList);
+    if (isSchemFunction(fn)) {
+      return await fn.invoke(...argList);
+    } else if (isSchemJSReference(fn) && fn.typeof() === 'function') {
+      fn.invoke(...argList);
+    }
   },
   're-pattern': async (pattern: SchemString) => {
     const matches = /(?:\(\?(.*)?\))?(.+)/.exec(pattern.getStringRepresentation());
@@ -333,11 +337,14 @@ export const coreFunctions: {[symbol: string]: any} = {
     console.log(value);
     return SchemNil.instance;
   },
-  'set!': (sym: SchemSymbol, value: AnySchemType) => {
-    if (SchemSymbol.refersToJavascriptObject(sym)) {
+  'set!': (sym: SchemSymbol | SchemJSReference, value: AnySchemType) => {
+    if (isSchemSymbol(sym)) {
+      if (!SchemSymbol.refersToJavascriptObject(sym)) {
+        throw new Error(`You're not allowed to set Schem bindings to new values. Use atoms for mutable state.`);
+      }
       setJsProperty(sym.name, schemToJs(value));
-    } else {
-      throw new Error(`You're not allowed to set Schem bindings to new values. Use atoms for mutable state.`);
+    } else if (isSchemJSReference(sym)) {
+      sym.set(schemToJs(value));
     }
   },
   'js->schem': async (value: AnySchemType, options?: SchemMap) => {
@@ -345,6 +352,12 @@ export const coreFunctions: {[symbol: string]: any} = {
   },
   'schem->js': (value: AnySchemType, options?: SchemMap) => {
     return schemToJs(value, schemToJs(options, {keySerialization: 'toPropertyIdentifier'}));
+  },
+  'js-ref': (parent: any = window, propertyName: SchemString): SchemJSReference => {
+    return new SchemJSReference(parent, propertyName.valueOf());
+  },
+  'js-deref': (jsref: SchemJSReference) => {
+    return jsref.get();
   },
   'storage-create': async (qualifiedObjectName: SchemString, value: AnySchemType) => {
     return await VirtualFileSystem.createObject(qualifiedObjectName.valueOf(), schemToJs(value));

@@ -53,7 +53,8 @@ export enum SchemTypes {
   SchemLazyVector,
   SchemContextSymbol,
   SchemContextDefinition,
-  SchemContextInstance
+  SchemContextInstance,
+  SchemJSReference
 }
 
 export interface TaggedType {
@@ -422,6 +423,33 @@ export class SchemRegExp extends RegExp implements TaggedType {
       return `#"(?${this.flags})${this.source}"`;
     }
     return `#"${this.source}"`;
+  }
+}
+
+export class SchemJSReference implements TaggedType {
+  typeTag: SchemTypes.SchemJSReference = SchemTypes.SchemJSReference;
+
+  constructor(public readonly parent: any, public readonly name: string) {
+  }
+
+  get() {
+    return this.parent[this.name];
+  }
+
+  set(value: any) {
+    this.parent[this.name] = value;
+  }
+
+  toSchemType() {
+    jsObjectToSchemType(this.get());
+  }
+
+  typeof() {
+    return typeof this.get();
+  }
+
+  invoke(...args: any[]) {
+    this.parent[this.name](...args);
   }
 }
 
