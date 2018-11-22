@@ -39,22 +39,12 @@ export class SchemEditor {
 
   private editorManipulationSchemFunctions = {
     'editor-load-script': async (qualifiedFileName: SchemString) => {
-      let candidate = await VirtualFileSystem.readObject(qualifiedFileName.valueOf());
-      if (typeof candidate === 'string') {
-        this.monacoEditor.setValue(candidate);
-        return SchemBoolean.true;
-      } else {
-        throw new Error(`Can only load strings into the editor.`);
-      }
+      this.loadLocalScript(qualifiedFileName.valueOf());
+      return SchemBoolean.true;
     },
     'editor-save-script': async (qualifiedFileName: SchemString) => {
-      const script = this.monacoEditor.getValue();
-      const result =  await VirtualFileSystem.createObject(qualifiedFileName.valueOf(), script, true)
-      .then(() => {
-        console.log('saved');
-        return new SchemString(`Successfully saved ${qualifiedFileName}.`);
-      }).catch(e => e);
-      return result;
+      this.saveScriptLocally(qualifiedFileName.valueOf());
+      return new SchemString(`Successfully saved ${qualifiedFileName}.`);
     }
   };
 
@@ -173,5 +163,22 @@ export class SchemEditor {
     getHTMLElementById('monacoContainer').style.height = `${window.innerHeight}px`;
     getHTMLElementById('monacoContainer').style.width = `${window.innerWidth}px`;
     this.monacoEditor.layout();
+  }
+
+  public async loadLocalScript(qualifiedFileName: string): Promise<void> {
+    let candidate = await VirtualFileSystem.readObject(qualifiedFileName);
+    if (typeof candidate === 'string') {
+      this.monacoEditor.setValue(candidate);
+    } else {
+      throw new Error(`Can only load strings into the editor, encountered something else saved under: ${qualifiedFileName}`);
+    }
+  }
+
+  public async saveScriptLocally(qualifiedFileName: string): Promise<void> {
+    const script = this.monacoEditor.getValue();
+      const result =  await VirtualFileSystem.writeObject(qualifiedFileName, script, true)
+      .then(() => {
+        return;
+      }).catch(e => e);
   }
 }
