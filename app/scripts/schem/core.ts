@@ -377,10 +377,10 @@ export const coreFunctions: {[symbol: string]: any} = {
     atom.removeWatch(name);
   },
   'storage-create': async (qualifiedObjectName: SchemString, value: AnySchemType) => {
-    return await VirtualFileSystem.createObject(qualifiedObjectName.valueOf(), schemToJs(value));
+    return await VirtualFileSystem.writeObject(qualifiedObjectName.valueOf(), schemToJs(value));
   },
   'storage-create-or-update': async (qualifiedObjectName: SchemString, value: AnySchemType) => {
-    return await VirtualFileSystem.createObject(qualifiedObjectName.valueOf(), schemToJs(value), true);
+    return await VirtualFileSystem.writeObject(qualifiedObjectName.valueOf(), schemToJs(value), true);
   },
   'storage-read': async (qualifiedObjectName: SchemString) => {
     return await VirtualFileSystem.readObject(qualifiedObjectName.valueOf());

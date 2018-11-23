@@ -13,7 +13,7 @@ type VFSObjectKeysNode = {
 */
 export class VirtualFileSystem {
 
-  public static async createObject(qualifiedObjectName: string, value: any, overwriteExistingObject = false) {
+  public static async writeObject(qualifiedObjectName: string, value: any, overwriteExistingObject = false) {
     return this.crudObject('create', qualifiedObjectName, value, overwriteExistingObject);
   }
 
