@@ -211,10 +211,10 @@ export const coreFunctions: {[symbol: string]: any} = {
     return value.constructor === SchemAtom;
   },
   'deref': (atom: SchemAtom) => {
-    return atom.value;
+    return atom.getValue();
   },
   'reset!': (atom: SchemAtom, value: AnySchemType) => {
-    return atom.value = value;
+    return atom.setValue(value);
   },
   'cons': (item: AnySchemType, list: SchemList) => {
     return new SchemList(item, ...list);
@@ -333,8 +333,8 @@ export const coreFunctions: {[symbol: string]: any} = {
         (end) ? end.valueOf() : undefined);
     }
   },
-  'console-log': (value: any) => {
-    console.log(value);
+  'console-log': (...args: []) => {
+    console.log(...args);
     return SchemNil.instance;
   },
   'set!': (sym: SchemSymbol | SchemJSReference, value: AnySchemType) => {
@@ -353,11 +353,28 @@ export const coreFunctions: {[symbol: string]: any} = {
   'schem->js': (value: AnySchemType, options?: SchemMap) => {
     return schemToJs(value, schemToJs(options, {keySerialization: 'toPropertyIdentifier'}));
   },
-  'js-ref': (parent: any = window, propertyName: SchemString): SchemJSReference => {
-    return new SchemJSReference(parent, propertyName.valueOf());
+  'js-ref': (...args: any[]): SchemJSReference => {
+    if (args.length === 1) {
+      if (isSchemString(args[0])) {
+        return new SchemJSReference(window, args[0].valueOf());
+      } else {
+        throw new Error('js-ref expects a SchemString, when called with a single argument.');
+      }
+    } else if (args.length === 2) {
+      const [parentObject, propertyName] = args;
+      return new SchemJSReference(parentObject, propertyName.valueOf())
+    } else {
+      throw new Error('js-ref expects one or two arguments')
+    }
   },
   'js-deref': (jsref: SchemJSReference) => {
     return jsref.get();
+  },
+  'add-watch': (atom: SchemAtom, name: SchemKeyword, f: SchemFunction): void => {
+    atom.addWatch(name, f);
+  },
+  'remove-watch': (atom: SchemAtom, name: SchemKeyword): void => {
+    atom.removeWatch(name);
   },
   'storage-create': async (qualifiedObjectName: SchemString, value: AnySchemType) => {
     return await VirtualFileSystem.createObject(qualifiedObjectName.valueOf(), schemToJs(value));

@@ -1,4 +1,4 @@
-import { isSchemAtom, isSchemBoolean, isSchemLazyVector, isSchemMap, isSchemNumber, isSchemString, isSchemSymbol, isSchemList, isSchemVector, isSchemKeyword, isSchemRegExp, isSchemContextSymbol, isSchemNil } from './typeGuards';
+import { isSchemAtom, isSchemBoolean, isSchemLazyVector, isSchemMap, isSchemNumber, isSchemString, isSchemSymbol, isSchemList, isSchemVector, isSchemKeyword, isSchemRegExp, isSchemContextSymbol, isSchemNil, isSchemJSReference } from './typeGuards';
 import { SchemContextInstance, SchemFunction, SchemList, AnySchemType, SchemVector, SchemNil } from './types';
 
 export async function pr_str(ast: AnySchemType, escapeStrings: boolean = true): Promise<string> {
@@ -37,9 +37,11 @@ export async function pr_str(ast: AnySchemType, escapeStrings: boolean = true): 
       return `#function [${JSON.stringify(ast.metadata)}]`;
     }
   } else if ( isSchemAtom(ast)) {
-    return `#atom [${JSON.stringify(ast.value)}]`;
+    return `#atom [${JSON.stringify(ast.getValue())}]`;
   } else if (ast instanceof SchemContextInstance) {
     return `#context [${JSON.stringify(ast)}]`;
+  } else if (isSchemJSReference(ast)) {
+    return `#jsReference [${ast.parent.toString()}, ${ast.name}]`
   } else {
     // attempt to stringify object, because it's not a SchemType after all
     return `#jsObject [${JSON.stringify(ast)}]`;

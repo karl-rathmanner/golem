@@ -428,7 +428,7 @@ export class SchemRegExp extends RegExp implements TaggedType {
 
 export class SchemJSReference implements TaggedType {
   typeTag: SchemTypes.SchemJSReference = SchemTypes.SchemJSReference;
-
+  
   constructor(public readonly parent: any, public readonly name: string) {
   }
 
@@ -647,12 +647,55 @@ export class SchemContextInstance implements TaggedType {
 
 export class SchemAtom implements TaggedType {
   public typeTag: SchemTypes.SchemAtom = SchemTypes.SchemAtom;
-  constructor(public value: AnySchemType) {
+  private watches: [SchemKeyword,SchemFunction][] = [];
+  
+  constructor(private value: AnySchemType) {
+  }
+
+  /** Returns the atom's value */
+  getValue() {
+    return this.value;
+  }
+
+  /** Sets the atom's value, calling any existing watches in the order they were added.*/
+  setValue(v: AnySchemType) {
+    this.watches.forEach(watch => {
+      // A watch function is invoked just like in clojure.
+      // It is expected to have a signature like (fn [key atom old-value new-value] ...)
+      // The parameters being: the watches' "key", the atom itself, its old value, its new value
+      watch[1].invoke(watch[0], this, this.value, v);
+    });
+    this.value = v;
+  }
+
+  private findWatchIndex(key: SchemKeyword): number {
+    return this.watches.findIndex((watch) => {
+      return watch[0].name === key.name;
+    });
+  }
+
+  /** Adds a watch function (or overrides an existing watch that has the same key)*/
+  addWatch(key: SchemKeyword, f: SchemFunction) {
+    const index = this.findWatchIndex(key)
+    if (index === -1) {
+      this.watches.push([key, f]);
+    } else {
+      this.watches[index] = [key, f];
+    }
+  }
+
+  /** Removes a watch function if one matching the key is found. */
+  removeWatch(key: SchemKeyword) {
+    const index = this.findWatchIndex(key);
+    if (index > -1) {
+      this.watches.splice(index, 1);
+    } else {
+      throw new Error(`A watch named ${key} was already added to this atom.`)
+    }
   }
 }
 
 // type conversion
-
 export function toSchemMapKey(key: SchemMapKey): string {
   if (isSchemString(key)) {
     return 's' + key.valueOf();

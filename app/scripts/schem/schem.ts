@@ -28,8 +28,8 @@ export class Schem {
     // Schem functions that need to reference the repl Environment go here - addMap doesn't support that
     this.replEnv.set('eval', (rand: AnySchemType) => this.evalSchem(rand, this.replEnv));
     this.replEnv.set('swap!', async (atom: SchemAtom, fn: SchemFunction, ...rest: AnySchemType[]) => {
-        atom.value = await this.evalSchem(new SchemList(fn, atom.value, ...rest), this.replEnv);
-        return atom.value;
+        atom.setValue(await this.evalSchem(new SchemList(fn, atom.getValue(), ...rest), this.replEnv));
+        return atom.getValue();
       }
     );
     this.replEnv.set('resolve', (sym: SchemSymbol) => {
@@ -248,8 +248,8 @@ export class Schem {
                 }
 
               /** (fn name? [parameters] (functionBody)
-               *  Defines a new function in the current environment. When it's colled, the function body gets executed in a new child environmet.
-               *  In this child environmet, the symbols provided in parameters are bound to he values provided as arguments by the caller.
+               *  Defines a new function in the current environment. When it's called, the function body gets executed in a new child environmet.
+               *  In this child environmet, the symbols provided in params are bound to the values provided as arguments by the caller.
               */
               case 'fn':
                 let name, params, fnBody;
@@ -298,7 +298,12 @@ export class Schem {
                * explicitly expand all macro functions (even nested ones)
               */
               case 'macroexpand-all':
-                return await this.macroExpandAll(ast, env);
+                const expandedList = await this.macroExpandAll(ast, env);
+                if (isSchemList(expandedList) && expandedList.length === 2) {
+                  return expandedList[1];
+                } else {
+                  throw new Error(`Something went wrong during macro expansion!`);
+                }
 
               /** (set-interpreter-options map) changes interpreter settings
                *  e.g.: (set-interpreter-options {"logArepInput" true "pauseEvaluation" false}) */
