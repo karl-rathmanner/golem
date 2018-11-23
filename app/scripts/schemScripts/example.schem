@@ -1,24 +1,157 @@
-; Press alt+e to evaluate the form at your cursor position, hope you don't have too many or too few parens in the file.
-; these examples are neither exaustive nor
+;;; This is a REPL, a live coding environment.
+;;; Place your cursor inside a form and press alt+e to see immediate results!
 
-;;; available types & collections
-; lists, ofc
-(list 1 2 3)
-; vectors
+; Caveats:
+; Make sure you don't have too many or too few parentheses in the file. That confuses the parser!
+; Some of these examples depend on symbols defined above them. Evaluating them in order is 
+; recommended.
+; When in doubt: check your browser's console.
+; If all else fails: reload this tab.
+
+
+;;; Basic Types and Collections
+
+; Schem has lists, of course. (Evaluating this throws an error. Find out below, why!)
+(1 2 3)
+
+; Schem also has vectors, like clojure. (Hit alt+e! This evaluates just fine.)
 [4 5 6]
-; maps (and kewords and strings)
-{:keyword "String"}
-; regular expressions
+
+; Lists and vectors can contain values like numbers:
+[-2 3.4]
+
+; Strings:
+["They look like this." "Escape sequences are a \"thing\". \nNow you know."]
+
+; Symbols: 
+[foo bar i-am-a-lispy-symbol document.location.href]
+; (they *usually* evaluate to whatever value they are bound to in their environment)
+
+; Keywords: 
+[:foo :moo :boo]
+; (they evaluate to themselves)
+
+; Maps are collections that work like dictionaries. They associate values with keys. 
+{:eng "Hello!" :ger "Hallo!" :aut "Griaß Ihna!"}
+; Keywords make nice keys...
+
+; ...but strings and numbers are valid keys, too! Putting commas between key value pairs makes
+; maps easier to read to humans. You can put them anywhere, actually! The parser just ignores them.
+{1 "one", "two" 2}
+
+; And who could live without regular expressions? Here's one in action:
 (re-find #"reg.*ex(?:pr)?" "regularexpresso")
-; functions
-(defn square (x) (* x x))
 
-; this is a simple macro that turns (a b c f) into (f a b c)
-(defmacro executePostfix (fn (l) (cons (last l) (butlast l))))
-(macroexpand (executePostfix (1 2 3 4 +)))
 
-; Calculate numbers with your calculating machine:
+
+;;; Functions
+
+; When evaluating a form, the first element of a list is treated like a function. It gets called
+; with the other form elements supplied as arguments. Evaluation starts at the innermost parens
+; and works its way 'upwards' by substituting what's in between the parentheses with the return
+; value of the function.
 (* 7 (+ 3 2 1))
+
+; So, (* 7 (+ 3 2 1)) turns into (* 7 6) turns into 42.
+
+; Lisp uses prefix notation. Normal people would write the example like this:
+; (7 * (3 + 2 + 1))
+;
+; And normal programmers might write it like this:
+;   multiply(7, add(3, 2, 1));
+;
+; (Provided they defined the functions 'multiply' and 'add' somewhere. Btw: Notice how this has
+; the same amount of parentheses but none of that comma-and-semicolon-stuff?
+
+; Functions can be created using the 'fn' form:
+(fn (x) (* x x))
+
+; Most of the times, when you create a function, you'll want to bind it to some symbol so you 
+; can re-use it later:
+; (Notice that parameters can be defined in a [vector] instead of a (list), which looks nicer.)
+(def add (fn [x y] (+ x y)))
+ 
+; Now we can call 'add' with two numbers.
+; Granted, 'add' is a silly function, but it serves its purpose here.
+(add 1 2)
+
+; You could also create and bind a function to a symbol in one go using the 'defn' macro:
+(defn add [x y] (+ x y))
+; 'add' is still silly, but you had to type five characters less.
+
+; Ooor! You could define the same thing using an anonymous function literal:
+; (Functions created this way can have up to nine parameters named %1 to %9.
+; ...and "%" is synonymous with "%1" if you want to save one more keypress.)
+(def add #(+ %1 %2))
+
+; Now that's eight characters less!
+; Allthough you might spend more time contemplating how these work than you'll ever save
+; by not having to type a few more characters. ;)
+
+; Then again, function literals are super handy for one-off functionality!
+; If you call 'map' with a function and a sequence, it returns a new sequence 
+; containing the results of 'applying' the function to each element.
+(map #(* 2 %) [1 2 3])
+
+; Variadic functions are also supported in Schem.
+; In this example, "prefix" is bound to the first argument when calling "jazz-it-up",
+; all following arguments are passed (as elements of a list) to "all-other-arguments".
+; So the "&" works more or less like the rest operator ("...") in javascript.
+(do
+  (defn jazz-it-up [prefix & all-other-arguments]
+    (map #(str prefix " " % "!") all-other-arguments))
+  (jazz-it-up "And a" "one" "two" "three"))
+
+; 'map' is actually a variadic function. See what happens when you call it with a function, 
+; followed by more than one sequence:
+(map #(str %1 %2 %3) ["a" "b" "c"] [1 2 3] ["A" "B" "C"])
+
+
+
+;;; Macros
+
+; ...are functions that can transform your code 'before' it gets evaluated. This allows you to
+; change the language's syntax. They are really meta!
+(defmacro executePostfix (fn [& l] (cons (last l) (butlast l))))
+
+; The macro defined above turns a list (a b c ... f) into (f a b c ...) which then is evaluated.
+(executePostfix 1 2 3 4 +)
+
+; If you want to see the transformed code itself instead of its result, you can 'expand' macros.
+(macroexpand (executePostfix 1 2 +))
+
+; 'macroexpand' does this for one level while 'macroexpand-all' will work even with nested macros.
+(macroexpand-all (executePostfix 1 2 3 (executePostfix 3 4 +) *))
+
+; Some core features are actually just macros. Want to know what these function literals 
+; actually turn into? Eval' this:
+(macroexpand #(+ %1 %2))
+
+
+
+;;; Atoms
+
+; ...can hold a value. They are kind of like having a variable without a name, which isn't
+; too useful, even in contrived examples. So we create an atom and bind it to the symbol 'a':
+(def a (atom 2))
+
+; Atoms can be dereferenced to return their value.
+(deref a)
+; You can set their value to something entirely new,
+(set! a 4)
+; ...or 'swap' it out with the result of a function that got called with their current value.
+(defn increment #(+ 1 %))
+(swap! a increment) ; <- eval' this repeatedly!
+
+; Atoms support watches. These are functions that get called when the atom's value changes.
+; (Evaluate the next line, then try evaluating the swap! example again and look at your console.)
+(add-watch a :whoo (fn [key atom old-value new-value] (console-log old-value new-value)))
+; An atom can have multiple watches, as long as each one was added with a unique key. (Unique 'within' that atom, not globally.)
+; If you know the key of a particular watch, you can also remove it, if you happen to grow weary of it.
+(remove-watch a :whoo)
+
+
+;;; Some more involved examples
 
 ; 1) Implementing fizz-buzz using a lazy vector: (very lispy)
 (defn fizz-buzz (start end)
@@ -43,10 +176,9 @@
   (console-log 
     (shluk 
       [:ul 
-        (map to-li (fizz-buzz 0 10))])))
- 
+        (map to-li (fizz-buzz 0 10))]))) 
 
-; Tail call optimization example: (if it wasn't for TCO, calling sum with high values would lead to stack overflows)
+; Tail call optimization: (if it wasn't for TCO, calling sum with high values would lead to stack overflows)
 (do
   (def sum (fn (n acc)
             (if (= n 0)
@@ -55,7 +187,8 @@
 
   (sum 4141 0))
 
-;;; Javascript interop (symbols with a dot get treated differently)
+;;; Javascript interop (symbols with a dot get treated *differently*)
+
 ; Invoking a js function:
 (window.alert "This works.")
 
@@ -76,28 +209,40 @@
 ; (notice that the js symbol is quoted!)
 (set! 'document.title "ᕕ( ՞ ᗜ ՞ )ᕗ")
 
-;;; Foreign Execution Contexts (?)
-; Defining an execution context that matches any regular tab:
+
+
+;;; Foreign Execution Contexts (is that a good name?)
+; These probably deserve a paragraph of documentation.    ¯\_( ツ )_/¯
+
+;; The general concept
+; 1) Defining an execution context that matches any regular tab:
 (defcontext anyTab: {:tabQuery {:url "*://*/*"}})
 
-; Evaluating and printing something in a different context (check any other tab's console).
-; Foreign contexts are lazily realized by forms like this. The results from each context will be returned in a list.
-; Errors are silently swept under the rug, currently. Check your js console(s), don't forget about the background page.
+; 2a) Evaluating and printing something in a different context (check any other tab's console).
+; Foreign contexts are lazily realized by forms like this. The results from each context will 
+; be returned in a list. Errors are silently swept under the rug, currently. Sometimes.
+; Check your js console(s), don't forget about the background page.
 (anyTab:(prn (+ 41 1)))
 
-; Returning a value gathered from a different context in this context:
+; 2b) Returning a value gathered from a different context in this context:
 (str "They feel: " (anyTab: (prompt "How's it going over there?")))
 
-;;; The following examples should be executed in order
-; 1) Opening a tab by calling a privileged API function: (this only works because the editor lives in a privileged context)
+;; Remote DOM manipulation and other shenanigans.
+
+; 1) Opening a tab by calling a function of the browser API function: 
+; (this only works because the editor lives in a privileged context)
+; ((replace "chrome" with "browser" in other browsers.))
 (chrome.tabs.create {:url "http://xkcd.com/297/"})
 
-; 2) Defining a context with specific features: (instead of relying on on-demand feature aggregation)
+; 2) Defining a context with specific features: 
+; (instead of relying on on-demand feature aggregation)
 (defcontext xkcd: { :tabQuery {:url "*://*.xkcd.com/*"}
-                    ; dom-manipulation and tiny-reply both depend on schem-interpreter, so the order in which they will be injected does matter
+                    ; 'dom-manipulation' and 'tiny-reply' both depend on 'schem-interpreter'
+                    ; the order in which they will be injected does matter
                     :features ["schem-interpreter" "dom-manipulation" "tiny-repl" "shlukerts"]})
 
-; 3) Adding an event listener in foreign contexts: (and doing something with local state)
+; 3) Adding an event listener in foreign contexts: 
+; (and doing something useless with local state)
 (xkcd:
   (do
     (def count (atom 0))
@@ -110,32 +255,40 @@
 (xkcd:(set-css-text "body" "font-family: \"Comic Sans MS\", \"Comic Sans\", cursive"))
 
 ; 5) Opening the tiny repl (or Schem shell?) in the contexts:
-; The tiny reply allows you to evaluate Schem code within the respective local context.
+; (The tiny reply allows you to evaluate Schem code within the respective local context.)
 (xkcd:(tiny-repl-show))
 
-; 6) Now try running this in the tiny repl:
+; 6) Now try running this ↓ in the tiny repl:
 ; (set-css-text "body" "background-color: gray")
 
 ; 7,8) Crummy examples for using JSReferences
 (xkcd: ((js-ref (window.document.querySelector "#ctitle") "append") (shluk [:div "Y'ello!"])))
 (xkcd: (set! (js-ref (window.document.querySelector "title") "text") "Y'orange!"))
 
+
+
 ;;; Persistent contexts
-; Open any number of web pages, run this script. Now reload any of the web pages, follow links or navigate to a different page.
-; A local "happyTab" context is automatically prepared whenever a tab is updated. The :init form is called once the page completed loading.
+; Open any number of web pages, run this script. Now reload any of the web pages, follow links 
+; or navigate to a different page. → A local "happyTab" context is automatically prepared whenever
+; a tab is updated. Within that context, the :init form is called once the page completed loading.
+
 (do
   (def beautify '(set-css-text "body" "font-family: \"Comic Sans MS\", \"Comic Sans\", cursive; background-color: hotpink"))
   (defcontext happyTab: {:tabQuery {:url "*://*/*"}
                          :life-time "persistent"
                          :features ["schem-interpreter" "dom-manipulation"]
                          :init beautify})
-  (happyTab:(prn "Brace yourself.")))
+  (happyTab:(prn "Brace yourself!")))
 
-;;; requesting an xml document via http and turning it into a native map
+
+
+;;; XML support
+
+; Requesting an xml document via http and turning it into a native map.
 (xml->map (xhr-get "http://dbpedia.org/data/Golem.rdf"))
 
-;; if you're absolutely positive that all node and attribute names would be valid keywords (i.e. they don't contain colons or slashes and such)
-;; then requesting a map with keyword keys will work too (otherwise :keyType defaults to "string")
+; If you're absolutely positive that all node and attribute names would be valid keywords (i.e. they don't contain colons or slashes and such)
+; then requesting a map with keyword keys will work too (otherwise :keyType defaults to "string").
 (xml->map 
   (str "<doc>"
         "<node1>woo</node1>"
@@ -154,4 +307,6 @@
 
 ; Saving and loading scripts in the editor: (uses the vfs, so you can put your stuff in folders, too)
 (editor-save-script "someCode")
+; You could now load/bookmark this by adding #someCode to the editor url.
+; Or you could evaluate this:
 (editor-load-script "someCode")
