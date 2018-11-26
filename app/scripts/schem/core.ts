@@ -362,9 +362,9 @@ export const coreFunctions: {[symbol: string]: any} = {
       }
     } else if (args.length === 2) {
       const [parentObject, propertyName] = args;
-      return new SchemJSReference(parentObject, propertyName.valueOf())
+      return new SchemJSReference(parentObject, propertyName.valueOf());
     } else {
-      throw new Error('js-ref expects one or two arguments')
+      throw new Error('js-ref expects one or two arguments');
     }
   },
   'js-deref': (jsref: SchemJSReference) => {
@@ -567,6 +567,10 @@ function xhrPromise (method: 'GET' | 'POST' | 'PUT' | 'DELETE', url: string, bod
             statusText: xhr.statusText
           });
         };
-        xhr.send(body);
+        if (body != null) {
+          xhr.send(body);
+        } else {
+          xhr.send();
+        }
       });
 }
