@@ -2,7 +2,7 @@ import 'chromereload/devonly';
 import { browser, Omnibox } from 'webextension-polyfill-ts';
 import { SchemContextManager } from './contextManager';
 import { EventPageMessage } from './eventPageMessaging';
-import { Schem } from './schem/schem';
+import { Schem, atomicSchemObjectToJS, schemToJs } from './schem/schem';
 import { isSchemList, isSchemSymbol } from './schem/typeGuards';
 import { CommandHistory } from './utils/commandHistory';
 import { extractErrorMessage, addParensAsNecessary, escapeXml } from './utils/utilities';
@@ -21,6 +21,9 @@ window.golem = {
 
 const contextManager = window.golem.priviledgedContext!.contextManager;
 const omniboxInterpreter = new Schem();
+const omniboxEnvOverride = {
+  'notify': (msg: any) => notify(schemToJs(msg))
+};
 const omniboxHistory = new CommandHistory();
 
 browser.runtime.onMessage.addListener(async (message: EventPageMessage, sender): Promise<any> => {
@@ -110,7 +113,8 @@ browser.omnibox.onInputChanged.addListener((text: string, suggest) => {
   const lastToken = matches != null ? matches[2] : null;
 
   // get a list of bound symbols and turn them into SuggestionResults
-  omniboxInterpreter.readEval(`(sort-and-filter-by-string-similarity "${lastToken}" (list-symbols))`).then(async (result) => {
+  // also: add a 'notify' symbol because that function will be made available through omniboxEnvOverride
+  omniboxInterpreter.readEval(`(sort-and-filter-by-string-similarity "${lastToken}" (cons 'notify (list-symbols)))`).then(async (result) => {
     let suggestions: Omnibox.SuggestResult[] = [];
 
     // add at most three autocomplete suggestions (to leave some space for command history items)
@@ -146,12 +150,11 @@ browser.omnibox.onInputEntered.addListener((text: string) => {
   // evaluate omnibox expression and display results in a notification
   text = addParensAsNecessary(text);
   omniboxHistory.addCommandToHistory(text);
-
-  omniboxInterpreter.arep(text).then(
-    result => notify(result, 'Result:')
-  ).catch(
-    e => notify(extractErrorMessage(e), 'Error:')
-  );
+  omniboxInterpreter.arep(text, omniboxEnvOverride).then(result => {
+    console.log('Omnibox evalutation result:', result);
+  }).catch(e => {
+    console.error('Omnibox evaluation error:', e);
+  });
 });
 
 export function openEditor(inNewWindow: boolean = true, fileName?: string) {
