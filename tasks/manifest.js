@@ -7,7 +7,7 @@ import plumber from 'gulp-plumber'
 import applyBrowserPrefixesFor from './lib/applyBrowserPrefixesFor'
 import args from './lib/args'
 
-gulp.task('manifest', () => {
+export const manifest = () => {
   return gulp.src('app/manifest.json')
     .pipe(plumber({
       errorHandler: error => {
@@ -23,5 +23,5 @@ gulp.task('manifest', () => {
       )
     )
     .pipe(gulp.dest(`dist/${args.vendor}`))
-    .pipe(gulpif(args.watch, livereload()))
-})
+    .pipe(gulpif(args.watch, livereload()));
+};

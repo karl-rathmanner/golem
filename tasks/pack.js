@@ -13,11 +13,11 @@ function getPackFileType () {
   }
 }
 
-gulp.task('pack', ['build'], () => {
-  let name = packageDetails.name
-  let version = packageDetails.version
-  let filetype = getPackFileType()
-  let filename = `${name}-${version}-${args.vendor}${filetype}`
+export const pack = gulp.series('build', () => {
+  const name = packageDetails.name;
+  const version = packageDetails.version;
+  const filetype = getPackFileType();
+  const filename = `${name}-${version}-${args.vendor}${filetype}`;
   return gulp.src(`dist/${args.vendor}/**/*`)
     .pipe(zip(filename))
     .pipe(gulp.dest('./packages'))
@@ -25,5 +25,5 @@ gulp.task('pack', ['build'], () => {
       let distStyled = colors.magenta(`dist/${args.vendor}`)
       let filenameStyled = colors.magenta(`./packages/${filename}`)
       log(`Packed ${distStyled} to ${filenameStyled}`)
-    })
-})
+    });
+});

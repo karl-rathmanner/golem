@@ -40,14 +40,14 @@ function inc (importance) {
     .pipe(tagVersion())
 }
 
-gulp.task('patch', () => {
-  return inc('patch')
-})
+export const patch = () => {
+  return inc('patch');
+};
 
-gulp.task('feature', () => {
-  return inc('minor')
-})
+export const feature = () => {
+  return inc('minor');
+};
 
-gulp.task('release', () => {
-  return inc('major')
-})
+export const release = () => {
+  return inc('major');
+};
