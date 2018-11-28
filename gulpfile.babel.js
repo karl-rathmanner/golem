@@ -6,9 +6,11 @@ import { images } from './tasks/images';
 import { locales } from './tasks/locales';
 import { manifest } from './tasks/manifest';
 import { pages } from './tasks/pages';
+import { schemScripts } from './tasks/schemScripts';
 import { scripts } from './tasks/scripts';
 import { styles } from './tasks/styles';
-import { schemScripts } from './tasks/schemScripts';
+import { changelog } from './tasks/changelog';
+
 
 let Server = require('karma').Server
 
@@ -38,6 +40,7 @@ export const build = gulp.series(
     images,
     fonts,
     chromereload,
+    changelog
   )
 );
 

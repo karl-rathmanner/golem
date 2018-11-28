@@ -9,6 +9,7 @@ import { manifest } from './manifest';
 import { pages } from './pages';
 import { schemScripts } from './schemScripts';
 import { stylesCss, stylesLess, stylesSass } from './styles';
+import { changelog } from './changelog';
 
 // In order to make chromereload work you'll need to include
 // the following line in your `scipts/background.ts` file.
@@ -49,6 +50,7 @@ export const chromereload = (cb) => {
   gulp.watch('app/images/**/*', images);
   gulp.watch('app/fonts/**/*.{woff,ttf,eot,svg}', fonts);
   gulp.watch('app/scripts/schemScripts/**/*', schemScripts);
+  gulp.watch('CHANGELOG.md', changelog);
 
   cb();
 }
