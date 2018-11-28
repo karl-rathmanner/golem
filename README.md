@@ -1,42 +1,41 @@
 # Golem
 
-A golem carries out menial tasks and is driven by words. This is a webextension that's supposed to enable you to automate things or modify stuff in your web browser. In essence, it's a userscript manager with lisp instead of javascript.
+A golem carries out menial tasks and is driven by words. I like antropomophizing stuff and thought the name was fitting, considering the project's original scope: making a *scriptable thing* with which you could automate a bunch of tasks in a browser based library system.
+
+This turned into a webextension that's supposed to enable you to automate all kinds of things, change or extend any webpage's presentation of functionality. In essence, it's a userscript manager; but with lisp instead of javascript.
 
 ## Schem
-[ʃɛm], from Hebrew שם‎ (Šēm). *Not* pronounced like "scam".
+[ʃɛm], from Hebrew שם‎ (Šēm). In many Disc- and Roundworld narratives, a golem's task and function are defined by a shem. "Schem" is the german spelling which lends itself to more puns. 
 
 Schem is golem's scripting language. It's a lisp dialect that tries to replicate some of the many neat features clojure has.
-While still pretty basic, Schem is already powerful enough to do cool stuff with. If you already know another lisp, you might feel at home in the editor. If not, you'll be helplessly lost as there's no documentation yet.  
-In any case, the concept of foreign execution contexts might be something entirely new, probably. If you still want to play with this, having a look at example.schem or schem.spec.ts might get you somewhere.
 
-------------
+While still pretty basic, Schem is already powerful enough to do cool stuff with. If you already know another lisp, you might feel at home in the editor. If not, you'll be helplessly lost as there's no documentation yet. In any case, the concept of foreign execution contexts might be something entirely new, probably. If you still want to play with this, having a look at example.schem or schem.spec.ts might get you somewhere.
+
+Great performance or sane memory management are currently non-goals. In particular, switching to immutable data structures is something that I'm putting off for *later*.
+
+## Security concerns
+
+Yes.
+____________________________________________________________________________________
+____________________________________________________________________________________
+
 # Development Setup
 
-Install [node.js](https://nodejs.org/en/) and [yarn](https://yarnpkg.com/en/docs/install), check if you're on the correct branch.
+Install [node.js](https://nodejs.org/en/) (and optionally [yarn](https://yarnpkg.com/en/docs/install) for installing dependencies).
 
-Run yarn to download and install all of golem's dependencies.
+Download and install all of golem's dependencies:
 
-	$ yarn    
+	$ npm install
 
-If you don't have gulp installed already, install its command line utility.
+If you didnn't have gulp installed already, you might need to install its command line utility:
 
     $ npm i -g gulp-cli
 
-Run `gulp --watch`. 
+Run `gulp --watch`, load `./dist/chrome` as an unpacked extension into chrome, et voilà~
 
-Refer to the [Tasks](#Tasks)-section, if you want to build golem for other browsers.
 
-## During Developent
+Run `gulp --watch --vendor=YourBrowserNameHere`, if you want to build golem for other browsers, which worked the last time I checked, which was some time ago, which is to say: good luck!
 
-Start automatic compilation and live reload with:
-
-    $ gulp --watch
-    
-You can safely ignore the warning about `@babel/register`. 
-
-Load the `dist/chrome`-directory as an unpacked extension into chrome. Whenever files are saved, the extension is automatically reloaded and should reflect your changes. Though, if in doubt: manually reload the extension.
-
-Run `gulp --watch --vendor=firefox` if you prefer Firefox.
 
 ### Editing Schem programs in your IDE
 
@@ -45,14 +44,18 @@ Files matching `/app/scripts/schemScripts/*.schem` can be edited in your IDE and
 ```clojure
 (slurp "/myScript.schem")
 ```
-If you're using Visual Studio Code, your user settings will be overruled by setings.json in this workspace.
-If not, consider somehow associating *.schem-files with clojure, to get syntax highlighting. In any case, installing a parinfer or paredit plugin is highly recommended for editing Schem scripts.
+
+If you can't live without parinfer, that's the way to go. But the in-browser editor is actually turning out quite nice, so check that out first.
 
 ### Testing
 
 Tests can be left running in parallel to `gulp --watch` if you open multiple terminals. By default, karma is configured to use chrome, but different browsers can be defined in `karma.conf.js`. You might have to install additional [browser launchers](http://karma-runner.github.io/2.0/config/browsers.html). 
 
      $ gulp test
+
+
+____________________________________________________________________________________
+____________________________________________________________________________________
 
 ## Conventions
 
@@ -64,7 +67,7 @@ Example:
 ```
 docs: change commit msg style on a whim
 
-I should have just picked a style and stuck to it, but this one looks
+I should have just picked a style and stuck with it, but this one looks
 so neat! Btw, I'm already writing a diary entry instead of a proper
 message body, but at least the lines aren't longer than 72 characters.
 ```
@@ -97,7 +100,7 @@ Allowed types:
 There are two kinds of entryfiles that create bundles.
 
 1. All ts-files in the root of the `./app/scripts` directory
-2. All css-,scss- and less-files in the root of the `./app/styles` directory
+2. All css-, scss- and less-files in the root of the `./app/styles` directory
 
 ## Tasks
 
@@ -114,7 +117,8 @@ There are two kinds of entryfiles that create bundles.
 | `--sourcemaps` | Force the creation of sourcemaps. Default: !production                                                                                                |
 | `test`         | Starts the testrunner                                                                                                                                 |
 
-You can safely ignore the message: `Failed to load external module @babel/register`.
+You can safely ignore the message `Failed to load external module @babel/register`.
+
 ### Test
 
     $ gulp test
