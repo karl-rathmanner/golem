@@ -5,7 +5,7 @@ import { coreFunctions } from './core';
 import { Env, EnvSetupMap } from './env';
 import { pr_str } from './printer';
 import { readStr } from './reader';
-import { isCallable, isSchemBoolean, isSchemCollection, isSchemContextSymbol, isSchemFunction, isSchemKeyword, isSchemLazyVector, isSchemList, isSchemMap, isSchemNil, isSchemString, isSchemSymbol, isSchemType, isSequable, isSequential, isValidKeyType, isSchemNumber, isSchemJSReference } from './typeGuards';
+import { isCallable, isSchemBoolean, isSchemCollection, isSchemContextSymbol, isSchemFunction, isSchemKeyword, isSchemLazyVector, isSchemList, isSchemMap, isSchemNil, isSchemString, isSchemSymbol, isSchemType, isSequable, isSequential, isValidKeyType, isSchemNumber, isSchemJSReference, isSchemVector } from './typeGuards';
 import { SchemAtom, SchemBoolean, SchemContextDefinition, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemNumber, SchemString, SchemSymbol, AnySchemType, SchemVector, toSchemMapKey } from './types';
 
 export class Schem {
@@ -188,22 +188,62 @@ export class Schem {
               }
               /** (let (symbol1 value1 symbol2 value2 ...) expression) or (let [symbol1 value1 symbol2 value2 ...] expression)
                * Creates a new child environment and binds a list of symbols and values, the following expression is evaluated in that environment
+               * Supports basic sequential destructuring
                */
               case 'let':
                 const childEnv = new Env(env);
                 const bindingList = ast[1];
 
                 if (!(isSequential(bindingList))) {
-                  throw `first argument of let has to be a list`;
+                  throw new Error(`first argument of let has to be a list`);
                 } else if (bindingList.length % 2 > 0) {
-                  throw `binding list contains uneven number of elements`;
+                  throw new Error(`binding list contains uneven number of elements`);
                 }
 
                 for (let i = 0; i < bindingList.length; i += 2) {
-                  if (isSchemSymbol(bindingList[i])) {
-                    childEnv.set(bindingList[i] as SchemSymbol, await this.evalSchem(bindingList[i + 1], childEnv));
+                  const target = bindingList[i];
+                  const value = bindingList[i + 1];
+
+                  if (isSchemSymbol(target)) {
+                    // Bind value to a symbol
+                    childEnv.set(target as SchemSymbol, await this.evalSchem(value, childEnv));
+                  } else if (isSchemVector(target)) {
+                    // Sequential Destructuring
+                    if (target.count() < 1) {
+                      throw new Error(`Destructuring target vector can't be empty.`);
+                    }
+                    if  (!isSequable(value)) {
+                      throw new Error(`Desctructuring value must be sequential.`);
+                    }
+
+                    const seqDestructure = async (targetVector: SchemVector, sourceData: AnySchemType) => {
+                      if  (!isSequable(sourceData)) {
+                        throw new Error(`Desctructuring source must be sequential.`);
+                      }
+
+                      for (let i = 0; i < targetVector.length; i++) {
+                        let sourceElement = await sourceData.nth(i);
+                        // Default to Nil if no value could be found in the source data structure
+                        // e.g. when there are more elements in the target than in value
+                        if (sourceElement == null) {
+                          sourceElement = SchemNil.instance;
+                        }
+
+                        const targetElement = targetVector[i];
+
+                        if (isSchemVector(targetElement)) { // target vector is nested, go deeper
+                          await seqDestructure(targetElement, sourceElement);
+                        } else {
+                          // evaluate sourceElement and bind the resulting value
+                          childEnv.set(targetElement as SchemSymbol, await this.evalSchem(sourceElement, childEnv));
+                        }
+                      }
+                    };
+
+                    await seqDestructure(target, value);
+
                   } else {
-                    throw `every uneven argument of 'let' must be a symbol`;
+                    throw new Error(`every uneven argument of 'let' must be a symbol or a vector`);
                   }
                 }
 
