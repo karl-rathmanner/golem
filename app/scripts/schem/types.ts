@@ -428,7 +428,7 @@ export class SchemRegExp extends RegExp implements TaggedType {
 
 export class SchemJSReference implements TaggedType {
   typeTag: SchemTypes.SchemJSReference = SchemTypes.SchemJSReference;
-  
+
   constructor(public readonly parent: any, public readonly name: string) {
   }
 
@@ -647,8 +647,8 @@ export class SchemContextInstance implements TaggedType {
 
 export class SchemAtom implements TaggedType {
   public typeTag: SchemTypes.SchemAtom = SchemTypes.SchemAtom;
-  private watches: [SchemKeyword,SchemFunction][] = [];
-  
+  private watches: [SchemKeyword, SchemFunction][] = [];
+
   constructor(private value: AnySchemType) {
   }
 
@@ -676,7 +676,7 @@ export class SchemAtom implements TaggedType {
 
   /** Adds a watch function (or overrides an existing watch that has the same key)*/
   addWatch(key: SchemKeyword, f: SchemFunction) {
-    const index = this.findWatchIndex(key)
+    const index = this.findWatchIndex(key);
     if (index === -1) {
       this.watches.push([key, f]);
     } else {
@@ -690,7 +690,7 @@ export class SchemAtom implements TaggedType {
     if (index > -1) {
       this.watches.splice(index, 1);
     } else {
-      throw new Error(`A watch named ${key} was already added to this atom.`)
+      throw new Error(`A watch named ${key} was already added to this atom.`);
     }
   }
 }
