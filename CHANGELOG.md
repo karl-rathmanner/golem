@@ -1,3 +1,22 @@
+## 0.5.0
+Hello, user! Look at your address bar, now look at this changelog, now back at your address bar. Sadly, it can't interpret s-expressions. What if you entered "( "? Look again, your adress bar is now a REPL.
+
+Typing [open parenthesis] followed by [tab] or [space] allows you to evaluate any kind of Schem expression in the background page's context from pretty much anywhere. The omnibox REPL has some support for autocompletion, a command history and will auto-close any missing parens. This definitely may be useful at some point but more importantly: it exists right now.
+
+Other new features:
+- Basic support for sequential destructuring / vector binding destructuring in let forms.
+- A draft for "Shlukerts", a module for generating DOM elements using a [hiccup](https://github.com/weavejester/hiccup) like syntax.
+- Atoms now support watches. (Think "onChange" functions.)
+- Loading editor scripts from the virtual file system via the hash parameter:  
+"[...]/pages/editor.html#yourFolder/yourFileName"
+- A new "javascript reference" type that is useful for js interop and might be removed entirely if I find a better way to do what it does.
+- Some more interop stuff!
+- An HTML-Version of this changelog is now automatically bundled with builds.
+- Improved examples.
+
+Fixed vulnerabilities:  
+Npm audit told me to upgrade my dependencies. Most notably, golem now uses gulp 4.
+
 ## 0.4.0
 Improved Schem language support in the editor: autocompletion now shows all defined symbols in the editor's environment (both 'regular' and 'context' ones) and it is aware of the values they are bound to. Also added some xhr functions and one that turns xml documents into maps.
 
