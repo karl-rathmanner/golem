@@ -407,12 +407,16 @@ export class SchemNumber extends Number implements Callable, TaggedType {
   }
 }
 
-export class SchemString extends String implements TaggedType {
+export class SchemString extends String implements TaggedType, Indexable {
   public typeTag: SchemTypes.SchemString = SchemTypes.SchemString;
 
   // can't hide toString()
   getStringRepresentation(): string {
     return this.valueOf();
+  }
+
+  nth(index: number) {
+    return Promise.resolve(new SchemString(this.valueOf()[index]));
   }
 }
 

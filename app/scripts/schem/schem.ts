@@ -5,7 +5,7 @@ import { coreFunctions } from './core';
 import { Env, EnvSetupMap } from './env';
 import { pr_str } from './printer';
 import { readStr } from './reader';
-import { isCallable, isSchemBoolean, isSchemCollection, isSchemContextSymbol, isSchemFunction, isSchemKeyword, isSchemLazyVector, isSchemList, isSchemMap, isSchemNil, isSchemString, isSchemSymbol, isSchemType, isSequable, isSequential, isValidKeyType, isSchemNumber, isSchemJSReference, isSchemVector } from './typeGuards';
+import { isCallable, isSchemBoolean, isSchemCollection, isSchemContextSymbol, isSchemFunction, isSchemKeyword, isSchemLazyVector, isSchemList, isSchemMap, isSchemNil, isSchemString, isSchemSymbol, isSchemType, isSequable, isSequential, isValidKeyType, isSchemNumber, isSchemJSReference, isSchemVector, isIndexable } from './typeGuards';
 import { SchemAtom, SchemBoolean, SchemContextDefinition, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemNumber, SchemString, SchemSymbol, AnySchemType, SchemVector, toSchemMapKey } from './types';
 
 export class Schem {
@@ -212,13 +212,10 @@ export class Schem {
                     if (target.count() < 1) {
                       throw new Error(`Destructuring target vector can't be empty.`);
                     }
-                    if  (!isSequable(value)) {
-                      throw new Error(`Desctructuring value must be sequential.`);
-                    }
 
                     const seqDestructure = async (targetVector: SchemVector, sourceData: AnySchemType) => {
-                      if  (!isSequable(sourceData)) {
-                        throw new Error(`Desctructuring source must be sequential.`);
+                      if  (!isIndexable(sourceData)) {
+                        throw new Error(`Desctructuring source must be indexable.`);
                       }
 
                       for (let i = 0; i < targetVector.length; i++) {
