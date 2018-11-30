@@ -17,6 +17,8 @@ import zip from 'gulp-zip'
 import packageDetails from './package.json'
 import args from './tasks/lib/args'
 
+export { patch, feature, release } from './tasks/version'
+
 /// building
 export const build = gulp.series(
   clean, 
@@ -79,3 +81,4 @@ export const pack = gulp.series(build, () => {
       log(`Packed ${distStyled} to ${filenameStyled}`)
     });
 });
+
