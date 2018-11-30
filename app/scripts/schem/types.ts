@@ -71,6 +71,7 @@ export type SchemMapKey = SchemSymbol | SchemKeyword | SchemString | SchemNumber
 
 export type SchemMetadata = {
   name?: string,
+  docstring?: string, 
   sourceIndexStart?: number,
   sourceIndexEnd?: number,
   [index: string]: any,
@@ -85,7 +86,7 @@ export class SchemFunction implements Callable, Metadatable, TaggedType {
 
   constructor(public f: Function,
     public metadata?: SchemMetadata,
-    public fnContext?: { ast: AnySchemType, params: SchemSymbol[], env: Env }) {
+    public fnContext?: { ast: AnySchemType, params: SchemVector | SchemList, env: Env }) {
     // bind a function's name to itself within its environment
     // this allows recursion even in 'anonymous' functions
     if (this.fnContext && metadata && metadata.name && metadata.name.length > 0) {
@@ -93,13 +94,15 @@ export class SchemFunction implements Callable, Metadatable, TaggedType {
     }
   }
 
-  static fromSchemWithContext(that: Schem, env: Env, params: SchemSymbol[], functionBody: AnySchemType, metadata: SchemMetadata): SchemFunction {
-    return new SchemFunction(async (...args: AnySchemType[]) => {
-
-      return await that.evalSchem(functionBody, new Env(env, params, args));
-    }, metadata, { ast: functionBody, params: params, env: env });
+  static fromSchemWithContext(that: Schem, env: Env, bindings: SchemVector | SchemList, functionBody: AnySchemType, metadata: SchemMetadata): SchemFunction {
+    return new SchemFunction(async (...args: SchemVector | SchemList) => {
+      const childEnv = new Env(env);
+      childEnv.bind(bindings, args);
+      return await that.evalSchem(functionBody, childEnv);
+    }, metadata, { ast: functionBody, params: bindings, env: env });
   }
 
+  /*
   newEnv(args: AnySchemType[]): Env {
     if (this.fnContext) {
       return new Env(this.fnContext.env, this.fnContext.params, args);
@@ -107,6 +110,7 @@ export class SchemFunction implements Callable, Metadatable, TaggedType {
       return new Env(void 0, void 0, args);
     }
   }
+  */
 
   invoke(...args: AnySchemType[]) {
     return this.f(...args);

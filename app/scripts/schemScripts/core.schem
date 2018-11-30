@@ -10,7 +10,7 @@
         (eval (read-string (str "(do " (slurp file) " )")))))
 
   (defmacro defn
-    (fn (name params body) `(def ~name (fn ~name ~params ~body))))
+    (fn (name & args) `(def ~name (fn ~name ~@args))))
 
   ; The thread first macro turns this:
   ; (-> x fn1 (fn2 y z) fn3)

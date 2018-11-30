@@ -24,23 +24,36 @@
 ["They look like this." "Escape sequences are a \"thing\". \nNow you know."]
 
 ; Symbols: 
-[foo bar i-am-a-lispy-symbol document.location.href]
-; (they *usually* evaluate to whatever value they are bound to in their environment)
+[foo bar i-am-a-lispy-symbol]
+; (They evaluate to whatever value they are bound to in their environment, since these symbols 
+; are undefined, evaluating the expression results in an error. )
+
+; Javascript Symbols:
+[document.location.href]
+; (If a symbol's name contains dots, their values aren't looked up in a Schem environment of 
+; the interpreter, but in the javascript environment the interpreter is running in.
+; Depending on where that is, you'll have access to the web API via "window.", 
+; the browser API via "chrome." or "browser.", etc.)
+
+; A short digression: Quoting symbols
+; If you want to refer to the symbol itself (instead of the value associated with it) you'd 
+; have to 'quote' it using either the 'quote' function or the apostrophe shorthand.
+[(quote foo) 'bar 'i-am-a-lispy-symbol]
 
 ; Keywords: 
 [:foo :moo :boo]
-; (they evaluate to themselves)
+; (They evaluate to themselves. If a symbol is a name for something, a keyword would be a name by itself.)
 
 ; Maps are collections that work like dictionaries. They associate values with keys. 
 {:eng "Hello!" :ger "Hallo!" :aut "Griaß Ihna!"}
-; Keywords make nice keys...
+; Keywords make very nice keys...
 
 ; ...but strings and numbers are valid keys, too! Putting commas between key value pairs makes
 ; maps easier to read to humans. You can put them anywhere, actually! The parser just ignores them.
 {1 "one", "two" 2}
 
 ; And who could live without regular expressions? Here's one in action:
-(re-find #"reg.*ex(?:pr)?" "regularexpresso")
+(re-find #"(.[ge]+).*(.x)\w*" "An irregular expression or something, i guess...")
 
 
 
@@ -64,7 +77,8 @@
 ; the same amount of parentheses but none of that comma-and-semicolon-stuff?
 
 ; Functions can be created using the 'fn' form:
-(fn (x) (* x x))
+; (The name and docstring are both optional.)
+(fn sqr "Multiplies a value with itself." (x) (* x x))
 
 ; Most of the times, when you create a function, you'll want to bind it to some symbol so you 
 ; can re-use it later:
@@ -140,15 +154,15 @@
 ; You can set their value to something entirely new,
 (set! a 4)
 ; ...or 'swap' it out with the result of a function that got called with their current value.
-(defn increment #(+ 1 %))
+(defn increment [x] (+ x 1))
 (swap! a increment) ; <- eval' this repeatedly!
 
 ; Atoms support watches. These are functions that get called when the atom's value changes.
 ; (Evaluate the next line, then try evaluating the swap! example again and look at your console.)
-(add-watch a :whoo (fn [key atom old-value new-value] (console-log old-value new-value)))
+(add-watch a :alerter (fn [key atom old-value new-value] (window.alert (str old-value "->" new-value))))
 ; An atom can have multiple watches, as long as each one was added with a unique key. (Unique 'within' that atom, not globally.)
 ; If you know the key of a particular watch, you can also remove it, if you happen to grow weary of it.
-(remove-watch a :whoo)
+(remove-watch a :alerter)
 
 
 ;;; Some more involved examples

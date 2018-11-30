@@ -133,6 +133,7 @@ export class Schem {
       }
 
       ast = await this.macroExpand(ast, env);
+
       if (!(isSchemList(ast))) {
         return this.evalAST(ast, env);
       }
@@ -160,20 +161,18 @@ export class Schem {
                * Binds a function to a symbol and sets its isMacro flag.
                */
               case 'defmacro':
-                const [, sym, val] = ast;
-                if (isSchemSymbol(sym)) {
-                  const macroFunction = await this.evalSchem(val, env);
-
-                  if (!(isSchemFunction(macroFunction))) {
-                    throw `only functions can be macros`;
-                  } else {
-                    macroFunction.isMacro = true;
-                    return env.set(sym, macroFunction);
-                  }
-
-                } else {
-                  throw `first argument of 'def' must be a symbol`;
+                const [, sym, body] = ast;
+                if (!isSchemSymbol(sym)) {
+                  throw new Error(`First argument of defmacro must be a symbol!`);
                 }
+                if (!isSchemList(body)) {
+                  throw new Error(`Second argument of defmacro must be a list!`);
+                }
+
+                const macroFunction = this.fn(env, body);
+                macroFunction.isMacro = true;
+                return env.set(sym, macroFunction)
+
               /** (defcontext example: {:tabQuery {:url "*example.com*"})
                * Binds a context definition to a context symbol
               */
@@ -191,58 +190,24 @@ export class Schem {
                * Supports basic sequential destructuring
                */
               case 'let':
-                const childEnv = new Env(env);
-                const bindingList = ast[1];
-
-                if (!(isSequential(bindingList))) {
+                const bindings = ast[1];
+              
+                if (!(isSequential(bindings))) {
                   throw new Error(`first argument of let has to be a list`);
-                } else if (bindingList.length % 2 > 0) {
+                }
+                else if (bindings.length % 2 > 0) {
                   throw new Error(`binding list contains uneven number of elements`);
                 }
 
-                for (let i = 0; i < bindingList.length; i += 2) {
-                  const target = bindingList[i];
-                  const value = bindingList[i + 1];
-
-                  if (isSchemSymbol(target)) {
-                    // Bind value to a symbol
-                    childEnv.set(target as SchemSymbol, await this.evalSchem(value, childEnv));
-                  } else if (isSchemVector(target)) {
-                    // Sequential Destructuring
-                    if (target.count() < 1) {
-                      throw new Error(`Destructuring target vector can't be empty.`);
-                    }
-
-                    const seqDestructure = async (targetVector: SchemVector, sourceData: AnySchemType) => {
-                      if  (!isIndexable(sourceData)) {
-                        throw new Error(`Desctructuring source must be indexable.`);
-                      }
-
-                      for (let i = 0; i < targetVector.length; i++) {
-                        let sourceElement = await sourceData.nth(i);
-                        // Default to Nil if no value could be found in the source data structure
-                        // e.g. when there are more elements in the target than in value
-                        if (sourceElement == null) {
-                          sourceElement = SchemNil.instance;
-                        }
-
-                        const targetElement = targetVector[i];
-
-                        if (isSchemVector(targetElement)) { // target vector is nested, go deeper
-                          await seqDestructure(targetElement, sourceElement);
-                        } else {
-                          // evaluate sourceElement and bind the resulting value
-                          childEnv.set(targetElement as SchemSymbol, await this.evalSchem(sourceElement, childEnv));
-                        }
-                      }
-                    };
-
-                    await seqDestructure(target, value);
-
-                  } else {
-                    throw new Error(`every uneven argument of 'let' must be a symbol or a vector`);
-                  }
+                // separate the alternating name and value elements of bindings
+                let names = [], values = [];
+                for (let i = 0; i < bindings.length; i += 2) {
+                  names.push(bindings[i]);
+                  values.push(bindings[i + 1]);
                 }
+
+                const childEnv = new Env(env);
+                await childEnv.bind(new SchemVector(...names), new SchemVector(...values), this);
 
                 // TCO: switch to the new environment
                 env = childEnv;
@@ -284,33 +249,12 @@ export class Schem {
                   continue fromTheTop;
                 }
 
-              /** (fn name? [parameters] (functionBody)
+              /** (fn name? docstring? [parameters] (functionBody)
                *  Defines a new function in the current environment. When it's called, the function body gets executed in a new child environmet.
                *  In this child environmet, the symbols provided in params are bound to the values provided as arguments by the caller.
               */
               case 'fn':
-                let name, params, fnBody;
-
-                if (isSchemSymbol(ast[1])) {
-                  [, name, params, fnBody] = ast;
-                  name = (name as SchemSymbol).name;
-                } else {
-                  [, params, fnBody] = ast;
-                }
-
-                if (!(isSchemList(params) || params instanceof SchemVector)) {
-                  throw `expected a list or vector of parameters`;
-                }
-
-                try {
-                  let binds = params.asArrayOfSymbols();
-                  let metadata: SchemMetadata = {};
-                  if (name) metadata.name = name;
-                  return SchemFunction.fromSchemWithContext(this, env, binds, fnBody, metadata);
-
-                } catch (error) {
-                  throw `binds list for new environments must only contain symbols`;
-                }
+                return this.fn(env, ast);
 
               /** (quote list)
                * Returns list without evaluating it
@@ -440,7 +384,8 @@ export class Schem {
                 }
 
                 ast = f.fnContext.ast;
-                env = new Env(f.fnContext.env, f.fnContext.params, args);
+                env = new Env(f.fnContext.env);
+                env.bind(f.fnContext.params, new SchemList(...args));
                 console.groupEnd();
                 continue fromTheTop;
 
@@ -471,6 +416,40 @@ export class Schem {
 
       return SchemNil.instance;
     }
+  }
+
+  private fn(env: Env, ast: SchemList) {
+    let name, docstring, params, fnBody;
+
+      if (isSchemSymbol(ast[1])) {
+        if (isSchemString(ast[2])) {
+          [, name, docstring ,params, fnBody] = ast;
+          docstring = (docstring as SchemString).valueOf();
+        } else {
+          [, name, params, fnBody] = ast;
+        }
+        name = (name as SchemSymbol).name;
+      } else if (isSchemString(ast[1])) {
+        [, docstring, params, fnBody] = ast;
+        docstring = (docstring as SchemString).valueOf();
+      } else {
+        [, params, fnBody] = ast;
+      }
+
+      if (!(isSchemList(params) || isSchemVector(params))) {
+        throw `expected a list or vector of parameters`;
+      }
+
+      try {
+        //let bindings = params.asArrayOfSymbols();
+        let metadata: SchemMetadata = {};
+        if (name) metadata.name = name;
+        if (docstring) metadata.docstring = docstring;
+        return SchemFunction.fromSchemWithContext(this, env, params, fnBody, metadata);
+
+      } catch (error) {
+        throw `binds list for new environments must only contain symbols`;
+      }
   }
 
   evalQuasiquote(ast: AnySchemType): AnySchemType {
