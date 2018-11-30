@@ -1,5 +1,4 @@
 import gulp from 'gulp';
-// import gulp from 'gulp'
 import { colors, log } from 'gulp-util';
 import zip from 'gulp-zip';
 import packageDetails from './package.json';
