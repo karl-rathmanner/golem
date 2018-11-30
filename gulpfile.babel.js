@@ -1,23 +1,22 @@
 import gulp from 'gulp';
+// import gulp from 'gulp'
+import { colors, log } from 'gulp-util';
+import zip from 'gulp-zip';
+import packageDetails from './package.json';
+import { changelog } from './tasks/changelog';
 import { chromereload } from './tasks/chromereload';
 import { clean } from './tasks/clean';
 import { fonts } from './tasks/fonts';
 import { images } from './tasks/images';
+import args from './tasks/lib/args';
 import { locales } from './tasks/locales';
 import { manifest } from './tasks/manifest';
 import { pages } from './tasks/pages';
 import { schemScripts } from './tasks/schemScripts';
 import { scripts } from './tasks/scripts';
 import { styles } from './tasks/styles';
-import { changelog } from './tasks/changelog';
 
-// import gulp from 'gulp'
-import { colors, log } from 'gulp-util'
-import zip from 'gulp-zip'
-import packageDetails from './package.json'
-import args from './tasks/lib/args'
-
-export { patch, feature, release } from './tasks/version'
+export { feature, patch, release } from './tasks/version';
 
 /// building
 export const build = gulp.series(
@@ -81,4 +80,3 @@ export const pack = gulp.series(build, () => {
       log(`Packed ${distStyled} to ${filenameStyled}`)
     });
 });
-
