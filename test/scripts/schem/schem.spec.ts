@@ -206,6 +206,17 @@ describe('blackbox tests', function() {
   expectSchem('(#(list %3 [%5 [%4]] (list %1 {:first % :rest %&}) ) 1 2 3 4 5 6 7)', '(3 [5 [4]] (1 {:first 1 :rest (6 7)}))',
               `The reader macro #() expands correctly, finding placeholders in nested collections, treating "%" and "%1" as interchangeable, it doesn't care about the order in which placeholders occur or if some are omitted`);
 
+  // destructuring
+  expectSchem('(let [[x y z] [1 2 3]] [z y x])', '[3 2 1]');
+  expectSchem('(let [[x y] [1 [2 3]]] [x y])', '[1 [2 3]]');
+  expectSchem('(let [[x & y] [1 2 3 4]] [x y])', '[1 (2 3 4)]');
+  expectSchem('(let [[x [y & z]] [1 [2 3 4]]] [x y z])', '[1 2 (3 4)]');
+  expectSchem('(let [{x :a, y :c} {:a 1 :b 2 :c 3}] [x y])', '[1 3]');
+
+  // Maps as keys are not supported, so nesting isn't either.
+  // TODO: implement proper hash functions for ... everything? Or finally make the switch to persistant data structures?
+  // expectSchem('(let [{outer :a, {inner :d} :b} {:a 1 :b {:c 3 :d 4}] [outer inner])', '[1 4]');
+
   // MAYDO: mock $.get so this is possible?
   // expectRep('(load-url "/chaiTest.schem")', 'MEEP!');
 
