@@ -71,7 +71,7 @@ export type SchemMapKey = SchemSymbol | SchemKeyword | SchemString | SchemNumber
 
 export type SchemMetadata = {
   name?: string,
-  docstring?: string, 
+  docstring?: string,
   sourceIndexStart?: number,
   sourceIndexEnd?: number,
   [index: string]: any,
@@ -95,9 +95,9 @@ export class SchemFunction implements Callable, Metadatable, TaggedType {
   }
 
   static fromSchemWithContext(that: Schem, env: Env, bindings: SchemVector | SchemList, functionBody: AnySchemType, metadata: SchemMetadata): SchemFunction {
-    return new SchemFunction(async (...args: SchemVector | SchemList) => {
+    return new SchemFunction(async (...args: Array<any>) => {
       const childEnv = new Env(env);
-      childEnv.bind(bindings, args);
+      childEnv.bind(bindings, new SchemVector(...args));
       return await that.evalSchem(functionBody, childEnv);
     }, metadata, { ast: functionBody, params: bindings, env: env });
   }
