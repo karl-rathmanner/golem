@@ -114,5 +114,5 @@ export function isSequable(o: any): o is Sequable {
 export function isIndexable(o: any): o is Indexable {
   return (o != null &&
           typeof o === 'object' &&
-          typeof o.nth === 'function')
+          typeof o.nth === 'function');
 }

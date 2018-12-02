@@ -171,7 +171,7 @@ export class Schem {
 
                 const macroFunction = this.fn(env, body);
                 macroFunction.isMacro = true;
-                return env.set(sym, macroFunction)
+                return env.set(sym, macroFunction);
 
               /** (defcontext example: {:tabQuery {:url "*example.com*"})
                * Binds a context definition to a context symbol
@@ -191,7 +191,7 @@ export class Schem {
                */
               case 'let':
                 const bindings = ast[1];
-              
+
                 if (!(isSequential(bindings))) {
                   throw new Error(`first argument of let has to be a list`);
                 }
@@ -423,7 +423,7 @@ export class Schem {
 
       if (isSchemSymbol(ast[1])) {
         if (isSchemString(ast[2])) {
-          [, name, docstring ,params, fnBody] = ast;
+          [, name, docstring , params, fnBody] = ast;
           docstring = (docstring as SchemString).valueOf();
         } else {
           [, name, params, fnBody] = ast;
@@ -441,7 +441,6 @@ export class Schem {
       }
 
       try {
-        //let bindings = params.asArrayOfSymbols();
         let metadata: SchemMetadata = {};
         if (name) metadata.name = name;
         if (docstring) metadata.docstring = docstring;
