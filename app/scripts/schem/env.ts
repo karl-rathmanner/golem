@@ -1,6 +1,6 @@
 import { readStr } from './reader';
 import { Schem } from './schem';
-import { isSchemContextSymbol, isSchemSymbol, isSchemVector, isIndexable, isSchemList, isSchemMap } from './typeGuards';
+import { isSchemContextSymbol, isSchemSymbol, isSchemVector, isIndexable, isSchemList, isSchemMap, isSchemKeyword } from './typeGuards';
 import { SchemContextDefinition, SchemContextSymbol, SchemFunction, SchemList, SchemSymbol, AnySchemType, SchemVector, SchemNil, SchemMap } from './types';
 
 /** EnvSetupMaps allow convenient initialization of environments when using Env.addMap()
@@ -102,7 +102,18 @@ export class Env {
         }
 
       } else if (isSchemMap(targetStructure)) {
-        /// implement me
+        if (!isSchemMap(sourceStructure)) {
+          throw new Error(`mapz plz!`);
+        }
+        targetStructure.forEach((k, v) => {
+          if (isSchemSymbol(k)) {
+            if (isSchemKeyword(v)) {
+              this.set(k, sourceStructure.get(v));
+            } else {
+              throw new Error(`Tried to destructure into a map that had a symbol key associated with something other than a keyword value.`);
+            }
+          }
+        });
       } else {
         throw new Error(`The target structure of a bind operation must be a vector, list or map`);
       }
