@@ -444,10 +444,6 @@ function throwErrorForNonSequentialArguments(...args: AnySchemType[]) {
   });
 }
 
-function hasSameConstructorAndValue(a: AnySchemType, b: AnySchemType): boolean {
-  return (a.constructor === b.constructor && a.valueOf() === b.valueOf());
-}
-
 function hasSameSchemTypeAndValue(a: AnySchemType, b: AnySchemType): boolean {
   return (isSchemType(a) && isSchemType(b) && a.typeTag === b.typeTag && a.valueOf() === b.valueOf());
 }
