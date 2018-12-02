@@ -4,7 +4,7 @@ import { VirtualFileSystem } from '../virtualFilesystem';
 import { prettyPrint, pr_str } from './printer';
 import { readStr } from './reader';
 import { jsObjectToSchemType, schemToJs } from './schem';
-import { isSchemKeyword, isSchemString, isSchemSymbol, isSequential, isValidKeyType, isSchemLazyVector, isSchemMap, isSchemNumber, isSchemList, isSchemVector, isSchemFunction, isSchemJSReference } from './typeGuards';
+import { isSchemKeyword, isSchemString, isSchemSymbol, isSequential, isValidKeyType, isSchemLazyVector, isSchemMap, isSchemNumber, isSchemList, isSchemVector, isSchemFunction, isSchemJSReference, isSchemType } from './typeGuards';
 import { SchemAtom, SchemBoolean, SchemFunction, SchemKeyword, SchemLazyVector, SchemList, SchemMap, SchemMapKey, SchemNil, SchemNumber, SchemRegExp, SchemString, SchemSymbol, AnySchemType, SchemVector, RegularSchemCollection, SchemJSReference } from './types';
 
 export const coreFunctions: {[symbol: string]: any} = {
@@ -51,16 +51,16 @@ export const coreFunctions: {[symbol: string]: any} = {
 
         // Compare contents
         for (let j = 0; j < a.length; j++) {
-          if (! hasSameConstructorAndValue(a[j], b[j])) {
+          if (! hasSameSchemTypeAndValue(a[j], b[j])) {
             return SchemBoolean.false;
           }
         }
 
       } else { // a & b are non-collection types
-        if (!hasSameConstructorAndValue(a, b)) return SchemBoolean.false;
+        if (!hasSameSchemTypeAndValue(a, b)) return SchemBoolean.false;
       }
     }
-    return SchemBoolean.true; // none of the checks above resulted in inequality, so all arguments must be equal
+    return SchemBoolean.true; // none of the checks above failed, so all arguments must be equal
   },
   '>': (...args: SchemNumber[]) => {
     return doNumericComparisonForEachConsecutivePairInArray((a, b) => { return a > b; }, args);
@@ -446,6 +446,10 @@ function throwErrorForNonSequentialArguments(...args: AnySchemType[]) {
 
 function hasSameConstructorAndValue(a: AnySchemType, b: AnySchemType): boolean {
   return (a.constructor === b.constructor && a.valueOf() === b.valueOf());
+}
+
+function hasSameSchemTypeAndValue(a: AnySchemType, b: AnySchemType): boolean {
+  return (isSchemType(a) && isSchemType(b) && a.typeTag === b.typeTag && a.valueOf() === b.valueOf());
 }
 
 async function asyncStringifyAll(schemObjects: AnySchemType[], escapeStrings: boolean = true): Promise<string[]> {
