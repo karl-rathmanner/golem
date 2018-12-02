@@ -49,9 +49,10 @@ describe('core operators', function() {
     });
 
     it('true for collections with same length and content, regardless of type', function () {
-      expect(getCoreFunction('=')(SchemList.fromPrimitiveValues(1, 2, 3, 4, 5), SchemList.fromPrimitiveValues(1, 2, 3, 4, 5))).equals(SchemBoolean.true);
-      expect(getCoreFunction('=')(SchemList.fromPrimitiveValues(42, '42', SchemKeyword.from('42')), SchemList.fromPrimitiveValues(42, '42', SchemKeyword.from('42')))).equals(SchemBoolean.true);
-      expect(getCoreFunction('=')(SchemList.fromPrimitiveValues(1, 2, 3, 4), SchemList.fromPrimitiveValues(1, 2, 3, 4))).equals(SchemBoolean.true);
+      expect(getCoreFunction('=')(SchemList.fromPrimitiveValues(1, 2, 3, 4, 5), SchemVector.fromPrimitiveValues(1, 2, 3, 4, 5))).equals(SchemBoolean.true);
+      expect(getCoreFunction('=')(new SchemVector(new SchemNumber(42), new SchemString('42'), SchemKeyword.from('42')),
+                                  new SchemList(new SchemNumber(42), new SchemString('42'), SchemKeyword.from('42'))));
+      expect(getCoreFunction('=')(SchemList.fromPrimitiveValues(1, 2, 3, 4), SchemVector.fromPrimitiveValues(1, 2, 3, 4))).equals(SchemBoolean.true);
     });
 
     it('false for lists with different length or content', function () {
