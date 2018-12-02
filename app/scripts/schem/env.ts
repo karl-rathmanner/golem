@@ -1,9 +1,9 @@
 import { readStr } from './reader';
 import { Schem } from './schem';
-import { isSchemContextSymbol, isSchemSymbol, isSchemVector, isIndexable } from './typeGuards';
-import { SchemContextDefinition, SchemContextSymbol, SchemFunction, SchemList, SchemSymbol, AnySchemType, SchemVector, SchemNil } from './types';
+import { isSchemContextSymbol, isSchemSymbol, isSchemVector, isIndexable, isSchemList, isSchemMap } from './typeGuards';
+import { SchemContextDefinition, SchemContextSymbol, SchemFunction, SchemList, SchemSymbol, AnySchemType, SchemVector, SchemNil, SchemMap } from './types';
 
-/** This allows concevient initialization of environments when using Env.addMap()
+/** EnvSetupMaps allow convenient initialization of environments when using Env.addMap()
  *
  * @example
  * {
@@ -35,78 +35,81 @@ export class Env {
       console.log(`A new env named ${this.name} was instantiated.`);
     }
   }
-  
-  public async bind(names: SchemVector | SchemList, expressions: SchemVector | SchemList, interpreter?: Schem, logDebugMessages = false) {
-    for (let i = 0; i < names.length; i++) {
-      let target = names[i];
-      const value = expressions[i];
 
-      if (isSchemSymbol(target)) {
-        if (target.getStringRepresentation() === '&') {
-          // encountered a clojure style variadic function definition, turn the remaining expressions into a list and bind that to the symbol after '&'
-          target = names[i + 1];
+  public async bind(targetStructure: SchemVector | SchemList | SchemMap, sourceStructure: SchemVector | SchemList, interpreter?: Schem, logDebugMessages = false) {
 
-          if (!isSchemSymbol(target)) {
-            throw new Error(`An "&" in a bindings sequence must be followed by a symbol!`);
-          }
-
-          if (logDebugMessages) console.log(`${target.name} = ${expressions.slice(i)}`);
-          
-          if (interpreter == null) {
-            this.set(target, new SchemList(...expressions.slice(i)));
-          } else {
-            const evaluatedRest = await Promise.all(expressions.slice(i).map(element => interpreter.evalSchem(element, this)));
-            this.set(target, new SchemList(...evaluatedRest));
-          }
-          return;
-        }
-
-        if (logDebugMessages) console.log(`${target.name} = ${value}`);
-        // Bind value to a symbol
-        if (interpreter == null) {
-          this.set(target as SchemSymbol, value);
-        } else {
-          this.set(target as SchemSymbol, await interpreter.evalSchem(value, this));
-        }
-      } else if (isSchemVector(target)) {
-
+    const desctructure = async (targetStructure: SchemVector | SchemList | SchemMap, sourceStructure: AnySchemType) => {
+      if (isSchemVector(targetStructure) || isSchemList(targetStructure)) {
         // Sequential Destructuring
-        if (target.count() < 1) {
+        if (targetStructure.count() < 1) {
           throw new Error(`Destructuring target vector can't be empty.`);
         }
-        const seqDestructure = async (targetVector: SchemVector, sourceData: AnySchemType) => {
-          if (!isIndexable(sourceData)) {
-            throw new Error(`Desctructuring source must be indexable.`);
+
+        if (!isIndexable(sourceStructure)) {
+          throw new Error(`The source structure of a bind using sequential destructuring must be indexable. (You probably have a vector on the "left side", but the "right side" doesn't implement "nth".)`);
+        }
+
+        for (let i = 0; i < targetStructure.length; i++) {
+          let sourceElement = await sourceStructure.nth(i);
+          // Default to Nil if no value could be found in the source data structure
+          // e.g. when there are more elements in the target than in value
+          if (sourceElement == null) {
+            sourceElement = SchemNil.instance;
           }
-          for (let i = 0; i < targetVector.length; i++) {
-            let sourceElement = await sourceData.nth(i);
-            // Default to Nil if no value could be found in the source data structure
-            // e.g. when there are more elements in the target than in value
-            if (sourceElement == null) {
-              sourceElement = SchemNil.instance;
-            }
-            const targetElement = targetVector[i];
-            if (isSchemVector(targetElement)) { // target vector is nested, go deeper
-              await seqDestructure(targetElement, sourceElement);
-            } else if (isSchemSymbol(targetElement)){
-              // evaluate sourceElement and bind the resulting value
+
+          let targetElement = targetStructure[i];
+
+          if (isSchemSymbol(targetElement)) {
+            if (targetElement.getStringRepresentation() === '&') {
+              // special case: encountered a clojure style variadic binding -> put the remaining source elements into a list and bind that to the symbol next to '&'
+              targetElement = targetStructure[i + 1];
+
+              if (!isSchemSymbol(targetElement)) {
+                throw new Error(`An "&" in a bindings sequence must be followed by a symbol!`);
+              }
+
+              if (logDebugMessages) console.log(`${targetElement.name} = (the last ${sourceStructure.length - i} elements of) ${sourceStructure}`);
+
+              // shove the remaining elements into a list, bind that list, call it a day
+              const newList = new SchemList();
+              for (let iRemaining = i; iRemaining < sourceStructure.length; iRemaining++) {
+                if (interpreter == null) {
+                  newList.push(await sourceStructure.nth(iRemaining));
+                } else {
+                  newList.push(await interpreter.evalSchem(await sourceStructure.nth(iRemaining), this));
+                }
+              }
+              this.set(targetElement, newList);
+              return;
+
+            } else {
+              // regular case: evaluate sourceElement and bind the resulting value
               if (logDebugMessages) console.log(`${targetElement.name} = ${sourceElement}`);
-              
+
               if (interpreter == null) {
                 this.set(targetElement as SchemSymbol, sourceElement);
               } else {
                 this.set(targetElement as SchemSymbol, await interpreter.evalSchem(sourceElement, this));
               }
-            } else {
-              throw new Error(`A binds sequence contained something illegal: ${targetElement}`);
             }
+
+          } else if (isSchemVector(targetElement) || isSchemList(targetElement) || isSchemMap(targetElement)) {
+            // target structure is nested, we must go deeper
+            await desctructure(targetElement, sourceElement);
+          } else {
+            throw new Error(`A binds sequence contained something illegal: ${targetElement}`);
           }
-        };
+        }
 
-        await seqDestructure(target, value);
+      } else if (isSchemMap(targetStructure)) {
+        /// implement me
+      } else {
+        throw new Error(`The target structure of a bind operation must be a vector, list or map`);
       }
-    }
+    };
 
+
+    await desctructure(targetStructure, sourceStructure);
     return true;
   }
 
