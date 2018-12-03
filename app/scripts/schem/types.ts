@@ -509,7 +509,7 @@ export class SchemSymbol extends SymbolicType implements Metadatable, TaggedType
     }
 
     if (name.length === 0) {
-      throw new Error(`Zero-lenght symbols are not allowed.`);
+      throw new Error(`Zero-length symbols are not allowed.`);
     }
 
     if (name.length > 1 && /[:/]/.test(name)) {
@@ -531,7 +531,7 @@ export class SchemKeyword extends SymbolicType implements Callable, TaggedType {
     }
 
     if (name.length === 0) {
-      throw new Error(`Zero-lenght keywords are not allowed. (':' by itself looks far too lonely)`);
+      throw new Error(`Zero-length keywords are not allowed. (':' by itself looks far too lonely)`);
     }
 
     if (/[:/]/.test(name)) {

@@ -40,11 +40,9 @@ export class Env {
 
     const desctructure = async (targetStructure: SchemVector | SchemList | SchemMap, sourceStructure: AnySchemType) => {
 
+      // Evaluate 'right side' of a binding
       if (isSchemList(sourceStructure) && interpreter != null) {
         sourceStructure = await interpreter.evalSchem(sourceStructure, this);
-        /*if (!isSchemList(sourceStructure)) {
-          throw new Error(`Destructuring source must be sequential. (In this case, a function that was evaluated during binding returned something else.)`);
-        }*/
       }
 
       if (isSchemVector(targetStructure) || isSchemList(targetStructure)) {
@@ -64,14 +62,7 @@ export class Env {
           if (sourceElement == null) {
             sourceElement = SchemNil.instance;
           }
-/*
-          if (isSchemList(sourceElement) && interpreter != null) {
-            sourceElement = await interpreter.evalSchem(sourceElement, this);
-            if (!isSchemList(sourceElement)) {
-              throw new Error(`Destructuring source must be sequential. (In this case, a function that was evaluated during binding returned something else.)`);
-            }
-          }
-*/
+
           let targetElement = targetStructure[i];
 
           if (isSchemSymbol(targetElement)) {
