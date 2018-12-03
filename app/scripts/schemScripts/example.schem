@@ -9,6 +9,7 @@
 ; If all else fails: reload this tab.
 
 
+
 ;;; Basic Types and Collections
 
 ; Schem has lists, of course. (Evaluating this throws an error. Find out below, why!)
@@ -165,6 +166,54 @@
 (remove-watch a :alerter)
 
 
+
+;;; Destructuring
+; Every operation that binds values to symbols (like 'let' and 'fn') supports sequential destructuring and basic associative destructuring.
+
+; Here's a function that takes a vector of length three. Inside it, the variables x, y and z are bound to the first, second and third element of the parameter it was called with
+(defn format-3d-coordinates [[x y z]]
+    (str "x: " x ", y: " y ", z: " z))
+
+(format-3d-coordinates [1 2 3])
+
+; Actually, I lied. It takes not only vectors, but anything sequential structure that is indexable:
+(format-3d-coordinates (list 4 5 6))
+
+; Even things that don't fit into your computer's memory:
+(def all-uneven-numbers (lazy-vector #(+ 1 (* 2 %))))
+(format-3d-coordinates all-uneven-numbers)
+
+; The same mechanism that drives variadic function definitions can be used in let forms.
+; In this example, all elements after second get shoved into a list and bound to 'rest'.
+(let [[first second & rest] (subvec all-uneven-numbers 0 5)]
+  [first second rest])
+
+; Nesting is allowed:
+(do 
+  (defn heady-plotter [[[x1 y1] [x2 y2]]]
+    (str "Imagine a line going from " x1 "," y1 " to " x2 "," y2 "!"))
+  (heady-plotter [[1  2] [3  4]]))
+
+; We've seen how sequential destructuring matches shapes.
+; Associative destructuring, on the other hand looks up keys in maps:
+
+(let [bauz 
+        {:col "yellow", :sp "daug", :verb "wagging it's tail", :name "Beaiengeo"}
+      mauz 
+        {:col "black", :sp "cat", :verb "purring"}
+      describe 
+        (fn [{species :sp,
+              color :col,
+              verb :verb}]
+          (str "The " color " " species " is " verb "."))]
+
+  (str (describe bauz) (describe mauz)))
+
+; Fetching values from nested maps is not supported for the time being, but you can combine 
+; sequential an associative destructuring. The '&' operator is legal at any level of nesting, btw.
+
+
+
 ;;; Some more involved examples
 
 ; 1) Implementing fizz-buzz using a lazy vector: (very lispy)
@@ -309,6 +358,8 @@
         "<node2 someAttribute=\"coo.\" someOtherAttribute=\"coo.\">hoo</node2>"
        "</doc>")
   {:keyType "keyword"})
+
+
 
 ;;; Local storage: (looks a little like a file system, but it's not)
 
