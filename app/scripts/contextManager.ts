@@ -13,7 +13,7 @@ export class SchemContextManager {
     ['schem-interpreter', 'scripts/localInterpreterCS.js'],
     ['demo-functions', 'scripts/demoContentScript.js'],
     ['lightweight-js-interop', 'scripts/lightweightJavascriptInterop.js'],
-    ['dom-manipulation', 'scripts/domManipulationSchemFunctions.js'],
+    ['dom-manipulation', 'scripts/domManipulationCS.js'],
     ['tiny-repl', 'scripts/tinyReplCS.js'],
     ['shlukerts', 'scripts/shlukertsCS.js']
   ]);
