@@ -13,6 +13,7 @@ const example = require('!raw-loader!./schemScripts/example.schem');
 
 export class SchemEditor {
   public monacoEditor: monaco.editor.IStandaloneCodeEditor;
+  public openFileName: string;
   private evalZoneId: number;
   private ast: AnySchemType;
 
@@ -20,7 +21,6 @@ export class SchemEditor {
     const interpreter = new Schem();
     interpreter.replEnv.addMap(eventPageMessagingSchemFunctions);
     interpreter.replEnv.addMap(this.editorManipulationSchemFunctions);
-    interpreter.replEnv.addMap(shlukerts);
 
     AddSchemSupportToEditor(interpreter);
 
@@ -28,12 +28,13 @@ export class SchemEditor {
       value: example,
       language: 'schem',
       theme: 'vs-dark'
-
     });
+
     window.addEventListener('resize', this.updateEditorLayout);
     this.updateEditorLayout();
     this.monacoEditor.focus();
-
+    
+    this.addCustomActionsToCommandPalette();
     this.addFormEvaluationCommand(interpreter);
   }
 
@@ -50,14 +51,38 @@ export class SchemEditor {
 
   private addFormEvaluationCommand(interpreter: Schem) {
     this.monacoEditor.createContextKey('evalEnabled', true);
+    this.monacoEditor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.KEY_E, this.evaluateEditorContents(interpreter, 'bracketsSurroundingCursor'), 'evalEnabled');
+    this.monacoEditor.addCommand(monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyCode.KEY_E, this.evaluateEditorContents(interpreter, 'topLevelBracketsSurroundingCursor'), 'evalEnabled');
+    this.monacoEditor.addCommand(monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_E, this.evaluateEditorContents(interpreter, 'wholeBuffer'), 'evalEnabled');
+  }
 
-    this.monacoEditor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.KEY_E, () => {
+  private evaluateEditorContents(interpreter: Schem, mode: 'wholeBuffer' | 'bracketsSurroundingCursor' | 'topLevelBracketsSurroundingCursor'): monaco.editor.ICommandHandler {
+    return () => {
       this.monacoEditor.changeViewZones((changeAccessor: any) => {
-        let collectionRanges = this.getRangesOfSchemCollectionsAroundCursor();
-        let sourceOfInnermostCollection = this.monacoEditor.getModel().getValueInRange(collectionRanges[collectionRanges.length - 1]);
-        const viewZoneAfterLineNumber = collectionRanges[1].endLineNumber; // collectionRanges[0] contains the '(do ...)' form, so we use the one a level below that
+
+        const evaluationRange = (() => {
+          switch (mode) {
+            case 'topLevelBracketsSurroundingCursor': {
+              const bracketRanges = this.getRangesOfBracketsSurroundingCursor();
+              // brackteRages[0] contains the implicit '(do ...)' form, so we use the one a level below that
+              return bracketRanges[1];
+            }
+            case 'bracketsSurroundingCursor':  {
+              const bracketRanges = this.getRangesOfBracketsSurroundingCursor();
+              return bracketRanges[bracketRanges.length -1];
+            }
+            default: return this.monacoEditor.getModel().getFullModelRange();
+          }
+        })();
+        
+        let schemCode = this.monacoEditor.getModel().getValueInRange(evaluationRange);
+
+        // When evaluating the whole buffer, wrap it in a 'do' form
+        if (mode === 'wholeBuffer') schemCode = `(do ${schemCode})`;
+
+        const viewZoneAfterLineNumber = evaluationRange.endLineNumber; 
         this.addEvaluationViewZone(viewZoneAfterLineNumber, '...evaluating...', 'evalWaitingForResultViewZone');
-        interpreter.arep(sourceOfInnermostCollection).then((result) => {
+        interpreter.arep(schemCode).then((result) => {
           this.addEvaluationViewZone(viewZoneAfterLineNumber, schemUnescape(result), 'evalResultViewZone');
         }).catch(error => {
           console.error(error);
@@ -74,10 +99,36 @@ export class SchemEditor {
         });
         // highlight evaluated source range
         evalDecoration = this.monacoEditor.deltaDecorations(evalDecoration, [
-          { range: collectionRanges[collectionRanges.length - 1], options: { inlineClassName: 'evaluatedSourceDecoration' } }
+          { range: evaluationRange, options: { inlineClassName: 'evaluatedSourceDecoration' } }
         ]);
       });
-    }, 'evalEnabled');
+    };
+  }
+
+  private addCustomActionsToCommandPalette() {
+    this.monacoEditor.addAction({
+      id: 'saveScriptToVFS',
+      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S],
+      label: 'Save script to virtual file system',
+      run: () => {
+        const qualifiedFileName = prompt('Save at path/filename:', this.openFileName);
+        if (qualifiedFileName != null && qualifiedFileName.length > 0) {
+          this.saveScriptLocally(qualifiedFileName);
+        } 
+      }
+    });
+
+    this.monacoEditor.addAction({
+      id: 'loadScriptFromVFS',
+      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_O],
+      label: 'Load script from virtual file system',
+      run: () => {
+        const qualifiedFileName = prompt('Load path/filename:', this.openFileName);
+        if (qualifiedFileName != null && qualifiedFileName.length > 0) {
+          this.loadLocalScript(qualifiedFileName);
+        }
+      }
+    });
   }
 
   private addEvaluationViewZone(afterLineNumber: number, content: string, className: string): void {
@@ -131,7 +182,12 @@ export class SchemEditor {
     }
   }
 
-  private getRangesOfSchemCollectionsAroundCursor(): monaco.Range[] {
+  /** Returns an array of the nested ranges of brackets surrounding the cursor.
+   * (This uses the reader to turn the buffer into an ast. Fails miserably when the file contains syntax errors.
+   * TODO: give better feedback about missing brackets etc.
+   * @returns Range[] where first element => whole buffer, last element => innermost brackets / innermost collection node in the ast
+   * */
+  private getRangesOfBracketsSurroundingCursor(): monaco.Range[] {
     const textModel = this.monacoEditor.getModel();
     this.updateAst();
     // offset cursorIndex by four to compensate for the 'do' form
@@ -168,6 +224,7 @@ export class SchemEditor {
   public async loadLocalScript(qualifiedFileName: string): Promise<void> {
     let candidate = await VirtualFileSystem.readObject(qualifiedFileName);
     if (typeof candidate === 'string') {
+      this.openFileName = qualifiedFileName;
       this.monacoEditor.setValue(candidate);
     } else {
       throw new Error(`Can only load strings into the editor, encountered something else saved under: ${qualifiedFileName}`);
@@ -176,9 +233,9 @@ export class SchemEditor {
 
   public async saveScriptLocally(qualifiedFileName: string): Promise<void> {
     const script = this.monacoEditor.getValue();
-      const result =  await VirtualFileSystem.writeObject(qualifiedFileName, script, true)
-      .then(() => {
-        return;
-      }).catch(e => e);
+    await VirtualFileSystem.writeObject(qualifiedFileName, script, true).then(() => {
+      this.openFileName = qualifiedFileName;
+      return;
+    }).catch(e => e);
   }
 }
