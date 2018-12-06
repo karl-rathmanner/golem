@@ -2,6 +2,7 @@ import { Schem } from "./schem/schem";
 import { VirtualFileSystem } from "./virtualFilesystem";
 import { shlukerts } from './shlukerts';
 import { domManipulationSchemFunctions } from './domManipulationSchemFunctions';
+import { SchemEditor } from "./SchemEditor";
 
 window.onload = () => {
   const interpreter = new Schem();
@@ -16,6 +17,13 @@ window.onload = () => {
       if (typeof startupScript === 'string' && startupScript.length > 0) {
         interpreter.arep(`(do ${startupScript})`);
       }
+
+      const editorContainer = document.querySelector('#schemEditorContainer') as HTMLElement;
+      if (editorContainer != null){
+        const editor = new SchemEditor(editorContainer, {interpreter: interpreter, expandContainer: false});
+        editor.loadLocalScript(qualifiedFileName);
+      }
+
     }).catch((e) => console.error(e));
   }
 };

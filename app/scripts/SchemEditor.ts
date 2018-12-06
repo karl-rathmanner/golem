@@ -17,14 +17,19 @@ export class SchemEditor {
   private evalZoneId: number;
   private ast: AnySchemType;
 
-  constructor (container: HTMLElement) {
-    const interpreter = new Schem();
-    interpreter.replEnv.addMap(eventPageMessagingSchemFunctions);
-    interpreter.replEnv.addMap(this.editorManipulationSchemFunctions);
+  constructor (private containerElement: HTMLElement, private options: {interpreter?: Schem, expandContainer: boolean} = {expandContainer: true}) {
+    let interpreter: Schem;
+    if (options.interpreter == null) {
+      interpreter = new Schem();
+      interpreter.replEnv.addMap(eventPageMessagingSchemFunctions);
+      interpreter.replEnv.addMap(this.editorManipulationSchemFunctions);
+    } else {
+      interpreter = options.interpreter;
+    }
 
     AddSchemSupportToEditor(interpreter);
 
-    this.monacoEditor = monaco.editor.create(container, {
+    this.monacoEditor = monaco.editor.create(containerElement, {
       value: example,
       language: 'schem',
       theme: 'vs-dark'
@@ -216,8 +221,10 @@ export class SchemEditor {
   }
 
   private updateEditorLayout = () => {
-    getHTMLElementById('monacoContainer').style.height = `${window.innerHeight}px`;
-    getHTMLElementById('monacoContainer').style.width = `${window.innerWidth}px`;
+    if (this.options.expandContainer === true) {
+      this.containerElement.style.height = `${window.innerHeight}px`;
+      this.containerElement.style.width = `${window.innerWidth}px`;
+    }
     this.monacoEditor.layout();
   }
 
