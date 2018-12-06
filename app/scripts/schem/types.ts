@@ -3,6 +3,7 @@ import { Schem, schemToJs, jsObjectToSchemType } from './schem';
 import { Tabs } from 'webextension-polyfill-ts';
 import { AvailableSchemContextFeatures } from '../contextManager';
 import { isSchemKeyword, isSchemSymbol, isValidKeyType, isSchemString, isSchemNumber, isSchemMap, isSchemType, isSchemList } from './typeGuards';
+import { resolveJSPropertyChain } from '../javascriptInterop';
 
 // interfaces
 export interface Callable {
@@ -436,16 +437,27 @@ export class SchemRegExp extends RegExp implements TaggedType {
 
 export class SchemJSReference implements TaggedType {
   typeTag: SchemTypes.SchemJSReference = SchemTypes.SchemJSReference;
+  public propertyName: string;
 
-  constructor(public readonly parent: any, public readonly name: string) {
+  constructor(public readonly parent: any, public readonly propertyChain: string) {
+    const properties = propertyChain.split('.');
+    if (properties.length > 1) {
+      // resolve the property chain
+      // ex.: (window, "document.body") => {parent: window.document, propertyName: "body"}
+      const allButLast = properties.slice(0, -1);
+      this.parent = resolveJSPropertyChain(parent, ...allButLast);
+      this.propertyName = properties.slice(-1)[0];
+    } else {
+      this.propertyName = properties[0];
+    }
   }
 
   get() {
-    return this.parent[this.name];
+    return this.parent[this.propertyName];
   }
 
   set(value: any) {
-    this.parent[this.name] = value;
+    this.parent[this.propertyName] = value;
   }
 
   toSchemType() {
@@ -457,7 +469,7 @@ export class SchemJSReference implements TaggedType {
   }
 
   invoke(...args: any[]) {
-    this.parent[this.name](...args);
+    this.parent[this.propertyName](...args);
   }
 }
 
@@ -494,7 +506,8 @@ export class SchemSymbol extends SymbolicType implements Metadatable, TaggedType
   metadata: SchemMetadata;
 
   static refersToJavascriptObject(sym: SchemSymbol): boolean {
-    return (sym.name.indexOf('.') !== -1);
+    // does it contain at least one dot between two alphanumerical characters?
+    return (sym.name.indexOf('.') !== -1 && /\w\.\w/.test(sym.name));
   }
 
   // static registeredSymbols: Map<symbol, SchemSymbol> = new Map<symbol, SchemSymbol>();
