@@ -39,6 +39,12 @@ export class Env {
   public async bind(targetStructure: SchemVector | SchemList | SchemMap, sourceStructure: SchemVector | SchemList, interpreter?: Schem, logDebugMessages = false) {
 
     const desctructure = async (targetStructure: SchemVector | SchemList | SchemMap, sourceStructure: AnySchemType) => {
+
+      // Evaluate 'right side' of a binding
+      if (isSchemList(sourceStructure) && interpreter != null) {
+        sourceStructure = await interpreter.evalSchem(sourceStructure, this);
+      }
+
       if (isSchemVector(targetStructure) || isSchemList(targetStructure)) {
         // Sequential Destructuring
         if (targetStructure.count() < 1) {
@@ -85,6 +91,7 @@ export class Env {
             } else {
               // regular case: evaluate sourceElement and bind the resulting value
               if (logDebugMessages) console.log(`${targetElement.name} = ${sourceElement}`);
+              this.set(targetElement as SchemSymbol, sourceElement);
 
               if (interpreter == null) {
                 this.set(targetElement as SchemSymbol, sourceElement);
@@ -102,10 +109,10 @@ export class Env {
         }
 
       } else if (isSchemMap(targetStructure)) {
-        if (!isSchemMap(sourceStructure)) {
-          throw new Error(`mapz plz!`);
-        }
         targetStructure.forEach((k, v) => {
+          if (!isSchemMap(sourceStructure)) {
+            throw new Error(`mapz plz!`);
+          }
           if (isSchemSymbol(k)) {
             if (isSchemKeyword(v)) {
               this.set(k, sourceStructure.get(v));
