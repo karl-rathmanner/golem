@@ -3,11 +3,9 @@ import { eventPageMessagingSchemFunctions } from './eventPageMessaging';
 import { AddSchemSupportToEditor } from './monaco/schemLanguage';
 import { readStr, unescape as schemUnescape } from './schem/reader';
 import { filterRecursively, Schem } from './schem/schem';
-import { SchemList, AnySchemType, SchemString, SchemBoolean } from './schem/types';
-import { getHTMLElementById } from './utils/domManipulation';
-import { VirtualFileSystem } from './virtualFilesystem';
+import { AnySchemType, SchemBoolean, SchemList, SchemNil, SchemString } from './schem/types';
 import { extractErrorMessage } from './utils/utilities';
-import { shlukerts } from './shlukerts';
+import { VirtualFileSystem } from './virtualFilesystem';
 
 const example = require('!raw-loader!./schemScripts/example.schem');
 
@@ -38,12 +36,11 @@ export class SchemEditor {
     window.addEventListener('resize', this.updateEditorLayout);
     this.updateEditorLayout();
     this.monacoEditor.focus();
-    
     this.addCustomActionsToCommandPalette();
     this.addFormEvaluationCommand(interpreter);
   }
 
-  private editorManipulationSchemFunctions = {
+  public editorManipulationSchemFunctions = {
     'editor-load-script': async (qualifiedFileName: SchemString) => {
       this.loadLocalScript(qualifiedFileName.valueOf());
       return SchemBoolean.true;
@@ -51,6 +48,10 @@ export class SchemEditor {
     'editor-save-script': async (qualifiedFileName: SchemString) => {
       this.saveScriptLocally(qualifiedFileName.valueOf());
       return new SchemString(`Successfully saved ${qualifiedFileName}.`);
+    },
+    'editor-update-layout': () => {
+      this.updateEditorLayout();
+      return SchemNil.instance;
     }
   };
 
@@ -74,18 +75,18 @@ export class SchemEditor {
             }
             case 'bracketsSurroundingCursor':  {
               const bracketRanges = this.getRangesOfBracketsSurroundingCursor();
-              return bracketRanges[bracketRanges.length -1];
+              return bracketRanges[bracketRanges.length - 1];
             }
             default: return this.monacoEditor.getModel().getFullModelRange();
           }
         })();
-        
+
         let schemCode = this.monacoEditor.getModel().getValueInRange(evaluationRange);
 
         // When evaluating the whole buffer, wrap it in a 'do' form
         if (mode === 'wholeBuffer') schemCode = `(do ${schemCode})`;
 
-        const viewZoneAfterLineNumber = evaluationRange.endLineNumber; 
+        const viewZoneAfterLineNumber = evaluationRange.endLineNumber;
         this.addEvaluationViewZone(viewZoneAfterLineNumber, '...evaluating...', 'evalWaitingForResultViewZone');
         interpreter.arep(schemCode).then((result) => {
           this.addEvaluationViewZone(viewZoneAfterLineNumber, schemUnescape(result), 'evalResultViewZone');
@@ -119,7 +120,7 @@ export class SchemEditor {
         const qualifiedFileName = prompt('Save at path/filename:', this.openFileName);
         if (qualifiedFileName != null && qualifiedFileName.length > 0) {
           this.saveScriptLocally(qualifiedFileName);
-        } 
+        }
       }
     });
 
