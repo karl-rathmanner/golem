@@ -367,6 +367,9 @@ export const coreFunctions: {[symbol: string]: any} = {
       throw new Error('js-ref expects one or two arguments');
     }
   },
+  '.': (o: any, propertyChain: SchemString) => {
+    return resolveJSPropertyChain(o, propertyChain.valueOf());
+  },
   'js-deref': (jsref: SchemJSReference) => {
     return jsref.get();
   },
