@@ -165,7 +165,7 @@ function readAtom(reader: Reader) {
   if (/^-?\d+$/.test(token.value)) {
     return new SchemNumber(parseInt(token.value));
   // floats work like integers but they contain a decimal point (note that you can ommit the fractional part if you explicitly want to create a float with an integer value)
-  } else if (/^-?\d*\.\d*$/.test(token.value)) {
+  } else if (/^-?\d*\.\d+$/.test(token.value) || /^-?\d+\.\d*$/.test(token.value)) {
     return new SchemNumber(parseFloat(token.value));
   // strings starts with double quotes
   } else if (token.value[0] === '"') {
