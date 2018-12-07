@@ -178,10 +178,20 @@ export const coreFunctions: {[symbol: string]: any} = {
     return xhrPromise('DELETE', url.valueOf());
   },
 
-  'slurp': async (url: SchemString, opts?: SchemMap) => {
+  'slurp': async (pathOrUrl: SchemString | string, opts?: SchemMap) => {
+    pathOrUrl = pathOrUrl.valueOf();
     // get full URL for files packaged with the browser extension, when url begins with a slash
-    const actualUrl = (url[0] === '/') ? browser.extension.getURL('/schemScripts' + url.valueOf()) : url.valueOf();
-    return new SchemString(await xhrPromise('GET', actualUrl));
+    if (pathOrUrl[0] === '/') {
+      return new SchemString(await xhrPromise('GET', browser.extension.getURL('/schemScripts' + pathOrUrl)));
+    }
+
+    let url: URL;
+    try {
+      url = new URL(pathOrUrl);
+    } catch {
+      return new SchemString(await VirtualFileSystem.readObject(pathOrUrl));
+    }
+    return new SchemString(await xhrPromise('GET', url.href));
   },
   'xml->map': (xml: XMLDocument | string | SchemString, options?: SchemMap) => {
     let xmlDoc: XMLDocument;
@@ -246,6 +256,20 @@ export const coreFunctions: {[symbol: string]: any} = {
       }
       return new SchemList(...newValues);
     }
+  },
+  'filter': async (pred: SchemFunction, seq: SchemVector | SchemList) => {
+    
+    const elementValidity = await Promise.all(seq.map((value) => { 
+      return pred.f(value).then((result: any) => (result === SchemBoolean.true));
+    }));
+    
+    const newList = new SchemList();
+    seq.forEach((value, index) => {
+      if (elementValidity[index]) {
+        newList.push(value);
+      }
+    });
+    return newList;
   },
   'score-string-similarity': (needle: SchemString, haystack: SchemString) => {
     return new SchemNumber(computeSimpleStringSimilarityScore(needle.toString(), haystack.toString()));
@@ -457,9 +481,9 @@ async function asyncStringifyAll(schemObjects: AnySchemType[], escapeStrings: bo
   }));
 }
 
-function createSchemMapFromXMLDocument(xmlDoc: XMLDocument, options: {keyType?: 'string' | 'keyword'} = {keyType: 'string'}): SchemMap {
+function createSchemMapFromXMLDocument(xmlDoc: XMLDocument, options: {'key-type'?: 'string' | 'keyword'} = {'key-type': 'string'}): SchemMap {
   function createKey(v: string) {
-    if (options.keyType === 'keyword') {
+    if (options['key-type'] === 'keyword') {
       return SchemKeyword.from(v);
     } else {
       return new SchemString(v);
