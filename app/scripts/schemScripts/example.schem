@@ -121,7 +121,8 @@
 ; followed by more than one sequence:
 (map #(str %1 %2 %3) ["a" "b" "c"] [1 2 3] ["A" "B" "C"])
 
-
+;; Filter a list or vector using a predicate function
+(filter #(= (rem % 2) 0) [1 2 3 4])
 
 ;;; Macros
 
