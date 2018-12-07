@@ -41,12 +41,14 @@ export async function pr_str(ast: AnySchemType, escapeStrings: boolean = true): 
   } else if (ast instanceof SchemContextInstance) {
     return `#context [${JSON.stringify(ast)}]`;
   } else if (isSchemJSReference(ast)) {
-    return `#jsReference [${ast.parent.toString()}, ${ast.name}]`
+    return `#jsReference [${ast.parent.toString()}, ${ast.propertyName}]`
   } else {
     // attempt to stringify object, because it's not a SchemType after all
     return `#jsObject [${JSON.stringify(ast)}]`;
   }
 }
+
+
 
 export async function prettyPrint(ast: AnySchemType, escapeStrings: boolean = true, opts: {indentSize: number} = {indentSize: 2}, currentIndentDepth = 0, addComma = false): Promise<string> {
   if (ast instanceof SchemList) {
