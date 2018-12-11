@@ -242,19 +242,19 @@ export const coreFunctions: {[symbol: string]: any} = {
       }));
       return new SchemList(...newValues);
     } else {
-      const shortestLength = sequentials.reduce((shortestLength: number, currentValue) => {
-        return (currentValue.length < shortestLength) ? currentValue.length : shortestLength;
-      }, sequentials[0].length);
+      
+      const shortestSequential = sequentials.reduce((shortestSeq: SchemList | SchemVector, currentSeq) => {
+        return (currentSeq.length < shortestSeq.length) ? currentSeq : shortestSeq;
+      }, sequentials[0]);
 
-      let newValues: AnySchemType[] = [];
-      for (let i = 0; i < shortestLength; i++) {
-        let args: AnySchemType[] = [];
-        for (let j = 0; j < sequentials.length; j++) {
-          args.push(sequentials[j][i]);
-        }
-        newValues.push(await fn.f(...args));
-      }
-      return new SchemList(...newValues);
+      const newValues = await Promise.all(shortestSequential.map((v, index) => {
+        const args = sequentials.map((seq) => {
+          return seq[index];
+        });
+        return fn.f(...args);
+      }));
+      return newValues;
+
     }
   },
   'filter': async (pred: SchemFunction, seq: SchemVector | SchemList) => {
