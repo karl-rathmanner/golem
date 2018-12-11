@@ -434,6 +434,10 @@ export const coreFunctions: {[symbol: string]: any} = {
   'resolve-js-property-chain': (jsObject: any, ...propertyNames: Array<SchemString | SchemKeyword>) => {
     const pNames: string[] = propertyNames.map(e => isSchemKeyword(e) ? e.name : e.valueOf());
     return resolveJSPropertyChain(jsObject, ...pNames);
+  },
+  'sleep': async (ms: SchemNumber) => {
+    await new Promise(resolve => setTimeout(resolve, ms.valueOf()));
+    return SchemNil.instance;
   }
 };
 
