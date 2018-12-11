@@ -121,8 +121,24 @@
 ; followed by more than one sequence:
 (map #(str %1 %2 %3) ["a" "b" "c"] [1 2 3] ["A" "B" "C"])
 
-;; Filter a list or vector using a predicate function
-(filter #(= (rem % 2) 0) [1 2 3 4])
+;; Filter a list or vector using a predicate:
+(defn even? "returns true if x divided by two is zero" [x] (= (rem x 2) 0))
+(filter even? [1 2 3 4])
+
+; The predicates are evaluated in parallel* for each element in the sequence.
+; In this example, filtering ten elements takes half a second, instead of five seconds:
+(defn delay-evaluation [ms, form] 
+  (do
+    (sleep ms)
+    form))
+
+(filter (delay-evaluation 500 even?) [1 2 3 4 5 6 7 8 9 10])
+
+; *) Technically, they might not actually run in parallel. Golem uses ES6 Promises, so it depends...
+; Most importantly though, if your predicate sends an http request, those will happen simultaneously!
+; That's pretty cool, I think. But don't try that with huge lists. ;)
+
+
 
 ;;; Macros
 
