@@ -121,22 +121,53 @@
 ; followed by more than one sequence:
 (map #(str %1 %2 %3) ["a" "b" "c"] [1 2 3] ["A" "B" "C"])
 
-;; Filter a list or vector using a predicate:
+; And since we're talking about 'map', you can also 'filter' a list or vector using a predicate:
 (defn even? "returns true if x divided by two is zero" [x] (= (rem x 2) 0))
-(filter even? [1 2 3 4])
+(filter even? [1 2 3 4 5 6])
 
-; The predicates are evaluated in parallel* for each element in the sequence.
-; In this example, filtering ten elements takes half a second, instead of five seconds:
+
+
+;;; Asynchronous Evaluation & Concurrency
+
+; The Schem interpreter makes heavy use of ES6 promises. Because of this, each evaluation step may take
+; as much time as it likes to return a value.
+
+; Sleep returns nil after n milliseconds 
+(do
+  (console-log "Breathe in.")
+  (sleep 2000)
+  (console-log "Breathe out."))
+
+; Lets define a function that introduces an artificial delay to the evaluation of another function:
 (defn delay-evaluation [ms, form] 
   (do
     (sleep ms)
     form))
 
-(filter (delay-evaluation 500 even?) [1 2 3 4 5 6 7 8 9 10])
+; Using it, we can create a really laggy "multiply by two" function:
+(defn slowly-multiply-by-two [x] (delay-evaluation 500 (#(* 2 %) x)))
 
-; *) Technically, they might not actually run in parallel. Golem uses ES6 Promises, so it depends...
-; Most importantly though, if your predicate sends an http request, those will happen simultaneously!
-; That's pretty cool, I think. But don't try that with huge lists. ;)
+; Now doubling one number takes half a second:
+(slowly-multiply-by-two 6)
+
+; So how long does it take to double ten numbers, you ask?
+; Half a second. Because concurrency.
+(map slowly-multiply-by-two [1 2 3 4 5 6 7 8 9 10])
+
+; As you saw, 'map' evaluates each element more or less simultaneously. 
+; 'filter' does the same with its predicates. So it should return a the whole filtered list about 
+; as soon as the slowest predicate returs, regardless of the list's length.
+(filter (delay-evaluation 500 #(= (rem % 2) 0)) [1 2 3 4 5 6 7 8 9 10])
+
+; *) Technically, the functions won't actually run "in parallel" as in "on multiple threads".
+; (Allthough, sometimes they might. Golem uses ES6 Promises, so it depends...)
+
+; I don't expect anyone to write computationally expensive stuff in Schem; that would be a terrible idea.
+; Still, these quirks should be useful when dealing with all those callback functions you know from javascript.
+
+; Most importantly if you were sending http requests in the 'map' or 'filter' functions, 
+; those would magically happen simultaneously! Which is pretty cool, I think. 
+; Just limit yourself to either short lists or forgiving web servers. ;)
 
 
 
