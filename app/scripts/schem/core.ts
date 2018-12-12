@@ -253,12 +253,11 @@ export const coreFunctions: {[symbol: string]: any} = {
         });
         return fn.f(...args);
       }));
-      return newValues;
+      return new SchemList(...newValues);
 
     }
   },
   'filter': async (pred: SchemFunction, seq: SchemVector | SchemList) => {
-    
     const elementValidity = await Promise.all(seq.map((value) => { 
       return pred.f(value).then((result: any) => (result === SchemBoolean.true));
     }));
@@ -270,6 +269,53 @@ export const coreFunctions: {[symbol: string]: any} = {
       }
     });
     return newList;
+  },
+  /** behaves like clojure's reduce, at least for lists and vectors */
+  'reduce': async (func: SchemFunction, ...restArgs: AnySchemType[]) => {
+    // TODO: switch calls to nth for first/rest, also implement those for maps
+    // Sooo many awaits!
+
+    if (restArgs.length === 1 && isSequential(restArgs[0])) {
+      const coll: SchemVector | SchemList = restArgs[0] as any;
+
+      if (coll.count() === 0) {
+        return func.f();
+      }
+
+      if (coll.count() === 1) {
+        return coll.nth(0);
+      }
+
+      let result: AnySchemType = await func.f(await coll.nth(0), await coll.nth(1));
+      for (let i = 2; i < coll.count(); i++) {
+        result = await func.f(result, await coll.nth(i));
+      }
+
+      return result;
+
+    } else if (restArgs.length === 2 && isSequential(restArgs[1])) {
+      // reduce called with initial value
+      const initialVal = restArgs[0];
+      const coll: SchemVector | SchemList = restArgs[1] as any;
+
+      if (coll.count() === 0) {
+        return func.f(await initialVal);
+      }
+
+      if (coll.count() === 1) {
+        return func.f(await initialVal, await coll.nth(0));
+      }
+
+      let result: AnySchemType = await func.f(await initialVal, await coll.nth(0));
+      for (let i = 1; i < coll.count(); i++) {
+        result = await func.f(result, await coll.nth(i));
+      }
+
+      return result;
+
+    } else {
+      throw new Error(`Reduce takes arguments of like (function, sequential) or (function, initial-value, sequential). Nothing else.`);
+    }
   },
   'score-string-similarity': (needle: SchemString, haystack: SchemString) => {
     return new SchemNumber(computeSimpleStringSimilarityScore(needle.toString(), haystack.toString()));
