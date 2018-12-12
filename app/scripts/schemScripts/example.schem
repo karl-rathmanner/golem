@@ -58,7 +58,7 @@
 
 
 
-;;; Functions
+;;; Reading LISP Forms
 
 ; When evaluating a form, the first element of a list is treated like a function. It gets called
 ; with the other form elements supplied as arguments. Evaluation starts at the innermost parens
@@ -66,10 +66,10 @@
 ; value of the function.
 (* 7 (+ 3 2 1))
 
-; So, (* 7 (+ 3 2 1)) turns into (* 7 6) turns into 42.
+; So during evaluation the form (* 7 (+ 3 2 1)) turns into (* 7 6) which in turn turns into 42.
 
-; Lisp uses prefix notation. Normal people would write the example like this:
-; (7 * (3 + 2 + 1))
+; Lisp uses prefix notation. Normal people would write the calculation like this: 
+;   (7 * (3 + 2 + 1))
 ;
 ; And normal programmers might write it like this:
 ;   multiply(7, add(3, 2, 1));
@@ -77,35 +77,40 @@
 ; (Provided they defined the functions 'multiply' and 'add' somewhere. Btw: Notice how this has
 ; the same amount of parentheses but none of that comma-and-semicolon-stuff?
 
-; Functions can be created using the 'fn' form:
-; (The name and docstring are both optional.)
+
+
+;;; Functions
+
+; Functions are created using the 'fn' form.
 (fn sqr "Multiplies a value with itself." (x) (* x x))
+; (The name and docstring are both optional.)
 
 ; Most of the times, when you create a function, you'll want to bind it to some symbol so you 
 ; can re-use it later:
 ; (Notice that parameters can be defined in a [vector] instead of a (list), which looks nicer.)
 (def add (fn [x y] (+ x y)))
  
-; Now we can call 'add' with two numbers.
-; Granted, 'add' is a silly function, but it serves its purpose here.
+; Now we can call 'add' with two numbers:
+; (Granted, 'add' is a silly function, but it serves its purpose here.)
 (add 1 2)
 
 ; You could also create and bind a function to a symbol in one go using the 'defn' macro:
+; (This 'add' is still silly, but you had to type five characters less.)
 (defn add [x y] (+ x y))
-; 'add' is still silly, but you had to type five characters less.
 
 ; Ooor! You could define the same thing using an anonymous function literal:
 ; (Functions created this way can have up to nine parameters named %1 to %9.
 ; ...and "%" is synonymous with "%1" if you want to save one more keypress.)
 (def add #(+ %1 %2))
 
-; Now that's eight characters less!
-; Allthough you might spend more time contemplating how these work than you'll ever save
-; by not having to type a few more characters. ;)
+; Now that's eight characters less than in the first 'add' example!
 
+; You might possibly spend more time contemplating how these work than you'll ever save
+; by not having to type a few more characters.
 ; Then again, function literals are super handy for one-off functionality!
-; If you call 'map' with a function and a sequence, it returns a new sequence 
-; containing the results of 'applying' the function to each element.
+
+; For instance, the 'map' function takes another function and a sequence. Then it returns 
+; a new sequence containing the results of 'applying' the function to each element:
 (map #(* 2 %) [1 2 3])
 
 ; Variadic functions are also supported in Schem.
@@ -125,7 +130,7 @@
 (defn even? "returns true if x divided by two is zero" [x] (= (rem x 2) 0))
 (filter even? [1 2 3 4 5 6])
 
-; 'map' and 'filter' wouldn't be complete without 'reduce':
+; Of course, 'map' and 'filter' wouldn't be complete without 'reduce':
 (reduce * [1 2 3 7])
 
 ; Reduce takes an optional value to initialize the operation:
@@ -136,23 +141,23 @@
 
 
 
-
 ;;; Asynchronous Evaluation & Concurrency
 
 ; The Schem interpreter makes heavy use of ES6 promises. Because of this, each evaluation step may take
 ; as much time as it likes to return a value.
 
-; Sleep returns nil after n milliseconds 
+; To see this in actino, we need to write some seriously slow code.
+; The 'sleep' function does nothing and returns nil after n milliseconds:
 (do
   (console-log "Breathe in.")
   (sleep 2000)
   (console-log "Breathe out."))
 
-; Lets define a function that introduces an artificial delay to the evaluation of another function:
-(defn delay-evaluation [ms, form] 
+; Let's define a function that introduces an artificial delay to the evaluation of another function:
+(defn delay-evaluation [ms, function] 
   (do
     (sleep ms)
-    form))
+    function))
 
 ; Using it, we can create a really laggy "multiply by two" function:
 (defn slowly-multiply-by-two [x] (delay-evaluation 500 (#(* 2 %) x)))
@@ -160,7 +165,7 @@
 ; Now doubling one number takes half a second:
 (slowly-multiply-by-two 6)
 
-; So how long does it take to double ten numbers, you ask?
+; So how long does it take to double each number in a vector with ten elements?
 ; Half a second. Because concurrency.
 (map slowly-multiply-by-two [1 2 3 4 5 6 7 8 9 10])
 
@@ -170,12 +175,12 @@
 (filter (delay-evaluation 500 #(= (rem % 2) 0)) [1 2 3 4 5 6 7 8 9 10])
 
 ; *) Technically, the functions won't actually run "in parallel" as in "on multiple threads".
-; (Allthough, sometimes they might. Golem uses ES6 Promises, so it depends...)
+; (Allthough, sometimes they might. It depends...)
 
 ; I don't expect anyone to write computationally expensive stuff in Schem; that would be a terrible idea.
-; Still, these quirks should be useful when dealing with all those callback functions you know from javascript.
+; Still, these quirks should be useful when dealing with asynchronous javascript functions.
 
-; Most importantly if you were sending http requests in the 'map' or 'filter' functions, 
+; Most importantly: if you were sending http requests in the 'map' or 'filter' functions, 
 ; those would magically happen simultaneously! Which is pretty cool, I think. 
 ; Just limit yourself to either short lists or forgiving web servers. ;)
 
@@ -184,10 +189,10 @@
 ;;; Macros
 
 ; ...are functions that can transform your code 'before' it gets evaluated. This allows you to
-; change the language's syntax. They are really meta!
+; change the language's syntax. So meta!
 (defmacro executePostfix (fn [& l] (cons (last l) (butlast l))))
 
-; The macro defined above turns a list (a b c ... f) into (f a b c ...) which then is evaluated.
+; The macro defined above turns a list (a b c ... f) into (f a b c ...) which then can be evaluated.
 (executePostfix 1 2 3 4 +)
 
 ; If you want to see the transformed code itself instead of its result, you can 'expand' macros.
@@ -219,16 +224,22 @@
 ; Atoms support watches. These are functions that get called when the atom's value changes.
 ; (Evaluate the next line, then try evaluating the swap! example again and look at your console.)
 (add-watch a :alerter (fn [key atom old-value new-value] (window.alert (str old-value "->" new-value))))
-; An atom can have multiple watches, as long as each one was added with a unique key. (Unique 'within' that atom, not globally.)
+
+; An atom can have multiple watches, as long as each one was added with a unique key. 
+; (Unique 'within' that atom, not globally.)
 ; If you know the key of a particular watch, you can also remove it, if you happen to grow weary of it.
 (remove-watch a :alerter)
 
 
 
 ;;; Destructuring
-; Every operation that binds values to symbols (like 'let' and 'fn') supports sequential destructuring and basic associative destructuring.
 
-; Here's a function that takes a vector of length three. Inside it, the variables x, y and z are bound to the first, second and third element of the parameter it was called with
+; Every operation that binds values to symbols in an environment (like 'let' and 'fn') 
+; supports sequential destructuring and basic associative destructuring.
+
+; Here's a function that takes a vector of length three. Inside it, the variables x, y and z are 
+; bound to the first, second and third element of the parameter it was called with, respectively:
+
 (defn format-3d-coordinates [[x y z]]
     (str "x: " x ", y: " y ", z: " z))
 
@@ -241,19 +252,20 @@
 (def all-uneven-numbers (lazy-vector #(+ 1 (* 2 %))))
 (format-3d-coordinates all-uneven-numbers)
 
-; The same mechanism that drives variadic function definitions can be used in let forms.
-; In this example, all elements after second get shoved into a list and bound to 'rest'.
+; The same mechanism that drives variadic function definitions also can be used in 'let' forms.
+; In this example, all elements after 'second' get shoved into a list which is bound to 'rest'.
 (let [[first second & rest] (subvec all-uneven-numbers 0 5)]
   [first second rest])
 
-; Nesting is allowed:
+; Nesting is allowed, too:
 (do 
   (defn heady-plotter [[[x1 y1] [x2 y2]]]
     (str "Imagine a line going from " x1 "," y1 " to " x2 "," y2 "!"))
+
   (heady-plotter [[1  2] [3  4]]))
 
-; We've seen how sequential destructuring matches shapes.
-; Associative destructuring, on the other hand looks up keys in maps:
+; We've seen how sequential destructuring matches the shapes of collections.
+; Associative destructuring, on the other hand, looks up keys in maps:
 
 (let [bauz 
         {:col "yellow", :sp "daug", :verb "wagging it's tail", :name "Beaiengeo"}
@@ -268,56 +280,26 @@
   (str (describe bauz) (describe mauz)))
 
 ; Fetching values from nested maps is not supported for the time being, but you can combine 
-; sequential an associative destructuring. The '&' operator is legal at any level of nesting, btw.
+; sequential and associative destructuring; and the '&' operator is legal at any level of nesting.
 
 
+;;; Javascript interoperability
 
-;;; Some more involved examples
-
-; 1) Implementing fizz-buzz using a lazy vector: (very lispy)
-(defn fizz-buzz (start end)
-  ; Subvec realizes a range of values in a lazy-vector, memoizing the values.
-  ; This would save time if you needed to access an element more than once and if accessing it was expensive,
-  ; e.g. if the accessor function contained a get request.
-  ; Truth be told, I don't know if that's useful. But i thought lazy-vectors looked like fun.
-  (subvec 
-    (lazy-vector 
-      #(cond 
-        (= 0 (rem % 15)) "fizzbuzz" 
-        (= 0 (rem % 3)) "fizz" 
-        (= 0 (rem % 5)) "buzz"
-        :else %)) 
-    start end))
-
-(fizz-buzz 0 100)
-
-; 2) Turn the output of fizz-buzz into a div containing an unordered list (creating DOM nodes, not HTML code)
-(let
-  [to-li #(vector :li (str %))]
-  (console-log 
-    (shluk 
-      [:ul 
-        (map to-li (fizz-buzz 0 10))]))) 
-
-; Tail call optimization: (if it wasn't for TCO, calling sum with high values would lead to stack overflows)
-(do
-  (def sum (fn (n acc)
-            (if (= n 0)
-              acc
-              (sum (- n 1) (+ n acc)))))
-
-  (sum 4141 0))
-
-;;; Javascript interop (symbols with a dot get treated *differently*)
+; Symbols that contain a dot get treated *differently* from regular Schem symbols. Instead of their
+; value being looked up in the current Schem environment, they refer to global javascript objects.
+; Schem uses its own types instead of plain js values and objects. 
+; Sometimes, they get converted automatically; sometimes you'll have to do that using 'js->schem' & 'schem->js'
+; This is as much a WIP as anything else...
 
 ; Invoking a js function:
 (window.alert "This works.")
 
 ; Aliasing a js function:
+; (notice the single quote)
 (let (anoy 'window.alert)
   (anoy "This works too. Wohoo!"))
 
-; Interop type conversion: 
+; Interop type conversion:
 ; (back and forth, just for illustrative purposes)
 (js->schem (schem->js {:a 42 :b ["string" "thing"]}) {:arrays-to-vectors true :depth 9001})
 (js->schem (schem->js {:v [1 2 3] :l '(4 5 6)}) {:depth 1})
@@ -330,12 +312,20 @@
 ; (notice that the js symbol is quoted!)
 (set! 'document.title "ᕕ( ՞ ᗜ ՞ )ᕗ")
 
+; Getting a js property:
+(. window.document 'title)
+
+; Another way of getting a js property that I don't feel like documenting properly:
+(js-deref (js-ref document.location "href.length"))
+
 
 
 ;;; Foreign Execution Contexts (is that a good name?)
-; These probably deserve a paragraph of documentation.    ¯\_( ツ )_/¯
+
+; These probably deserve another paragraph of documentation.    ¯\_( ツ )_/¯
 
 ;; The general concept
+
 ; 1) Defining an execution context that matches any regular tab:
 (defcontext anyTab: {:tabQuery {:url "*://*/*"}})
 
@@ -382,14 +372,18 @@
 ; 6) Now try running this ↓ in the tiny repl:
 ; (set-css-text "body" "background-color: gray")
 
-; 7,8) Crummy examples for using JSReferences
+; 7,8) Crummy examples for using JSReferences to *do things elsewhere*:
 (xkcd: ((js-ref (window.document.querySelector "#ctitle") "append") (shluk [:div "Y'ello!"])))
 (xkcd: (set! (js-ref (window.document.querySelector "title") "text") "Y'orange!"))
 
 
 
 ;;; Persistent contexts
-; Open any number of web pages, run this script. Now reload any of the web pages, follow links 
+
+; These are a draft / proof of concept for how you'd use golem to automatically 
+; *do things* with specific web pages.
+
+; Open any number of tabs, run this script. Now reload any of the web pages, follow links 
 ; or navigate to a different page. → A local "happyTab" context is automatically prepared whenever
 ; a tab is updated. Within that context, the :init form is called once the page completed loading.
 
@@ -419,17 +413,59 @@
 
 
 
-;;; Local storage: (looks a little like a file system, but it's not)
+;;; Some more examples for good measure
+
+; 1) Implementing fizz-buzz using a lazy vector: (very lispy)
+(defn fizz-buzz (start end)
+  ; Subvec realizes a range of values in a lazy-vector, memoizing the values.
+  ; This would save time if you needed to access an element more than once and if accessing it was expensive,
+  ; e.g. if the accessor function contained a get request.
+  ; Truth be told, I don't know if that's useful. But i thought lazy-vectors looked like fun.
+  (subvec 
+    (lazy-vector 
+      #(cond 
+        (= 0 (rem % 15)) "fizzbuzz" 
+        (= 0 (rem % 3)) "fizz" 
+        (= 0 (rem % 5)) "buzz"
+        :else %)) 
+    start end))
+
+(fizz-buzz 0 100)
+
+; 2) Turn the output of fizz-buzz into a div containing an unordered list (creating DOM nodes, not HTML code)
+(let
+  [to-li #(vector :li (str %))]
+  (console-log 
+    (shluk 
+      [:ul 
+        (map to-li (fizz-buzz 0 10))]))) 
+
+; Tail call optimization: (if it wasn't for TCO, calling sum with high values would lead to stack overflows)
+(do
+  (def sum (fn (n acc)
+            (if (= n 0)
+              acc
+              (sum (- n 1) (+ n acc)))))
+
+  (sum 4141 0))
+
+
+
+;;; Local storage
+
+; Golem has its own virtual file system that uses the browser's local storage API.
 
 ; Storing and retrieving objects in the virtual file system:
 (storage-create "/folder/subfolder/objectName" "an invaluable value")
 (storage-read "/folder/subfolder/objectName")
 
-; Show bare vfs info: (implementing a dir/ls function is left as an exercise for the reader)
+; Show some bare vfs info: (implementing a dir/ls function is left as an exercise for the reader)
 (storage-get-vfstree)
 
-; Saving and loading scripts in the editor: (uses the vfs, so you can put your stuff in folders, too)
+; Saving and loading scripts in the editor is possible via the command pallette <F1> or via shortcuts (<ctrl+s> & <ctrl+o>)
+; But you can also access some editor functions from within the editor.
 (editor-save-script "someCode")
-; You could now load/bookmark this by adding #someCode to the editor url.
+
+; You could now load/bookmark this script by adding #someCode to the editor url and reloading the page.
 ; Or you could evaluate this:
 (editor-load-script "someCode")
