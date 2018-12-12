@@ -125,6 +125,16 @@
 (defn even? "returns true if x divided by two is zero" [x] (= (rem x 2) 0))
 (filter even? [1 2 3 4 5 6])
 
+; 'map' and 'filter' wouldn't be complete without 'reduce':
+(reduce * [1 2 3 7])
+
+; Reduce takes an optional value to initialize the operation:
+(reduce + 1 [2 3])
+
+; The function supplied to reduce should take two arguments:
+(reduce #(str %1 ", " %2) [1 2 3])
+
+
 
 
 ;;; Asynchronous Evaluation & Concurrency
