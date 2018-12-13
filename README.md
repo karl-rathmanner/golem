@@ -86,6 +86,7 @@ feat(schem): add lambada function
 Allowed types:
 * feat: Adds a new feature.
 * fix: Fixes an issue.
+* change: Doesn't add anything new but changes existing behaviour.
 * demo: Adds or changes examples for demoing features.
 * docs: Changes documentation or changes comments substantially.
 * refactor: Refactors production code, does not change behaviour.
