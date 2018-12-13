@@ -148,7 +148,7 @@ function registerCompletionItemProvider(interpreter: Schem) {
             if (isSchemSymbol(symbol)) {
               if (schemValue.typeTag === SchemTypes.SchemFunction) {
                 return {
-                  value: '(' + symbol.name + ' $0)'
+                  value: symbol.name + ' '
                 };
               } else {
                 return symbol.name + ' ';
