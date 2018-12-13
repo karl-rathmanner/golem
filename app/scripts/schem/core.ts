@@ -229,6 +229,35 @@ export const coreFunctions: {[symbol: string]: any} = {
   'cons': (item: AnySchemType, list: SchemList) => {
     return new SchemList(item, ...list);
   },
+  'conj': (targetCollection: SchemList | SchemVector | SchemMap, ...elements: AnySchemType[]) => {
+    if (isSchemList(targetCollection)) {
+      return new SchemList(...elements, ...targetCollection);
+    } else if (isSchemVector(targetCollection)) {
+      return new SchemVector(...targetCollection, ...elements);
+    } else if (isSchemMap(targetCollection)) {
+      elements.forEach(sourceCollection => {
+        if (isSchemMap(sourceCollection)) {
+          sourceCollection.forEach((k, v) => {
+            targetCollection.set(k, v);
+          });
+        } else if (isSchemVector(sourceCollection)) {
+          for (let i = 0; i < sourceCollection.count(); i += 2) {
+            if (isValidKeyType(sourceCollection[i])) {
+              if (sourceCollection[i + 1] == null) {
+                throw new Error(`When 'conj'ing a vector into a map, the vector must have an even number of elements.`);
+              }
+              targetCollection.set(sourceCollection[i] as SchemMapKey, sourceCollection[i + 1]);
+            }
+          }
+        } else {
+          throw new Error(`'conj' can only combine maps or vectors with maps.`);
+        }
+      });
+      return targetCollection;
+    } else {
+      throw new Error(`The target collection for 'conj' must be a List, Vector or Map`);
+    }
+  },
   'concat': (...lists: SchemList[]) => {
     const emptyList: SchemList[] = [];
     return new SchemList(...emptyList.concat(...lists));
@@ -242,7 +271,7 @@ export const coreFunctions: {[symbol: string]: any} = {
       }));
       return new SchemList(...newValues);
     } else {
-      
+
       const shortestSequential = sequentials.reduce((shortestSeq: SchemList | SchemVector, currentSeq) => {
         return (currentSeq.length < shortestSeq.length) ? currentSeq : shortestSeq;
       }, sequentials[0]);
@@ -258,10 +287,10 @@ export const coreFunctions: {[symbol: string]: any} = {
     }
   },
   'filter': async (pred: SchemFunction, seq: SchemVector | SchemList) => {
-    const elementValidity = await Promise.all(seq.map((value) => { 
+    const elementValidity = await Promise.all(seq.map((value) => {
       return pred.f(value).then((result: any) => (result === SchemBoolean.true));
     }));
-    
+
     const newList = new SchemList();
     seq.forEach((value, index) => {
       if (elementValidity[index]) {
