@@ -122,8 +122,12 @@
     (map #(str prefix " " % "!") all-other-arguments))
   (jazz-it-up "And a" "one" "two" "three"))
 
-; 'map' is actually a variadic function. See what happens when you call it with a function, 
-; followed by more than one sequence:
+
+
+;;; Fun with collections: map, filter & reduce
+
+; 'map' was discussed above and it's a variadic function which were discussed above.
+; See what happens when you call it with a function, followed by more than one sequence:
 (map #(str %1 %2 %3) ["a" "b" "c"] [1 2 3] ["A" "B" "C"])
 
 ; And since we're talking about 'map', you can also 'filter' a list or vector using a predicate:
@@ -133,11 +137,41 @@
 ; Of course, 'map' and 'filter' wouldn't be complete without 'reduce':
 (reduce * [1 2 3 7])
 
-; Reduce takes an optional value to initialize the operation:
+; Reduce takes an optional value to initialize the operation with:
 (reduce + 1 [2 3])
 
 ; The function supplied to reduce should take two arguments:
 (reduce #(str %1 ", " %2) [1 2 3])
+
+
+
+;;; More fun with collections: conj, cons & concat
+
+; (conj collection x & more)
+; Conjoins elements onto a collection. 
+(conj [1 2] 3 4)
+
+; Beware: Even though Schem's implementation of Lists and Vectors rely on fakery and a vague commitment
+; to "do it properly later", conj acts as if Lists were linked lists and conjoins new elements at the start.
+(conj '(3 4) 1 2)
+
+; You can also 'conj' maps or even vectors of alternating keys and values onto a map.
+(conj {:a "a" :b "b"} {:b "B" :c "c"} [:d "d" :e "e"])
+
+; (cons x collection)
+; Constructs a new list from one element and a collection. It always adds the element at the beginning.
+(cons 1 [2 3])
+(cons 1 '(2 3))
+
+; (concat collection & moreCollections)
+; Concatenates the contents of collections into a single list.
+(concat [1 2] [3] '(4 5))
+
+; It also takes maps, which get converted into arrays of key-value-pairs...
+(concat {:6 "6" :7 "7"} {:uwotm "8"})
+
+; ... or nested collections, which get flattened by one level:
+(concat ["outer" ["inner"] "outer"] ["other"] )
 
 
 
