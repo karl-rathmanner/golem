@@ -258,9 +258,23 @@ export const coreFunctions: {[symbol: string]: any} = {
       throw new Error(`The target collection for 'conj' must be a List, Vector or Map`);
     }
   },
-  'concat': (...lists: SchemList[]) => {
-    const emptyList: SchemList[] = [];
-    return new SchemList(...emptyList.concat(...lists));
+  'concat': (...seqs: (SchemList | SchemVector | SchemMap)[]) => {
+    throwErrorIfArityIsInvalid(seqs.length, 1);
+
+    let newList = new SchemList();
+    seqs.forEach(seq => {
+      if (isSequential(seq)) {
+        newList.push(...seq);
+      } else if (isSchemMap(seq)) {
+        seq.forEach((k, v) => {
+          newList.push(new SchemVector(k, v));
+        });
+      } else {
+        throw new Error(`Concat only accepts Lists, Vectors and Maps.`);
+      }
+    });
+    return newList;
+
   },
   'map': async (fn: SchemFunction, ...sequentials: (SchemList | SchemVector)[]) => {
     throwErrorForNonSequentialArguments(...sequentials);
