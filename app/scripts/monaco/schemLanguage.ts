@@ -3,6 +3,7 @@ import { Schem } from '../schem/schem';
 import { isSchemCollection, isSchemFunction, isSchemSymbol } from '../schem/typeGuards';
 import { AnySchemType, SchemContextSymbol, SchemList, SchemSymbol, SchemTypes } from '../schem/types';
 import ILanguage = monaco.languages.IMonarchLanguage;
+import { resolveJSPropertyChain, getAllProperties } from '../javascriptInterop';
 
 
 export function AddSchemSupportToEditor(interpreter: Schem) {
@@ -108,6 +109,81 @@ function setMonarchTokensProvider() {
 }
 
 function registerCompletionItemProvider(interpreter: Schem) {
+  monaco.languages.registerCompletionItemProvider('schem', {
+    triggerCharacters: ['.'],
+    provideCompletionItems: async (textModel, position, token, context) => {
+
+      // Completion was triggered by the user typing a dot -> propose javascript completion items
+      if (context.triggerCharacter == '.') {
+        return createJSCompletionItems(textModel, position);
+      } else {
+        // propose schem completion items
+        return createSchemCompletionItems(interpreter);
+      }
+    }
+  });
+}
+
+/** Creates a list of completion items of all symbols currently bound in the interpreter's root environment. */
+async function createSchemCompletionItems(interpreter: Schem) {
+
+  /** Turns a single schem symbol into a completion item with runtime information */
+  function schemSymbolToCompletionItem (sym: SchemSymbol): monaco.languages.CompletionItem {
+    const resolvedValue = interpreter.replEnv.get(sym);
+  
+    const pickKind = (t: SchemTypes) => {
+      // Not caring about the semantics here, just trying to pick ones with a fitting icon
+      // TODO: see if CompletionItemKind can be extended or customized
+      switch (t) {
+        case SchemTypes.SchemFunction: return monaco.languages.CompletionItemKind.Function;
+        case SchemTypes.SchemSymbol: return monaco.languages.CompletionItemKind.Variable;
+        case SchemTypes.SchemContextSymbol:
+        case SchemTypes.SchemContextDefinition:
+        case SchemTypes.SchemContextInstance:
+          return monaco.languages.CompletionItemKind.Reference;
+        default:
+          return monaco.languages.CompletionItemKind.Value;
+      }
+    };
+  
+    const pickInsertText = (symbol: SchemSymbol | SchemContextSymbol, schemValue: AnySchemType) => {
+      if (isSchemSymbol(symbol)) {
+        if (schemValue.typeTag === SchemTypes.SchemFunction) {
+          return {
+            value: symbol.name + ' '
+          };
+        } else {
+          return symbol.name + ' ';
+        }
+      } else {
+        return symbol.name + ': ';
+      }
+    };
+  
+    const pickDetail = (schemValue: AnySchemType) => {
+      if (isSchemFunction(schemValue)) {
+        if (schemValue.isMacro) {
+          return `Macro`;
+        } else {
+          return `Function`;
+        }
+      } else if (isSchemCollection(schemValue)) {
+        return `${SchemTypes[schemValue.typeTag]} with ${schemValue.count()} items`; // printing a collection would be asynchronous and might have side effects, so I won't do that for now
+      } else {
+        // TODO: handle keywords, atoms etc.
+        return `${SchemTypes[schemValue.typeTag]}: ${schemValue.toString()}`;
+      }
+    };
+  
+    return {
+      label: sym.name,
+      kind: pickKind(resolvedValue.typeTag),
+      insertText: pickInsertText(sym, resolvedValue),
+      detail: pickDetail(resolvedValue)
+    };
+  };
+
+  // Create completion items for built-in keywords
   let reservedKeywordCompletionItems: monaco.languages.CompletionItem[] = [];
 
   specialFormsAndKeywords.forEach(kw => {
@@ -119,73 +195,77 @@ function registerCompletionItemProvider(interpreter: Schem) {
     });
   });
 
-  monaco.languages.registerCompletionItemProvider('schem', {
-    provideCompletionItems: async (textModel, position) => {
+  // Get all symbols bound in the interpreter's root environment
+  let symbols = await interpreter.readEval(`(list-symbols)`);
+  if (symbols instanceof SchemList) {
+    const completionItems: monaco.languages.CompletionItem[] = symbols.map(schemSymbolToCompletionItem);
+    return completionItems.concat(reservedKeywordCompletionItems);
+  } else {
+    // Environment contains no symbols, which would be weird. Let's not make a scene about it...
+    return reservedKeywordCompletionItems;
+  }
+}
 
-      // let wordAtCursor = textModel.getWordAtPosition(position).word;
-      // let symbols = await interpreter.readEval(`(sort-and-filter-by-string-similarity "${wordAtCursor}" (list-symbols))`);
-      let symbols = await interpreter.readEval(`(list-symbols)`);
-      if (symbols instanceof SchemList) {
-        let completionItems: monaco.languages.CompletionItem[] = symbols.map((sym: SchemSymbol): monaco.languages.CompletionItem => {
-          const resolvedValue = interpreter.replEnv.get(sym);
 
-          const pickKind = (t: SchemTypes) => {
-            // Not caring about the semantics here, just trying to pick ones with a fitting icon
-            // TODO: see if CompletionItemKind can be extended or customized
-            switch (t) {
-              case SchemTypes.SchemFunction: return monaco.languages.CompletionItemKind.Function;
-              case SchemTypes.SchemSymbol: return monaco.languages.CompletionItemKind.Variable;
-              case SchemTypes.SchemContextSymbol:
-              case SchemTypes.SchemContextDefinition:
-              case SchemTypes.SchemContextInstance:
-                return monaco.languages.CompletionItemKind.Reference;
-              default:
-                return monaco.languages.CompletionItemKind.Value;
-            }
-          };
 
-          const pickInsertText = (symbol: SchemSymbol | SchemContextSymbol, schemValue: AnySchemType) => {
-            if (isSchemSymbol(symbol)) {
-              if (schemValue.typeTag === SchemTypes.SchemFunction) {
-                return {
-                  value: symbol.name + ' '
-                };
-              } else {
-                return symbol.name + ' ';
-              }
-            } else {
-              return symbol.name + ': ';
-            }
-          };
+/** Handles completion for js-symbols by looking up object properties in the current editor environment at runtime. 
+ * TODO: Add special case for foreign execution context forms? (By looking up properties in foreign js contexts.)
+*/
+function createJSCompletionItems(textModel: monaco.editor.ITextModel, position: monaco.Position) {
+  let jsCompletionItems: monaco.languages.CompletionItem[] = [];
 
-          const pickDetail = (schemValue: AnySchemType) => {
-            if (isSchemFunction(schemValue)) {
-              if (schemValue.isMacro) {
-                return `Macro`;
-              } else {
-                return `Function`;
-              }
-            } else if (isSchemCollection(schemValue)) {
-              return `${SchemTypes[schemValue.typeTag]} with ${schemValue.count()} items`; // printing a collection would be asynchronous and might have side effects, so I won't do that for now
-            } else {
-              // TODO: handle keywords, atoms etc.
-              return `${SchemTypes[schemValue.typeTag]}: ${schemValue.toString()}`;
-            }
-          };
+  // starting at the cursor position and going left:
+  // find the first character that isn't either alphanumeric or a dot
+  // "(foo (aaa.bbb.cc█ dd)" -> "aaa.bbb.ccc"
+  let columnOfLeftmostWOrDot;
+  for (columnOfLeftmostWOrDot = position.column; columnOfLeftmostWOrDot > 0; columnOfLeftmostWOrDot--) {
+    const characterAtColumn = textModel.getValueInRange({
+      startColumn: columnOfLeftmostWOrDot - 1,
+      endColumn: columnOfLeftmostWOrDot,
+      startLineNumber: position.lineNumber,
+      endLineNumber: position.lineNumber
+    });
 
-          return {
-            label: sym.name,
-            kind: pickKind(resolvedValue.typeTag),
-            insertText: pickInsertText(sym, resolvedValue),
-            detail: pickDetail(resolvedValue)
-          };
-        });
+    if (!/[\w.]/.test(characterAtColumn)) break;
+  }
 
-        completionItems.push(...reservedKeywordCompletionItems);
-        return completionItems;
-      }
-
-      return [];
-    }
+  const jsSymbol = textModel.getValueInRange({
+    startColumn: columnOfLeftmostWOrDot, 
+    endColumn: position.column,
+    startLineNumber: position.lineNumber,
+    endLineNumber: position.lineNumber
   });
+
+  // find the part of the completion word that comes before the last dot
+  // "aaa.bbb.ccc" -> "aaa.bbb"
+  const matches = jsSymbol.match(/(.*)\.(.*)/);
+  let partBeforeLastDot = (matches && matches.length > 0) ? matches[1] : null;
+
+  if (partBeforeLastDot != null) {
+    let obj: any = resolveJSPropertyChain(window, partBeforeLastDot);
+    if (obj != null) {
+      const properties = getAllProperties(obj)
+      const typeToKind = (type: 'string' | 'number' | 'boolean' | 'symbol' | 'undefined' | 'object' | 'function' | 'bigint') => {
+        // these are picked based for the icon monaco displays, not for semantic reasons
+        switch (type) {
+          case 'object' : return monaco.languages.CompletionItemKind.Module;
+          case 'function': return monaco.languages.CompletionItemKind.Function;
+          default: return monaco.languages.CompletionItemKind.Variable;
+        }
+      }
+      if (properties != null) properties.forEach(propertyName => {
+        const type = typeof obj[propertyName];
+
+        jsCompletionItems.push({
+          label: propertyName,
+          commitCharacters: ['.'],
+          kind: typeToKind(type),
+          insertText: propertyName,
+          detail: `Javascript ${type}`,
+        });
+      })
+    }
+  }
+
+  return jsCompletionItems;
 }

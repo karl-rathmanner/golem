@@ -75,6 +75,12 @@ async function getOrSetJSProperty(qualifiedName: string, value?: any): Promise<a
 
 /** Returns a (possibly nested) property of parentObject */
 export function resolveJSPropertyChain(parentObject: any, ...propertyNames: string[]): any {
+
+  // if a single propertyName argument is supplied, but it contains dots -> explode it, so the property chain can be properly resolved
+  if (propertyNames[0].indexOf('.') !== -1) {
+    propertyNames = propertyNames[0].split('.');
+  }
+
   let obj = parentObject;
 
   // "descend" into properties
@@ -83,4 +89,18 @@ export function resolveJSPropertyChain(parentObject: any, ...propertyNames: stri
   }
 
   return obj;
+}
+
+
+/** Returns all properties of an object, including those of its prototypes and not enumerable ones. */
+export function getAllProperties(obj: any): string[] | void {
+  if (obj == null) return;
+
+  //const prototype = Object.getPrototypeOf(obj);
+  const prototypeProperties = getAllProperties(Object.getPrototypeOf(obj));
+  if (prototypeProperties != null) {
+    return Object.getOwnPropertyNames(obj).concat(prototypeProperties);
+  } else {
+    return Object.getOwnPropertyNames(obj);
+  }
 }
