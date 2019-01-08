@@ -233,6 +233,7 @@ export class SchemEditor {
     let candidate = await VirtualFileSystem.readObject(qualifiedFileName);
     if (typeof candidate === 'string') {
       this.openFileName = qualifiedFileName;
+      window.location.hash = qualifiedFileName;
       this.monacoEditor.setValue(candidate);
     } else {
       throw new Error(`Can only load strings into the editor, encountered something else saved under: ${qualifiedFileName}`);
@@ -243,6 +244,7 @@ export class SchemEditor {
     const script = this.monacoEditor.getValue();
     await VirtualFileSystem.writeObject(qualifiedFileName, script, true).then(() => {
       this.openFileName = qualifiedFileName;
+      window.location.hash = qualifiedFileName;
       return;
     }).catch(e => e);
   }
