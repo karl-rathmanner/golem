@@ -509,6 +509,10 @@ export const coreFunctions: {[symbol: string]: any} = {
     await VirtualFileSystem.removeObject(qualifiedObjectName.valueOf());
     return SchemNil.instance;
   },
+  'storage-exists': async (qualifiedObjectName: SchemString) => {
+    let exists = await VirtualFileSystem.existsOject(qualifiedObjectName.valueOf());
+    return SchemBoolean.fromBoolean(exists);
+  },
   'storage-clear-all': async() => {
     if (window.confirm('Do you really want to clear the local storage? This would deletes all objects.')) {
       VirtualFileSystem.clearStorage();

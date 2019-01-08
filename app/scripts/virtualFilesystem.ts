@@ -29,6 +29,10 @@ export class VirtualFileSystem {
     return this.crudObject('delete', qualifiedObjectName);
   }
 
+  public static async existsOject(qualifiedObjectName: string) {
+    return this.crudObject('read', qualifiedObjectName).then(() => true).catch(() => false);
+  }
+
   public static async clearStorage() {
     return browser.storage.local.clear();
   }
