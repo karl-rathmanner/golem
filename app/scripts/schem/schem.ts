@@ -325,7 +325,7 @@ export class Schem {
               if (isSchemList(form)) {
                 // if the whole form is quasiquoted, evaluate it in this context to resolve any unquoted parts, then evaluate that it in the foreign context
                 if (isSchemSymbol(form[0]) && (form[0] as SchemSymbol).name === 'quasiquote') {
-                  form = await this.evalSchem(form);
+                  form = await this.evalSchem(form, env);
                 }
                 let resultsAndErrors = await this.contextManager.arepInContexts(contextIds, await pr_str(form), ast[2]);
                 return new SchemList(...resultsAndErrors.map(resultOrError => {
