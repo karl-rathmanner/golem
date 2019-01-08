@@ -409,6 +409,14 @@ export const coreFunctions: {[symbol: string]: any} = {
       fn.invoke(...argList);
     }
   },
+  /** invokes a js function without passing arguments */
+  'call': async (obj: SchemJSReference | Function) => {
+    if (isSchemJSReference(obj) && obj.typeof() === 'function') {
+      return await obj.invoke();
+    } else if (typeof obj === 'function') {
+      return await obj();
+    }
+  },
   're-pattern': async (pattern: SchemString) => {
     const matches = /(?:\(\?(.*)?\))?(.+)/.exec(pattern.getStringRepresentation());
     if (matches === null) {
