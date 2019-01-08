@@ -230,22 +230,35 @@ export class SchemEditor {
   }
 
   public async loadLocalScript(qualifiedFileName: string): Promise<void> {
+    let fileExists = await VirtualFileSystem.existsOject(qualifiedFileName);
+    if (!fileExists) {
+      window.alert('File not found.')
+      return;
+    }
     let candidate = await VirtualFileSystem.readObject(qualifiedFileName);
     if (typeof candidate === 'string') {
       this.openFileName = qualifiedFileName;
       window.location.hash = qualifiedFileName;
       this.monacoEditor.setValue(candidate);
     } else {
+      window.alert(`The editor currently can't open non-string objects.`)
       throw new Error(`Can only load strings into the editor, encountered something else saved under: ${qualifiedFileName}`);
     }
   }
 
   public async saveScriptLocally(qualifiedFileName: string): Promise<void> {
     const script = this.monacoEditor.getValue();
-    await VirtualFileSystem.writeObject(qualifiedFileName, script, true).then(() => {
-      this.openFileName = qualifiedFileName;
-      window.location.hash = qualifiedFileName;
-      return;
-    }).catch(e => e);
+    let mayOverwrite = true
+    if (await VirtualFileSystem.existsOject(qualifiedFileName)) {
+      mayOverwrite = window.confirm('File exists. Do you want to overwrite it?')
+    }
+
+    if (mayOverwrite) {
+      await VirtualFileSystem.writeObject(qualifiedFileName, script, true).then(() => {
+        this.openFileName = qualifiedFileName;
+        window.location.hash = qualifiedFileName;
+        return;
+      }).catch(e => e);
+    }
   }
 }
