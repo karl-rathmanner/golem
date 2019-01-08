@@ -469,7 +469,11 @@ export class SchemJSReference implements TaggedType {
   }
 
   invoke(...args: any[]) {
-    this.parent[this.propertyName](...args);
+    if (args.length > 0) {
+      this.parent[this.propertyName](...args);
+    } else {
+      this.parent[this.propertyName]();
+    }
   }
 }
 
