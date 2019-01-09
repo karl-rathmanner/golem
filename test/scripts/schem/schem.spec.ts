@@ -128,8 +128,7 @@ describe('blackbox tests', function() {
   expectSchem('(cons (list 1 2) (list 3 4))', '((1 2) 3 4)');
   expectSchem('(cons 1 () (list 2))', '(1)');
 
-  expectSchem('(concat 1 2 3)', '(1 2 3)');
-  expectSchem('(concat (list 1) (list 2 3) 4 5))', '(1 2 3 4 5)');
+  expectSchem('(concat (list 1) [2 3] {4 5, 6 7}))', '(1 2 3 [4 5] [6 7])');
 
   // quote
   expectSchem(['(def x 1)', '(quote x)'], 'x');
