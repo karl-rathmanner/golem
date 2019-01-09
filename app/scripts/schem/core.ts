@@ -1,9 +1,8 @@
 import { browser } from 'webextension-polyfill-ts';
-import { setJsProperty, getJsProperty, resolveJSPropertyChain } from '../javascriptInterop';
+import { jsObjectToSchemType, schemToJs, setJsProperty, resolveJSPropertyChain } from '../javascriptInterop';
 import { VirtualFileSystem } from '../virtualFilesystem';
 import { prettyPrint, pr_str } from './printer';
 import { readStr } from './reader';
-import { jsObjectToSchemType, schemToJs } from './schem';
 import { isSchemKeyword, isSchemString, isSchemSymbol, isSequential, isValidKeyType, isSchemLazyVector, isSchemMap, isSchemNumber, isSchemList, isSchemVector, isSchemFunction, isSchemJSReference, isSchemType } from './typeGuards';
 import { SchemAtom, SchemBoolean, SchemFunction, SchemKeyword, SchemLazyVector, SchemList, SchemMap, SchemMapKey, SchemNil, SchemNumber, SchemRegExp, SchemString, SchemSymbol, AnySchemType, SchemVector, RegularSchemCollection, SchemJSReference } from './types';
 
@@ -467,32 +466,6 @@ export const coreFunctions: {[symbol: string]: any} = {
     } else if (isSchemJSReference(sym)) {
       sym.set(schemToJs(value));
     }
-  },
-  'js->schem': async (value: AnySchemType, options?: SchemMap) => {
-    return jsObjectToSchemType(value, schemToJs(options, {keySerialization: 'toPropertyIdentifier'}));
-  },
-  'schem->js': (value: AnySchemType, options?: SchemMap) => {
-    return schemToJs(value, schemToJs(options, {keySerialization: 'toPropertyIdentifier'}));
-  },
-  'js-ref': (...args: any[]): SchemJSReference => {
-    if (args.length === 1) {
-      if (isSchemString(args[0])) {
-        return new SchemJSReference(window, args[0].valueOf());
-      } else {
-        throw new Error('js-ref expects a SchemString, when called with a single argument.');
-      }
-    } else if (args.length === 2) {
-      const [parentObject, propertyName] = args;
-      return new SchemJSReference(parentObject, propertyName.valueOf());
-    } else {
-      throw new Error('js-ref expects one or two arguments');
-    }
-  },
-  '.': (o: any, propertyChain: SchemString | SchemSymbol) => {
-    return resolveJSPropertyChain(o, propertyChain.valueOf());
-  },
-  'js-deref': (jsref: SchemJSReference) => {
-    return jsref.get();
   },
   'add-watch': (atom: SchemAtom, name: SchemKeyword, f: SchemFunction): void => {
     atom.addWatch(name, f);

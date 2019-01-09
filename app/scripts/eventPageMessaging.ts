@@ -1,6 +1,6 @@
 import { browser, Tabs } from 'webextension-polyfill-ts';
 import { SchemContextDefinition, SchemMap, SchemNumber, SchemList, SchemSymbol, AnySchemType, SchemString } from './schem/types';
-import { schemToJs } from './schem/schem';
+import { schemToJs } from './javascriptInterop';
 import { GolemContextMessage } from './contentScriptMessaging';
 
 /// message type definitions

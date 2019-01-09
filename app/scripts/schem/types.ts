@@ -1,9 +1,9 @@
 import { Env } from './env';
-import { Schem, schemToJs, jsObjectToSchemType } from './schem';
+import { Schem } from './schem';
 import { Tabs } from 'webextension-polyfill-ts';
 import { AvailableSchemContextFeatures } from '../contextManager';
 import { isSchemKeyword, isSchemSymbol, isValidKeyType, isSchemString, isSchemNumber, isSchemMap, isSchemType, isSchemList } from './typeGuards';
-import { resolveJSPropertyChain } from '../javascriptInterop';
+import { resolveJSPropertyChain, jsObjectToSchemType, schemToJs } from '../javascriptInterop';
 
 // interfaces
 export interface Callable {

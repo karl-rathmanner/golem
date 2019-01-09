@@ -1,7 +1,8 @@
 import { readStr } from './schem/reader';
 import { SchemList, SchemNil, SchemString, AnySchemType } from './schem/types';
-import { jsObjectToSchemType } from './schem/schem';
+
 import { isSchemFunction } from './schem/typeGuards';
+import { jsObjectToSchemType } from './javascriptInterop';
 
 export const domManipulationSchemFunctions = {
   'set-css-text': async (selector: SchemString, cssText: SchemString) => {

@@ -2,10 +2,11 @@ import 'chromereload/devonly';
 import { browser, Omnibox } from 'webextension-polyfill-ts';
 import { SchemContextManager } from './contextManager';
 import { EventPageMessage } from './eventPageMessaging';
-import { Schem, atomicSchemObjectToJS, schemToJs } from './schem/schem';
+import { Schem } from './schem/schem';
 import { isSchemList, isSchemSymbol } from './schem/typeGuards';
 import { CommandHistory } from './utils/commandHistory';
 import { extractErrorMessage, addParensAsNecessary, escapeXml } from './utils/utilities';
+import { schemToJs } from './javascriptInterop';
 
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('previousVersion', details.previousVersion);
