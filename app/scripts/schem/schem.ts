@@ -1,12 +1,12 @@
 import { browser } from 'webextension-polyfill-ts';
 import { SchemContextManager } from '../contextManager';
-import { getJsProperty, invokeJsProcedure, schemToJs, interopFunctions } from '../javascriptInterop';
+import { getJsProperty, interopFunctions, invokeJsProcedure, schemToJs } from '../javascriptInterop';
 import { coreFunctions } from './core';
 import { Env, EnvSetupMap } from './env';
 import { pr_str } from './printer';
 import { readStr } from './reader';
-import { isCallable, isSchemBoolean, isSchemCollection, isSchemContextSymbol, isSchemFunction, isSchemKeyword, isSchemLazyVector, isSchemList, isSchemMap, isSchemNil, isSchemString, isSchemSymbol, isSchemType, isSequable, isSequential, isValidKeyType, isSchemNumber, isSchemJSReference, isSchemVector, isIndexable } from './typeGuards';
-import { SchemAtom, SchemBoolean, SchemContextDefinition, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemNumber, SchemString, SchemSymbol, AnySchemType, SchemVector, toSchemMapKey } from './types';
+import { isCallable, isSchemBoolean, isSchemContextSymbol, isSchemFunction, isSchemJSReference, isSchemLazyVector, isSchemList, isSchemMap, isSchemNil, isSchemString, isSchemSymbol, isSchemVector, isSequential, isValidKeyType } from './typeGuards';
+import { AnySchemType, SchemAtom, SchemBoolean, SchemContextDefinition, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemString, SchemSymbol, SchemVector } from './types';
 
 export class Schem {
 
@@ -25,6 +25,13 @@ export class Schem {
   constructor() {
     this.replEnv.addMap(coreFunctions);
     this.replEnv.addMap(interopFunctions);
+    // bind bottom types and global objects so they show up in autocompletion
+    this.replEnv.set('null', null);
+    this.replEnv.set('undefined', undefined);
+    this.replEnv.set('window', window);
+    this.replEnv.set('document', document);
+    this.replEnv.set('browser', browser);
+    this.replEnv.set('chrome', chrome);
     this.coreLoaded = false;
     // Schem functions that need to reference the repl Environment go here - addMap doesn't support that
     this.replEnv.set('eval', (rand: AnySchemType) => this.evalSchem(rand, this.replEnv));
