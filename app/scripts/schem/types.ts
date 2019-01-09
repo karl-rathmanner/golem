@@ -65,7 +65,9 @@ export interface TaggedType {
 // types
 
 // TODO: figure out how LazyVectors schould be handled
-export type AnySchemType = SchemList | SchemVector | SchemMap | SchemNumber | SchemSymbol | SchemKeyword | SchemNil | SchemString | SchemRegExp | SchemFunction | SchemBoolean | SchemAtom | SchemContextSymbol | SchemContextDefinition | SchemContextInstance;
+export type AnySchemType = SchemList | SchemVector | SchemMap | SchemNumber | SchemSymbol | SchemKeyword | SchemNil | 
+                           SchemString | SchemRegExp | SchemFunction | SchemBoolean | SchemAtom | SchemContextSymbol | 
+                           SchemContextDefinition | SchemContextInstance | SchemJSReference;;
 export type RegularSchemCollection = SchemList | SchemVector | SchemMap;
 export type SchemMapKey = SchemSymbol | SchemKeyword | SchemString | SchemNumber;
 
