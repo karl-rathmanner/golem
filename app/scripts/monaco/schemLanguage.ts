@@ -1,6 +1,6 @@
 import * as monaco from 'monaco-editor';
 import { Schem } from '../schem/schem';
-import { isSchemCollection, isSchemFunction, isSchemSymbol } from '../schem/typeGuards';
+import { isSchemCollection, isSchemFunction, isSchemSymbol, isSchemType } from '../schem/typeGuards';
 import { AnySchemType, SchemContextSymbol, SchemList, SchemSymbol, SchemTypes } from '../schem/types';
 import ILanguage = monaco.languages.IMonarchLanguage;
 import { resolveJSPropertyChain, getAllProperties } from '../javascriptInterop';
@@ -129,12 +129,15 @@ async function createSchemCompletionItems(interpreter: Schem) {
 
   /** Turns a single schem symbol into a completion item with runtime information */
   function schemSymbolToCompletionItem (sym: SchemSymbol): monaco.languages.CompletionItem {
-    const resolvedValue = interpreter.replEnv.get(sym);
+    const resolvedValue: any = interpreter.replEnv.get(sym);
   
-    const pickKind = (t: SchemTypes) => {
+    const pickKind = (v: any) => {
       // Not caring about the semantics here, just trying to pick ones with a fitting icon
       // TODO: see if CompletionItemKind can be extended or customized
-      switch (t) {
+
+      if (!isSchemType(v)) {
+        return monaco.languages.CompletionItemKind.Value;
+      } else switch (v.typeTag) {
         case SchemTypes.SchemFunction: return monaco.languages.CompletionItemKind.Function;
         case SchemTypes.SchemSymbol: return monaco.languages.CompletionItemKind.Variable;
         case SchemTypes.SchemContextSymbol:
@@ -146,9 +149,12 @@ async function createSchemCompletionItems(interpreter: Schem) {
       }
     };
   
-    const pickInsertText = (symbol: SchemSymbol | SchemContextSymbol, schemValue: AnySchemType) => {
+    const pickInsertText = (symbol: SchemSymbol | SchemContextSymbol, value: AnySchemType | any) => {
+      if (!isSchemType(value)) {
+        return symbol.name + ' ';
+      }
       if (isSchemSymbol(symbol)) {
-        if (schemValue.typeTag === SchemTypes.SchemFunction) {
+        if (value.typeTag === SchemTypes.SchemFunction) {
           return {
             value: symbol.name + ' '
           };
@@ -160,24 +166,30 @@ async function createSchemCompletionItems(interpreter: Schem) {
       }
     };
   
-    const pickDetail = (schemValue: AnySchemType) => {
-      if (isSchemFunction(schemValue)) {
-        if (schemValue.isMacro) {
+    const pickDetail = (value: AnySchemType | any) => {
+      if (!isSchemType(value)) {
+        if (value === null) return `null`;
+        if (value === undefined) return `undefined`;
+        if (typeof value === 'object') return `${typeof value}: ${("toString" in value) ? value.toString() : value}`;
+        return `${typeof value}: ${value}`;
+      }
+      if (isSchemFunction(value)) {
+        if (value.isMacro) {
           return `Macro`;
         } else {
           return `Function`;
         }
-      } else if (isSchemCollection(schemValue)) {
-        return `${SchemTypes[schemValue.typeTag]} with ${schemValue.count()} items`; // printing a collection would be asynchronous and might have side effects, so I won't do that for now
+      } else if (isSchemCollection(value)) {
+        return `${SchemTypes[value.typeTag]} with ${value.count()} items`; // printing a collection would be asynchronous and might have side effects, so I won't do that for now
       } else {
         // TODO: handle keywords, atoms etc.
-        return `${SchemTypes[schemValue.typeTag]}: ${schemValue.toString()}`;
+        return `${SchemTypes[value.typeTag]}: ${value.toString()}`;
       }
     };
   
     return {
       label: sym.name,
-      kind: pickKind(resolvedValue.typeTag),
+      kind: pickKind(resolvedValue),
       insertText: pickInsertText(sym, resolvedValue),
       detail: pickDetail(resolvedValue)
     };
