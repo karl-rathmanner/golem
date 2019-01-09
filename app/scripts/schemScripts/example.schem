@@ -410,6 +410,37 @@
 (xkcd: ((js-ref (window.document.querySelector "#ctitle") "append") (shluk [:div "Y'ello!"])))
 (xkcd: (set! (js-ref (window.document.querySelector "title") "text") "Y'orange!"))
 
+; Another short digression on quoting:
+; You've seen regular quoting above. There's also quasiquoting which is very useful in the context of
+; foreign execution contexts. It allows you to unquote parts of of a quasiquoted expression.
+; Because nobody wants to see so many "qua"s and "quo"s, there's this handy reader macro:
+; (quasiquote (x (unquote y)) is the same as `(x ~y)
+
+(let [x 1 y 2]
+  (= 
+     (quasiquote (x (unquote y)))
+    `(x ~y)))
+
+; You can also splice-unquote inside of quasiquoted forms using "~@". It evaluates to the contents of a collection.
+; Here's a short example that illustrates all supported forms of quoting:
+
+(let [onetwo '(1 2)]
+  `[onetwo ~onetwo ~@onetwo])
+
+; Now back to remote DOM manipulation!
+
+; 9) Dynamically creating expressions for foreign contexts
+; When you pass a quasiquoted form to a foreign context, you get the chance to partially evaluate it
+; in "this" context, before the resulting expression is evaluated in the "other" context.
+;
+; In this example "new-title" is not bound to any value in the xkcd-context, the argument passed to
+; "set-title" is only available in the editor context. By quasiquoting the whole form and unquoting 
+; the symbol "new-title", we create can write a reusable function that lets us change the comic title
+(defn set-title [new-title] 
+    (xkcd: `(set! (js-ref (window.document.querySelector "#ctitle") "innerText") ~new-title)))
+
+(set-title "Lithp Cycles")
+(set-title "I wonder if the puns will continue forever.")
 
 
 ;;; Persistent contexts
