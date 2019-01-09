@@ -85,6 +85,9 @@ describe('blackbox tests', function() {
   expectSchem('(>= 42 42 24)', 'true');
   expectSchem('(<= 1 1 2 3 3)', 'true');
 
+  expectSchem('(= window.alert window.alert)', 'true', 'equal js values are equal');
+  expectSchem('(= (schem->js "foo") "foo")', 'true', 'schem primitives get converted to their respective js primitives in equality checks');
+  
   expectSchem(['(def x 2)', '(+ 1 x)'] , ['2', '3'], 'define a variable and use it in a following function');
 
   expectSchem('(not true)', 'false', 'core.schem is loaded correctly');
