@@ -47,7 +47,7 @@ function setLanguageConfiguration() {
 
 const specialFormsAndKeywords = [
   'def', 'defmacro', 'defcontext', 'let', 'do', 'if', 'fn',
-  'quote', 'quasiquote', 'macroexpand', 'macroexpand-all', 'set-interpreter-options',
+  'quote', 'quasiquote', 'unquote', 'macroexpand', 'macroexpand-all', 'set-interpreter-options',
 ];
 
 function setMonarchTokensProvider() {
