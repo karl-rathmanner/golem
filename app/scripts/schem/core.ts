@@ -34,11 +34,18 @@ export const coreFunctions: {[symbol: string]: any} = {
     return new SchemNumber((quotient > 0) ? Math.floor(quotient) : Math.ceil(quotient));
   },
   'sqr': (d: SchemNumber) => new SchemNumber(d.valueOf() * d.valueOf()),
-  '=': (...args: AnySchemType[]) => {
+  '=': (...args: any[]) => {
     throwErrorIfArityIsInvalid(args.length, 1);
     // If passed a single value (= x) the result is always true.
     if (args.length === 1) return SchemBoolean.true;
 
+    const strictEquality = (a: any, b: any) => {
+      if (!isSchemType(a) || !isSchemType(b)) { // at least one of these is a js value/object
+        return (a === b);
+      } else {
+        return hasSameSchemTypeAndValue(a, b);
+      }
+    }
     // Compare every consecutive pair of arguments
     for (let i = 0; i < args.length - 1; i++) {
       let a = args[i], b = args[i + 1];
@@ -50,13 +57,11 @@ export const coreFunctions: {[symbol: string]: any} = {
 
         // Compare contents
         for (let j = 0; j < a.length; j++) {
-          if (! hasSameSchemTypeAndValue(a[j], b[j])) {
-            return SchemBoolean.false;
-          }
+          if (!strictEquality(a[j], b[j])) return SchemBoolean.false;
         }
 
       } else { // a & b are non-collection types
-        if (!hasSameSchemTypeAndValue(a, b)) return SchemBoolean.false;
+        if (!strictEquality(a, b)) return SchemBoolean.false;
       }
     }
     return SchemBoolean.true; // none of the checks above failed, so all arguments must be equal
