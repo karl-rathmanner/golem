@@ -1,5 +1,5 @@
 import { browser } from 'webextension-polyfill-ts';
-import { jsObjectToSchemType, schemToJs, setJsProperty, resolveJSPropertyChain } from '../javascriptInterop';
+import { jsObjectToSchemType, schemToJs, setJsProperty, resolveJSPropertyChain, atomicSchemObjectToJS } from '../javascriptInterop';
 import { VirtualFileSystem } from '../virtualFilesystem';
 import { prettyPrint, pr_str } from './printer';
 import { readStr } from './reader';
@@ -39,9 +39,12 @@ export const coreFunctions: {[symbol: string]: any} = {
     // If passed a single value (= x) the result is always true.
     if (args.length === 1) return SchemBoolean.true;
 
-    const strictEquality = (a: any, b: any) => {
-      if (!isSchemType(a) || !isSchemType(b)) { // at least one of these is a js value/object
-        return (a === b);
+    const lessStrictEquality = (a: any, b: any) => {
+      if (!isSchemType(a) || !isSchemType(b)) { 
+        // at least one of these is a js value. if one of them is a schem primitive, convert it to its js equivalent
+        const valA = (isSchemType(a)? atomicSchemObjectToJS(a) : a);
+        const valB = (isSchemType(b)? atomicSchemObjectToJS(b) : b);
+        return (valA === valB);
       } else {
         return hasSameSchemTypeAndValue(a, b);
       }
@@ -57,11 +60,11 @@ export const coreFunctions: {[symbol: string]: any} = {
 
         // Compare contents
         for (let j = 0; j < a.length; j++) {
-          if (!strictEquality(a[j], b[j])) return SchemBoolean.false;
+          if (!lessStrictEquality(a[j], b[j])) return SchemBoolean.false;
         }
 
       } else { // a & b are non-collection types
-        if (!strictEquality(a, b)) return SchemBoolean.false;
+        if (!lessStrictEquality(a, b)) return SchemBoolean.false;
       }
     }
     return SchemBoolean.true; // none of the checks above failed, so all arguments must be equal
