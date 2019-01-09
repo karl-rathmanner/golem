@@ -151,7 +151,7 @@ async function createSchemCompletionItems(interpreter: Schem) {
   
     const pickInsertText = (symbol: SchemSymbol | SchemContextSymbol, value: AnySchemType | any) => {
       if (!isSchemType(value)) {
-        return symbol.name + ' ';
+        return symbol.name;
       }
       if (isSchemSymbol(symbol)) {
         if (value.typeTag === SchemTypes.SchemFunction) {
