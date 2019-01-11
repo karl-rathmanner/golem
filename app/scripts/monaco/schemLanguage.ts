@@ -28,9 +28,10 @@ function registerLanguage() {
 function setLanguageConfiguration() {
   monaco.languages.setLanguageConfiguration('schem', {
     autoClosingPairs: [
-      { open: '(', close: ')' },
-      { open: '[', close: ']' },
-      { open: '{', close: '}' },
+      // TODO: autoclose when parinfer is turned off
+      // { open: '(', close: ')' },
+      // { open: '[', close: ']' },
+      // { open: '{', close: '}' },
       { open: '"', close: '"' },
     ],
     brackets: [

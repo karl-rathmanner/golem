@@ -1,4 +1,5 @@
 import * as monaco from 'monaco-editor';
+import * as parinfer from './monaco/parinfer';
 import { eventPageMessagingSchemFunctions } from './eventPageMessaging';
 import { AddSchemSupportToEditor } from './monaco/schemLanguage';
 import { readStr, unescape as schemUnescape } from './schem/reader';
@@ -14,6 +15,16 @@ export class SchemEditor {
   public openFileName: string;
   private evalZoneId: number;
   private ast: AnySchemType;
+  
+  private parinferState = {
+    isCoolingDown: false,
+    timeoutID: 0,
+    restartCooldownTimer: () => {
+      this.parinferState.isCoolingDown = true;
+      window.clearTimeout(this.parinferState.timeoutID);
+      this.parinferState.timeoutID = window.setTimeout(() => { this.parinferState.isCoolingDown = false}, 700);
+    }
+  }
 
   constructor (private containerElement: HTMLElement, private options: {interpreter?: Schem, expandContainer: boolean} = {expandContainer: true}) {
     let interpreter: Schem;
@@ -38,6 +49,8 @@ export class SchemEditor {
     this.monacoEditor.focus();
     this.addCustomActionsToCommandPalette();
     this.addFormEvaluationCommand(interpreter);
+
+    this.addParinfer();
   }
 
   public editorManipulationSchemFunctions = {
@@ -60,6 +73,31 @@ export class SchemEditor {
     this.monacoEditor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.KEY_E, this.evaluateEditorContents(interpreter, 'bracketsSurroundingCursor'), 'evalEnabled');
     this.monacoEditor.addCommand(monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyCode.KEY_E, this.evaluateEditorContents(interpreter, 'topLevelBracketsSurroundingCursor'), 'evalEnabled');
     this.monacoEditor.addCommand(monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_E, this.evaluateEditorContents(interpreter, 'wholeBuffer'), 'evalEnabled');
+  }
+
+  private addParinfer() {
+    this.monacoEditor.createContextKey('parinferEnabled', true);
+    let lastVersionID: number;
+    this.monacoEditor.onKeyUp((event) => {
+      let currentVersionID  = this.monacoEditor.getModel().getVersionId();
+      
+      if (lastVersionID != currentVersionID && event.keyCode != monaco.KeyCode.Space) {
+        lastVersionID = currentVersionID;
+        if (!this.parinferState.isCoolingDown) {
+          const source = this.monacoEditor.getModel().getValue();
+          const cursorPosition = this.monacoEditor.getPosition();
+          const parinferResult = parinfer.indentMode(source, {cursorLine: cursorPosition.lineNumber, cursorX: cursorPosition.column});
+          this.monacoEditor.setValue(parinferResult.text);
+          // move cursor
+          this.monacoEditor.setPosition({lineNumber: parinferResult.cursorLine, column: parinferResult.cursorX});
+          this.parinferState.restartCooldownTimer();
+
+          if (parinferResult.error != null) console.warn(parinferResult.error)
+        } else {
+          console.log('too soon');
+        }
+      }
+    });
   }
 
   private evaluateEditorContents(interpreter: Schem, mode: 'wholeBuffer' | 'bracketsSurroundingCursor' | 'topLevelBracketsSurroundingCursor'): monaco.editor.ICommandHandler {
