@@ -8,6 +8,7 @@ import { AnySchemType, SchemBoolean, SchemList, SchemNil, SchemString } from './
 import { extractErrorMessage } from './utils/utilities';
 import { VirtualFileSystem } from './virtualFilesystem';
 
+
 const example = require('!raw-loader!./schemScripts/example.schem');
 
 export class SchemEditor {
@@ -15,16 +16,6 @@ export class SchemEditor {
   public openFileName: string;
   private evalZoneId: number;
   private ast: AnySchemType;
-  
-  private parinferState = {
-    isCoolingDown: false,
-    timeoutID: 0,
-    restartCooldownTimer: () => {
-      this.parinferState.isCoolingDown = true;
-      window.clearTimeout(this.parinferState.timeoutID);
-      this.parinferState.timeoutID = window.setTimeout(() => { this.parinferState.isCoolingDown = false}, 700);
-    }
-  }
 
   constructor (private containerElement: HTMLElement, private options: {interpreter?: Schem, expandContainer: boolean} = {expandContainer: true}) {
     let interpreter: Schem;
@@ -76,34 +67,53 @@ export class SchemEditor {
   }
 
   private addParinfer() {
-    this.monacoEditor.createContextKey('parinferEnabled', true);
-    let lastVersionID: number;
-    this.monacoEditor.onKeyUp((event) => {
-      let currentVersionID  = this.monacoEditor.getModel().getVersionId();
-      
-      if (lastVersionID != currentVersionID && event.keyCode != monaco.KeyCode.Space) {
-        lastVersionID = currentVersionID;
-        if (!this.parinferState.isCoolingDown) {
-          const source = this.monacoEditor.getModel().getValue();
-          const cursorPosition = this.monacoEditor.getPosition();
-          const parinferResult = parinfer.indentMode(source, {cursorLine: cursorPosition.lineNumber, cursorX: cursorPosition.column});
-          this.monacoEditor.setValue(parinferResult.text);
-          // move cursor
-          this.monacoEditor.setPosition({lineNumber: parinferResult.cursorLine, column: parinferResult.cursorX});
-          this.parinferState.restartCooldownTimer();
+    // Gist: When a (probably) user generated change to the model is detected, wait 700ms before running parinfer.
+    // Parinfer returns the whole buffer and unless I integrate its smart mode or find a way to only edit the parts of the model that include changes,
+    // each parinfer update will cause the editor to flash while the syntax highlighting is recalculated.
+    // The current integration includes a bunch of work-arounds that I'm not proud of, but it's still way better than not having parinfer.
+    // (The delay is 'necessary', for instance, because the rule relaxation around the cursor position doesn't seem to work ...always.)
 
-          if (parinferResult.error != null) console.warn(parinferResult.error)
-        } else {
-          console.log('too soon');
-        }
-      }
+    this.monacoEditor.createContextKey('parinferEnabled', true);
+
+    let timeoutID = 0
+    const startParinferCountdown = (callback: Function) => {
+      // Remove the old timeout and start a new one if changes occur within 700ms of each other
+      window.clearTimeout(timeoutID);
+      timeoutID = window.setTimeout(() => { 
+        callback.call(this);
+      }, 700);
+    }
+
+    this.monacoEditor.onDidChangeModelContent(() => {
+        startParinferCountdown(this.runParinfer);
     });
+  }
+
+  private runParinfer() {
+    const source = this.monacoEditor.getModel().getValue();
+    const cursorPosition = this.monacoEditor.getPosition();
+
+    const parinferResult = parinfer.indentMode(source, {cursorLine: cursorPosition.lineNumber, cursorX: cursorPosition.column});
+    
+    // Only update the editor if parinfer changed anything, to reduce flashing and cursor shenannigans.
+    if (parinferResult.text !== source) { 
+      this.monacoEditor.setValue(parinferResult.text);
+  
+      // Band-aid "fix" for the cursor occasionally jumping left of the last entered character.
+      // TODO: investigate root cause
+      if (cursorPosition.column > parinferResult.cursorX) parinferResult.cursorX = cursorPosition.column;
+      this.monacoEditor.setPosition({lineNumber: parinferResult.cursorLine, column: parinferResult.cursorX});
+    } else if (parinferResult.error != null) {
+      // highlight the first offending character
+      this.addTemporaryDecoration(new monaco.Range(parinferResult.error.lineNo+1, parinferResult.error.x + 1, parinferResult.error.lineNo+1, parinferResult.error.x + 2), 'sourceErrorDecoration');
+      // display the error below the first offending line
+      this.addEvaluationViewZone(parinferResult.error.lineNo + 1, `Parinfer Error: ${parinferResult.error.message}`, 'evalErrorViewZone');
+    }
   }
 
   private evaluateEditorContents(interpreter: Schem, mode: 'wholeBuffer' | 'bracketsSurroundingCursor' | 'topLevelBracketsSurroundingCursor'): monaco.editor.ICommandHandler {
     return () => {
       this.monacoEditor.changeViewZones((changeAccessor: any) => {
-
         const evaluationRange = (() => {
           switch (mode) {
             case 'topLevelBracketsSurroundingCursor': {
@@ -132,19 +142,7 @@ export class SchemEditor {
           console.error(error);
           this.addEvaluationViewZone(viewZoneAfterLineNumber, extractErrorMessage(error), 'evalErrorViewZone');
         });
-        // handle decoration stuff
-        let evalDecoration = Array<string>();
-        // remove evalViews and decorations when buffer changes
-        this.monacoEditor.getModel().onDidChangeContent((e) => {
-          evalDecoration = this.monacoEditor.deltaDecorations(evalDecoration, []);
-          this.monacoEditor.changeViewZones((changeAccessor) => {
-            changeAccessor.removeZone(this.evalZoneId);
-          });
-        });
-        // highlight evaluated source range
-        evalDecoration = this.monacoEditor.deltaDecorations(evalDecoration, [
-          { range: evaluationRange, options: { inlineClassName: 'evaluatedSourceDecoration' } }
-        ]);
+        this.addTemporaryDecoration(evaluationRange, "evaluatedSourceDecoration");
       });
     };
   }
@@ -207,6 +205,21 @@ export class SchemEditor {
         marginDomNode: marginDomNode,
       });
     });
+  }
+
+  private addTemporaryDecoration(decorationRange: monaco.IRange, className: 'evaluatedSourceDecoration' | 'sourceErrorDecoration') {
+    let tmpDecoration = Array<string>();
+    // remove evalViews and decorations when buffer changes
+    this.monacoEditor.getModel().onDidChangeContent((e) => {
+      tmpDecoration = this.monacoEditor.deltaDecorations(tmpDecoration, []);
+      this.monacoEditor.changeViewZones((changeAccessor) => {
+        changeAccessor.removeZone(this.evalZoneId);
+      });
+    });
+    // highlight evaluated source range
+    tmpDecoration = this.monacoEditor.deltaDecorations(tmpDecoration, [
+      { range: decorationRange, options: { inlineClassName: className } }
+    ]);
   }
 
   private createEvalMarginDomNode(): HTMLDivElement {

@@ -37,7 +37,7 @@ body {
 }
 
 .evalErrorViewZone {
-  background-color: #622;
+  background-color: #822;
 }
 
 .evalWaitingForResultViewZone {
@@ -49,7 +49,12 @@ body {
 }
 
 .evaluatedSourceDecoration {
-  text-decoration: underline solid  rgb(27, 70, 27);
+  /* text-decoration: underline solid  rgb(27, 70, 27); */
+  background-color: rgb(42, 42, 42);
+}
+
+.sourceErrorDecoration {
+  background-color: #822;
 }
 
 body {
