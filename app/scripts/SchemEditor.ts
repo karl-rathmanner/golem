@@ -27,13 +27,15 @@ export class SchemEditor {
       interpreter = options.interpreter;
     }
 
-    // Expose the interpreter via the global golem object.
-    // TODO: create context via conext manager?
-    window.golem = {
-      contextId: 0,
-      features: ['schem-interpreter'],
-      interpreter: interpreter
-    };
+    if (window.golem == null) {
+      // Expose the interpreter via the global golem object.
+      // TODO: create context via conext manager?
+      window.golem = {
+        contextId: 0,
+        features: ['schem-interpreter'],
+        interpreter: interpreter
+      };
+    }
 
     AddSchemSupportToEditor(interpreter);
 
