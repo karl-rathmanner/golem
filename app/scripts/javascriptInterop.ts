@@ -1,4 +1,4 @@
-import { isSchemString, isSchemMap, isSchemKeyword, isSequable, isSchemCollection, isSchemType, isSchemNil, isSchemNumber } from "./schem/typeGuards";
+import { isSchemString, isSchemMap, isSchemKeyword, isSequable, isSchemCollection, isSchemType, isSchemNil, isSchemNumber, isSchemSymbol, isSchemFunction } from './schem/typeGuards';
 import { AnySchemType, SchemJSReference, SchemMap, SchemString, SchemSymbol, toSchemMapKey, SchemNil, SchemKeyword, SchemList, SchemVector, SchemNumber, SchemBoolean } from "./schem/types";
 
 export const interopFunctions: {[symbol: string]: any} = {
@@ -28,7 +28,15 @@ export const interopFunctions: {[symbol: string]: any} = {
   'js-deref': (jsref: SchemJSReference) => {
     return jsref.get();
   },
-}
+  'new': async (jsObjectType: SchemSymbol, ...args: any[]) => {
+    if (isSchemSymbol(jsObjectType) && SchemSymbol.refersToJavascriptObject(jsObjectType)) {
+      let o = await getJsProperty(jsObjectType.valueOf());
+      let jsArgs = args.map(atomicSchemObjectToJS);
+      // credit: https://stackoverflow.com/a/8843181
+      return new (Function.prototype.bind.call(o, null, ...jsArgs));
+    }
+  }
+};
 
 
 /** Returns a stringifiable javascript object based on the schem value/collection.
@@ -125,6 +133,12 @@ export function atomicSchemObjectToJS(schemObject?: AnySchemType): any {
   if (typeof schemObject === 'undefined') return undefined;
   if (schemObject instanceof SchemNil) return null;
   if (isSchemNumber(schemObject)) return schemObject.valueOf();
+  if (isSchemFunction(schemObject)) {
+    return (...args: any[]) => {
+      const newForm = new SchemList(schemObject, ...args.map(value => primitiveValueToSchemType(value)));
+      return window.golem.interpreter!.evalSchem(newForm);
+    };
+  }
   // getStringRepresentation is preferable to valueOf because it returns values that look like their Schem representation (e.g. ":keyword" instead of "keyword")
   return ('getStringRepresentation' in schemObject) ? schemObject.getStringRepresentation() : schemObject.valueOf();
 }

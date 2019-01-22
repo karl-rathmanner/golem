@@ -27,6 +27,14 @@ export class SchemEditor {
       interpreter = options.interpreter;
     }
 
+    // Expose the interpreter via the global golem object.
+    // TODO: create context via conext manager?
+    window.golem = {
+      contextId: 0,
+      features: ['schem-interpreter'],
+      interpreter: interpreter
+    };
+
     AddSchemSupportToEditor(interpreter);
 
     this.monacoEditor = monaco.editor.create(containerElement, {
@@ -75,14 +83,14 @@ export class SchemEditor {
 
     this.monacoEditor.createContextKey('parinferEnabled', true);
 
-    let timeoutID = 0
+    let timeoutID = 0;
     const startParinferCountdown = (callback: Function) => {
       // Remove the old timeout and start a new one if changes occur within 700ms of each other
       window.clearTimeout(timeoutID);
-      timeoutID = window.setTimeout(() => { 
+      timeoutID = window.setTimeout(() => {
         callback.call(this);
       }, 700);
-    }
+    };
 
     this.monacoEditor.onDidChangeModelContent(() => {
         startParinferCountdown(this.runParinfer);
@@ -94,18 +102,18 @@ export class SchemEditor {
     const cursorPosition = this.monacoEditor.getPosition();
 
     const parinferResult = parinfer.indentMode(source, {cursorLine: cursorPosition.lineNumber, cursorX: cursorPosition.column});
-    
+
     // Only update the editor if parinfer changed anything, to reduce flashing and cursor shenannigans.
-    if (parinferResult.text !== source) { 
+    if (parinferResult.text !== source) {
       this.monacoEditor.setValue(parinferResult.text);
-  
+
       // Band-aid "fix" for the cursor occasionally jumping left of the last entered character.
       // TODO: investigate root cause
       if (cursorPosition.column > parinferResult.cursorX) parinferResult.cursorX = cursorPosition.column;
       this.monacoEditor.setPosition({lineNumber: parinferResult.cursorLine, column: parinferResult.cursorX});
     } else if (parinferResult.error != null) {
       // highlight the first offending character
-      this.addTemporaryDecoration(new monaco.Range(parinferResult.error.lineNo+1, parinferResult.error.x + 1, parinferResult.error.lineNo+1, parinferResult.error.x + 2), 'sourceErrorDecoration');
+      this.addTemporaryDecoration(new monaco.Range(parinferResult.error.lineNo + 1, parinferResult.error.x + 1, parinferResult.error.lineNo + 1, parinferResult.error.x + 2), 'sourceErrorDecoration');
       // display the error below the first offending line
       this.addEvaluationViewZone(parinferResult.error.lineNo + 1, `Parinfer Error: ${parinferResult.error.message}`, 'evalErrorViewZone');
     }
@@ -142,7 +150,7 @@ export class SchemEditor {
           console.error(error);
           this.addEvaluationViewZone(viewZoneAfterLineNumber, extractErrorMessage(error), 'evalErrorViewZone');
         });
-        this.addTemporaryDecoration(evaluationRange, "evaluatedSourceDecoration");
+        this.addTemporaryDecoration(evaluationRange, 'evaluatedSourceDecoration');
       });
     };
   }
@@ -283,7 +291,7 @@ export class SchemEditor {
   public async loadLocalScript(qualifiedFileName: string): Promise<void> {
     let fileExists = await VirtualFileSystem.existsOject(qualifiedFileName);
     if (!fileExists) {
-      window.alert('File not found.')
+      window.alert('File not found.');
       return;
     }
     let candidate = await VirtualFileSystem.readObject(qualifiedFileName);
@@ -292,16 +300,16 @@ export class SchemEditor {
       window.location.hash = qualifiedFileName;
       this.monacoEditor.setValue(candidate);
     } else {
-      window.alert(`The editor currently can't open non-string objects.`)
+      window.alert(`The editor currently can't open non-string objects.`);
       throw new Error(`Can only load strings into the editor, encountered something else saved under: ${qualifiedFileName}`);
     }
   }
 
   public async saveScriptLocally(qualifiedFileName: string): Promise<void> {
     const script = this.monacoEditor.getValue();
-    let mayOverwrite = true
+    let mayOverwrite = true;
     if (await VirtualFileSystem.existsOject(qualifiedFileName)) {
-      mayOverwrite = window.confirm('File exists. Do you want to overwrite it?')
+      mayOverwrite = window.confirm('File exists. Do you want to overwrite it?');
     }
 
     if (mayOverwrite) {
