@@ -37,7 +37,11 @@ export class Env {
   }
 
   public async bind(targetStructure: SchemVector | SchemList | SchemMap, sourceStructure: SchemVector | SchemList, interpreter?: Schem, logDebugMessages = false) {
+    // If the target structure is empty, don't do anything.
+    // This happens when you define a parameterless function: (fn [] x)
+    if (targetStructure.count() === 0) return true;
 
+    // This inner function is used to recursively destructure the sourceStructure's values into the targetStructure
     const desctructure = async (targetStructure: SchemVector | SchemList | SchemMap, sourceStructure: AnySchemType) => {
 
       // Evaluate 'right side' of a binding
@@ -126,7 +130,7 @@ export class Env {
       }
     };
 
-
+    // Call the inner function for its side effects
     await desctructure(targetStructure, sourceStructure);
     return true;
   }
