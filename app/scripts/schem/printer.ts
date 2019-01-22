@@ -41,7 +41,7 @@ export async function pr_str(ast: AnySchemType, escapeStrings: boolean = true): 
   } else if (ast instanceof SchemContextInstance) {
     return `#context [${JSON.stringify(ast)}]`;
   } else if (isSchemJSReference(ast)) {
-    return `#jsReference [${ast.parent.toString()}, ${ast.propertyName}]`
+    return `#jsReference [${ast.parent.toString()}, ${ast.propertyName}]`;
   } else {
     // attempt to stringify object, because it's not a SchemType after all
     return `#jsObject [${JSON.stringify(ast)}]`;

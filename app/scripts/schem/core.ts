@@ -40,15 +40,15 @@ export const coreFunctions: {[symbol: string]: any} = {
     if (args.length === 1) return SchemBoolean.true;
 
     const lessStrictEquality = (a: any, b: any) => {
-      if (!isSchemType(a) || !isSchemType(b)) { 
+      if (!isSchemType(a) || !isSchemType(b)) {
         // at least one of these is a js value. if one of them is a schem primitive, convert it to its js equivalent
-        const valA = (isSchemType(a)? atomicSchemObjectToJS(a) : a);
-        const valB = (isSchemType(b)? atomicSchemObjectToJS(b) : b);
+        const valA = (isSchemType(a) ? atomicSchemObjectToJS(a) : a);
+        const valB = (isSchemType(b) ? atomicSchemObjectToJS(b) : b);
         return (valA === valB);
       } else {
         return hasSameSchemTypeAndValue(a, b);
       }
-    }
+    };
     // Compare every consecutive pair of arguments
     for (let i = 0; i < args.length - 1; i++) {
       let a = args[i], b = args[i + 1];

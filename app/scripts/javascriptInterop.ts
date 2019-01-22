@@ -1,5 +1,5 @@
 import { isSchemString, isSchemMap, isSchemKeyword, isSequable, isSchemCollection, isSchemType, isSchemNil, isSchemNumber, isSchemSymbol, isSchemFunction } from './schem/typeGuards';
-import { AnySchemType, SchemJSReference, SchemMap, SchemString, SchemSymbol, toSchemMapKey, SchemNil, SchemKeyword, SchemList, SchemVector, SchemNumber, SchemBoolean } from "./schem/types";
+import { AnySchemType, SchemJSReference, SchemMap, SchemString, SchemSymbol, toSchemMapKey, SchemNil, SchemKeyword, SchemList, SchemVector, SchemNumber, SchemBoolean } from './schem/types';
 
 export const interopFunctions: {[symbol: string]: any} = {
   'js->schem': async (value: AnySchemType, options?: SchemMap) => {
@@ -297,7 +297,7 @@ export function resolveJSPropertyChain(parentObject: any, ...propertyNames: stri
 export function getAllProperties(obj: any): string[] | void {
   if (obj == null) return;
 
-  //const prototype = Object.getPrototypeOf(obj);
+  // const prototype = Object.getPrototypeOf(obj);
   const prototypeProperties = getAllProperties(Object.getPrototypeOf(obj));
   if (prototypeProperties != null) {
     return Object.getOwnPropertyNames(obj).concat(prototypeProperties);
