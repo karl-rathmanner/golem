@@ -316,15 +316,13 @@ export class Schem {
             if (SchemSymbol.refersToJavascriptObject(first)) {
               const [, ...rest] = ast;
               let evaluatedArguments: any = await this.evalAST(new SchemVector(...rest), env);
-              evaluatedArguments = schemToJs(evaluatedArguments);
               ast = await invokeJsProcedure(first.name, evaluatedArguments);
               continue fromTheTop;
             }
-          } else if ( isSchemContextSymbol(first)) {
+          } else if (isSchemContextSymbol(first)) {
             if (this.contextManager != null) {
               const contextDef = env.getContextSymbol(first);
               const contextIds = await this.contextManager.prepareContexts(contextDef);
-
 
               /** (contextSymbol: (form))
               * execute (form) in any context matching the definition bound to contextSymbol:

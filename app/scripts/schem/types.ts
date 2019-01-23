@@ -3,7 +3,7 @@ import { Schem } from './schem';
 import { Tabs } from 'webextension-polyfill-ts';
 import { AvailableSchemContextFeatures } from '../contextManager';
 import { isSchemKeyword, isSchemSymbol, isValidKeyType, isSchemString, isSchemNumber, isSchemMap, isSchemType, isSchemList } from './typeGuards';
-import { resolveJSPropertyChain, jsObjectToSchemType, schemToJs } from '../javascriptInterop';
+import { resolveJSPropertyChain, jsObjectToSchemType, schemToJs, invokeJsProcedure, coerceToSchem, coerceToJs } from '../javascriptInterop';
 
 // interfaces
 export interface Callable {
@@ -115,8 +115,8 @@ export class SchemFunction implements Callable, Metadatable, TaggedType {
   }
   */
 
-  invoke(...args: AnySchemType[]) {
-    return this.f(...args);
+  invoke(...args: any[]) {
+    return this.f(...args.map(coerceToSchem));
   }
 }
 
@@ -472,7 +472,7 @@ export class SchemJSReference implements TaggedType {
 
   invoke(...args: any[]) {
     if (args.length > 0) {
-      this.parent[this.propertyName](...args);
+      this.parent[this.propertyName](...args.map(coerceToJs));
     } else {
       this.parent[this.propertyName]();
     }

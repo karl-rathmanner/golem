@@ -6,7 +6,8 @@ export const interopFunctions: {[symbol: string]: any} = {
     return jsObjectToSchemType(value, schemToJs(options, {keySerialization: 'toPropertyIdentifier'}));
   },
   'schem->js': (value: AnySchemType, options?: SchemMap) => {
-    return schemToJs(value, schemToJs(options, {keySerialization: 'toPropertyIdentifier'}));
+    if (options == null) return schemToJs(value);
+    else return schemToJs(value, schemToJs(options, {keySerialization: 'toPropertyIdentifier'}));
   },
   'js-ref': (...args: any[]): SchemJSReference => {
     if (args.length === 1) {
@@ -38,6 +39,20 @@ export const interopFunctions: {[symbol: string]: any} = {
   }
 };
 
+/** Converts a Schem value (that isn't a collection) to a js primitive */
+export function atomicSchemObjectToJS(schemObject?: AnySchemType): any {
+  if (typeof schemObject === 'undefined') return undefined;
+  if (schemObject instanceof SchemNil) return null;
+  if (isSchemNumber(schemObject)) return schemObject.valueOf();
+  if (isSchemFunction(schemObject)) {
+    return (...args: any[]) => {
+      const newForm = new SchemList(schemObject, ...args.map(coerceToSchem));
+      return window.golem.interpreter!.evalSchem(newForm);
+    };
+  }
+  // getStringRepresentation is preferable to valueOf because it returns values that look like their Schem representation (e.g. ":keyword" instead of "keyword")
+  return ('getStringRepresentation' in schemObject) ? schemObject.getStringRepresentation() : schemObject.valueOf();
+}
 
 /** Returns a stringifiable javascript object based on the schem value/collection.
  * By default the "noPrefix" option is active, because that's very convenient for js interop.
@@ -56,6 +71,10 @@ export const interopFunctions: {[symbol: string]: any} = {
 */
 // TODO: as isSerializable check and throw error when trying to convert a schemObject that isn't
 export function schemToJs(schemObject?: AnySchemType | null, options: {keySerialization: 'includeTypePrefix' | 'noPrefix' | 'toPropertyIdentifier'} = {keySerialization: 'noPrefix'}): any | null {
+  
+  // Don't convert any non-Schem-values
+  if (!isSchemType(schemObject)) throw new Error(`Expected a Schem Object, got a ${typeof schemObject} instead.`);
+
   let jsObject: any;
 
   // maps turn into objects
@@ -94,7 +113,6 @@ export function schemToJs(schemObject?: AnySchemType | null, options: {keySerial
         }
       }
 
-
       jsObject[jsKey] = schemToJs(value, options);
     });
 
@@ -128,20 +146,24 @@ export function schemToJs(schemObject?: AnySchemType | null, options: {keySerial
   return jsObject;
 }
 
-/** Converts a Schem value (that isn't a collection) to a js primitive */
-export function atomicSchemObjectToJS(schemObject?: AnySchemType): any {
-  if (typeof schemObject === 'undefined') return undefined;
-  if (schemObject instanceof SchemNil) return null;
-  if (isSchemNumber(schemObject)) return schemObject.valueOf();
-  if (isSchemFunction(schemObject)) {
-    return (...args: any[]) => {
-      const newForm = new SchemList(schemObject, ...args.map(value => primitiveValueToSchemType(value)));
-      return window.golem.interpreter!.evalSchem(newForm);
-    };
+// Converts Schem values to JS values (converting lisp-case map keys to camelCase object keys), leaves JS values as they are.
+export function coerceToJs(obj: any) {
+  if (isSchemType(obj)) {
+    return schemToJs(obj, {keySerialization: 'toPropertyIdentifier'});
+  } else {
+    return obj;
   }
-  // getStringRepresentation is preferable to valueOf because it returns values that look like their Schem representation (e.g. ":keyword" instead of "keyword")
-  return ('getStringRepresentation' in schemObject) ? schemObject.getStringRepresentation() : schemObject.valueOf();
 }
+
+// Converts JS values to Schem values (turning arrays into vectors; converting camelCase object keys do lisp-case map keys), leaves Schem values as they are.
+export function coerceToSchem(obj: AnySchemType) {
+  if (isSchemType(obj)) {
+    return obj;
+  } else {
+    return jsObjectToSchemType(obj, {arraysToVectors: true, depth: 1, keySerialization: 'toLispCase'});
+  }
+}
+
 
 /** Tries to recursively (if deph > 0) convert js objects to schem representations.
  ``` markdown
@@ -151,7 +173,7 @@ export function atomicSchemObjectToJS(schemObject?: AnySchemType): any {
  - Anything that can't be converted turns into 'nil'
  ```
  * */
-export function jsObjectToSchemType(o: any, options: {arraysToVectors?: boolean, depth?: number} = {}, currentDepth = 0): AnySchemType {
+export function jsObjectToSchemType(o: any, options: {arraysToVectors?: boolean, depth?: number, keySerialization?: 'toLispCase'} = {}, currentDepth = 0): AnySchemType {
   if (options.arraysToVectors == null) options.arraysToVectors = false;
   if (typeof options.depth === 'undefined') options.depth = 0;
 
@@ -166,10 +188,16 @@ export function jsObjectToSchemType(o: any, options: {arraysToVectors?: boolean,
         return new SchemList(...o.map(element => jsObjectToSchemType(element, options, currentDepth++)));
       }
     } else {
-
       const schemMap = new SchemMap();
-      for (const property in o) {
-        schemMap.set(SchemKeyword.from(property), jsObjectToSchemType(o[property], options, currentDepth++ ));
+      for (let property in o) {
+        if (options.keySerialization === 'toLispCase') {
+          //bah! wrong direction
+          property = property.replace(/[a-z][A-Z]/g, function(match) {
+            return match[0] + '-' + match[1].toLowerCase();
+            }).toLowerCase();
+        }
+  
+        schemMap.set(SchemKeyword.from(property), jsObjectToSchemType(o[property], options, currentDepth++));
       }
       /* not going up the prototype chain. :/
       const properterties = Object.getOwnPropertyNames(o);
@@ -219,7 +247,9 @@ export async function invokeJsProcedure(qualifiedProcedureName: string, procedur
     return Promise.reject('Tried to invoke a blacklisted JS function.');
   } else {
     try {
-      return Promise.resolve(obj[procedureName](...procedureArgs));
+      //return Promise.resolve(obj[procedureName](...procedureArgs));
+      // Convert Schem alues to JS objects
+      return Promise.resolve(obj[procedureName](...procedureArgs.map(coerceToJs)));
     } catch (e) {
       console.error(e);
       return Promise.reject('Js procedure invocation failed with message: ' + e.message);
