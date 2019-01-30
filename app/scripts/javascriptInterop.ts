@@ -157,11 +157,14 @@ export function coerceToJs(obj: any) {
 
 // Converts JS values to Schem values (turning arrays into vectors; converting camelCase object keys do lisp-case map keys), leaves Schem values as they are.
 export function coerceToSchem(obj: AnySchemType) {
-  if (isSchemType(obj)) {
-    return obj;
+  
+  const t = typeof obj;
+  if (t === 'string' || t === 'number' || t === 'boolean' || t === 'undefined') {
+    return primitiveValueToSchemType(obj);
   } else {
-    return jsObjectToSchemType(obj, {arraysToVectors: true, depth: 1, keySerialization: 'toLispCase'});
+    return obj;
   }
+    //return jsObjectToSchemType(obj, {arraysToVectors: true, depth: 1, keySerialization: 'toLispCase'});
 }
 
 
