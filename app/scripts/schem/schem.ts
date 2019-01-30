@@ -1,11 +1,11 @@
 import { browser } from 'webextension-polyfill-ts';
 import { SchemContextManager } from '../contextManager';
-import { getJsProperty, interopFunctions, invokeJsProcedure, schemToJs } from '../javascriptInterop';
+import { getJsProperty, interopFunctions, invokeJsProcedure, schemToJs, coerceToSchem, coerceToJs } from '../javascriptInterop';
 import { coreFunctions } from './core';
 import { Env, EnvSetupMap } from './env';
 import { pr_str } from './printer';
 import { readStr } from './reader';
-import { isCallable, isSchemBoolean, isSchemContextSymbol, isSchemFunction, isSchemJSReference, isSchemLazyVector, isSchemList, isSchemMap, isSchemNil, isSchemString, isSchemSymbol, isSchemVector, isSequential, isValidKeyType } from './typeGuards';
+import { isCallableSchemType, isSchemBoolean, isSchemContextSymbol, isSchemFunction, isSchemJSReference, isSchemLazyVector, isSchemList, isSchemMap, isSchemNil, isSchemString, isSchemSymbol, isSchemVector, isSequential, isValidKeyType } from './typeGuards';
 import { AnySchemType, SchemAtom, SchemBoolean, SchemContextDefinition, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemString, SchemSymbol, SchemVector } from './types';
 
 export class Schem {
@@ -371,9 +371,9 @@ export class Schem {
           }
 
           // If first didn't match any of the above, treat it as a function: evaluate all list elements and call the first element using the others as arguments
-          const [f, ...args] = await this.evalAST(ast, env) as SchemList;
+          const [f, ...args] = await this.evalAST(ast, env) as Array<any>;
 
-          if (isCallable(f)) {
+          if (isCallableSchemType(f)) {
             if (isSchemFunction(f)) {
               if (this.debug.logSchemFunctionInvocation) {
                 console.log('invoking a Schem function');
@@ -413,6 +413,9 @@ export class Schem {
           // Invoke JSReferences if they 'point' to a js function
           } else if (isSchemJSReference(f) && f.typeof() === 'function') {
             f.invoke(...args);
+          // f is an actual javascript function
+          } else if (typeof f === 'function') {
+            f(...args.map(coerceToJs));
           } else {
             console.log(first);
             throw new Error(`Invalid form: first element "${first}" is not callable`);
