@@ -92,7 +92,7 @@ export function isSchemJSReference(o: any): o is SchemJSReference {
   return (o != null && typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemJSReference);
 }
 
-export function isCallable(o: any): o is Callable {
+export function isCallableSchemType(o: any): o is Callable {
   return (o != null && typeof o === 'object' && typeof o.invoke === 'function');
 }
 
