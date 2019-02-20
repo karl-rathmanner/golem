@@ -91,7 +91,7 @@ export class SchemEditor {
       window.clearTimeout(timeoutID);
       timeoutID = window.setTimeout(() => {
         callback.call(this);
-      }, 700);
+      }, 1400);
     };
 
     this.monacoEditor.onDidChangeModelContent(() => {
