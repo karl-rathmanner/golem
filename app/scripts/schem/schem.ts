@@ -1,12 +1,12 @@
 import { browser } from 'webextension-polyfill-ts';
 import { SchemContextManager } from '../contextManager';
-import { getJsProperty, interopFunctions, invokeJsProcedure, schemToJs } from '../javascriptInterop';
+import { getJsProperty, interopFunctions, invokeJsProcedure, schemToJs, resolveJSPropertyChain, coerceToJs } from '../javascriptInterop';
 import { coreFunctions } from './core';
 import { Env, EnvSetupMap } from './env';
 import { pr_str } from './printer';
 import { readStr } from './reader';
-import { isCallable, isSchemBoolean, isSchemContextSymbol, isSchemFunction, isSchemJSReference, isSchemLazyVector, isSchemList, isSchemMap, isSchemNil, isSchemString, isSchemSymbol, isSchemVector, isSequential, isValidKeyType } from './typeGuards';
-import { AnySchemType, SchemAtom, SchemBoolean, SchemContextDefinition, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemString, SchemSymbol, SchemVector } from './types';
+import { isCallable, isSchemBoolean, isSchemContextSymbol, isSchemFunction, isSchemJSReference, isSchemLazyVector, isSchemList, isSchemMap, isSchemNil, isSchemString, isSchemSymbol, isSchemVector, isSequential, isValidKeyType, isSchemType } from './typeGuards';
+import { AnySchemType, SchemAtom, SchemBoolean, SchemContextDefinition, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemString, SchemSymbol, SchemVector, SchemJSReference } from './types';
 
 export class Schem {
 
@@ -308,6 +308,44 @@ export class Schem {
                 });
                 return SchemNil.instance;
 
+            }
+            /** (.property jsobject &args)
+             * Clojurescript-like accessor syntax
+             */
+            if (first.name[0] === '.' && first.name.length > 1) {
+              let [jsobject, ...args] = await this.evalAST(ast.rest(), env) as SchemList;
+              if (!isSchemType(jsobject)) {
+                const property = resolveJSPropertyChain(jsobject, first.name.slice(1));
+                if (typeof property === 'function') {
+                  return new SchemJSReference(jsobject, first.name.slice(1));
+                } else {
+                  return property;
+                }
+              } else {
+                throw new Error(`Expected a js object as argument to the property accessor special form.`)
+              }
+            /** (!property jsobject value)
+             * Property setter syntax
+             */
+            } else if (first.name[0] === '!' && first.name.length > 1) {
+              const rest = ast.rest();
+              if (rest.length != 2) {
+                throw new Error(`The js-property-setter special form must be followed by exactly two values. e.g. (!propertyName jsObject newValue)`)
+              }
+              let [jsobject, newValue] = await this.evalAST(rest, env) as SchemList;
+              
+              if (!isSchemType(jsobject)) {
+                const propertyChain = first.name.slice(1).split('.'); // Throw out the "!" aand split into property names
+                if (propertyChain.length > 1) {
+                  const lastPropertyName = propertyChain[propertyChain.length - 1];
+                  const butLastProperties = propertyChain.slice(0, -1);
+                  const parentOfLastProperty = resolveJSPropertyChain(jsobject, ...butLastProperties);
+                  return (parentOfLastProperty as any)[lastPropertyName] = coerceToJs(newValue);
+                }
+                return (jsobject as any)[first.name.slice(1)] = coerceToJs(newValue);
+              } else {
+                throw new Error(`Expected a js object the first argument of the property setter special form.`)
+              }
             }
             /** (window.example a b &c)
              * If a symbol contains dots, treat it as a javascrip procedure that should be invoked with the provided arguments.
