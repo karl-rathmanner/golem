@@ -3,7 +3,10 @@ import { AnySchemType, SchemJSReference, SchemMap, SchemString, SchemSymbol, toS
 
 export const interopFunctions: {[symbol: string]: any} = {
   'js->schem': async (value: AnySchemType, options?: SchemMap) => {
-    return jsObjectToSchemType(value, schemToJs(options, {keySerialization: 'toPropertyIdentifier'}));
+    if (options != null) {
+      options = schemToJs(options, {keySerialization: 'toPropertyIdentifier'});
+    }
+    return jsObjectToSchemType(value, options as any);
   },
   'schem->js': (value: AnySchemType, options?: SchemMap) => {
     if (options == null) return schemToJs(value);
