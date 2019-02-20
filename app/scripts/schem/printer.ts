@@ -1,7 +1,7 @@
 import { isSchemAtom, isSchemBoolean, isSchemLazyVector, isSchemMap, isSchemNumber, isSchemString, isSchemSymbol, isSchemList, isSchemVector, isSchemKeyword, isSchemRegExp, isSchemContextSymbol, isSchemNil, isSchemJSReference } from './typeGuards';
 import { SchemContextInstance, SchemFunction, SchemList, AnySchemType, SchemVector, SchemNil } from './types';
 
-export async function pr_str(ast: AnySchemType, escapeStrings: boolean = true): Promise<string> {
+export async function pr_str(ast: any, escapeStrings: boolean = true): Promise<string> {
   if (isSchemBoolean(ast)) {
     return (ast.valueOf()) ? 'true' : 'false';
   } else if (isSchemNumber(ast)) {
@@ -44,7 +44,24 @@ export async function pr_str(ast: AnySchemType, escapeStrings: boolean = true): 
     return `#jsReference [${ast.parent.toString()}, ${ast.propertyName}]`;
   } else {
     // attempt to stringify object, because it's not a SchemType after all
-    return `#jsObject [${JSON.stringify(ast)}]`;
+    
+    switch (typeof ast) {
+      case 'object': {
+        let stringRepresentation = '{}';
+        try {
+          stringRepresentation = JSON.stringify(ast);
+        } catch {}
+        
+        if (stringRepresentation === '{}') {
+            // JSON.stringify might have failed (circular structures) or it might have returned just '{}'
+            // in either case, toString might return a more useful description of the object
+            stringRepresentation = ast.toString();
+        }
+        return `#jsObject [${stringRepresentation}]`
+      }
+      case 'function': return `#jsFunction [${ast.toString()}]`;
+      default: case 'object': return `#jsValue [${ast}]`;
+    } 
   }
 }
 
