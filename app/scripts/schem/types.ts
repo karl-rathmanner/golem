@@ -472,9 +472,9 @@ export class SchemJSReference implements TaggedType {
 
   invoke(...args: any[]) {
     if (args.length > 0) {
-      return this.parent[this.propertyName].apply(this.parent, ...args.map(coerceToJs));
+      return this.parent[this.propertyName].call(this.parent, ...args.map(coerceToJs));
     } else {
-      return this.parent[this.propertyName].apply(this.parent);
+      return this.parent[this.propertyName].call(this.parent);
     }
   }
 }
