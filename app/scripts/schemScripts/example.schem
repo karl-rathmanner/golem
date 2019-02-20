@@ -171,7 +171,7 @@
 (concat {:6 "6" :7 "7"} {:uwotm "8"})
 
 ; ... or nested collections, which get flattened by one level:
-(concat ["outer" ["inner"] "outer"] ["other"] )
+(concat ["outer" ["inner"] "outer"] ["other"])
 
 
 
@@ -325,6 +325,8 @@
 ; Sometimes, they get converted automatically; sometimes you'll have to do that using 'js->schem' & 'schem->js'
 ; This is as much a WIP as anything else...
 
+;; JS-Symbols
+
 ; Invoking a js function:
 (window.alert "This works.")
 
@@ -333,25 +335,60 @@
 (let (anoy 'window.alert)
   (anoy "This works too. Wohoo!"))
 
-; Interop type conversion:
-; (back and forth, just for illustrative purposes)
-(js->schem (schem->js {:a 42 :b ["string" "thing"]}) {:arrays-to-vectors true :depth 9001})
-(js->schem (schem->js {:v [1 2 3] :l '(4 5 6)}) {:depth 1})
-
-; Combining js function invocation and js property resolution: 
-; (what happens with "js symbols" depends on their position in a form)
+; Combining js function invocation and js property resolution:
 (window.alert document.title)
 
-; Setting a js property: 
+;; Getting Stuff
+
+; Getting a js property via the property accessor special form "(.somePropertyName js-object)"
+(.title document)
+
+; Property cains are resolved automatically, so there's no need for nested forms:
+(.title.length document)
+
+; ...which does the same as:
+(.length document.title)
+
+; This accessor form is just syntactic sugar for calling the 'dot' function:
+; (notice how "title" has to be quoted)
+(. document 'title)
+
+; Sometimes, calling the 'dot' function directly might be useful:
+; (It also takes strings in lieu of symbols.)
+(do 
+  (defn stringify-document-property [p] (str (. document p)))
+  (def interesting-properties ['title 'location.hostname "body.innerHTML.length"])
+  (map stringify-document-property interesting-properties))
+
+; If the property you're trying to access is a js function, a js-reference is returned instead of the plain js function.
+; Since a js-ref keeps track of the property's parent / context, you're be able to call them later.
+((.alert window) "mhkay")
+; This migth get awkward, paren-wise. But hey, it's a LISP!
+(str ((.toUpperCase document.URL)))
+
+;; Setting Stuff
+
+; The property setter special form works analogous to the getter form. 
+; (!propertyName js-object newValue)
+
+; Changing the tab's title:
+(!title document "Schmäh Editor")
+
+; Polluting the global namespace with a Schem Function that will magically turn into a javascript function.
+(!albert window (fn [msg] (window.alert ((.toUpperCase (schem->js msg))))))
+; Now open your browser console and try calling albert("Hello?")
+
+; And then there's the set function if you have to be explicit about things:
 ; (notice that the js symbol is quoted!)
 (set! 'document.title "ᕕ( ՞ ᗜ ՞ )ᕗ")
 
-; Getting a js property:
-(. window.document 'title)
-
-; Another way of getting a js property that I don't feel like documenting properly:
+; Yet another way of getting a js property that I don't feel like documenting properly:
 (js-deref (js-ref document.location "href.length"))
 
+; Explicit interop type conversion:
+; (back and forth, just for illustrative purposes)
+(js->schem (schem->js {:a 42 :b ["string" "thing"]}) {:arrays-to-vectors true :depth 9001})
+(js->schem (schem->js {:v [1 2 3] :l '(4 5 6)}) {:depth 1})
 
 
 ;;; Foreign Execution Contexts (is that a good name?)
