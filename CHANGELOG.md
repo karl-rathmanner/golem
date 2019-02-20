@@ -1,3 +1,21 @@
+## 0.6.0
+Dear Diary,
+
+I haven't released a new version in three months. I hope I can remember the most important changes but secretly I know, no one would notice if I didn't.
+
+New Language features:
+- Argument destructuring
+  You could build your own dashboards now, if you knew how!
+- Improved javascript interoperability (see examples)
+- Completed the trinity of filter, map and reduce – they also use concurrency
+
+New editor features:  
+- Basic Parinfer integration in the editor
+- Live javascript autocompletion with type and value previews
+- Better saving & opening
+
+Bonus feature: Undocumented support for "custom" background pages / dashboards.
+
 ## 0.5.0
 Hello, user! Look at your address bar, now look at this changelog, now back at your address bar. Sadly, it can't interpret s-expressions. What if you entered "( "? Look again, your adress bar is now a REPL.
 
