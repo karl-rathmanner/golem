@@ -530,15 +530,19 @@ export class Schem {
     }
   }
 
-  async arep(expression: string, overwrites?: EnvSetupMap): Promise<string> {
-    if (typeof expression === 'undefined' || expression.length === 0) {
-      expression = 'nil';
-    }
+  async loadCore() {
     if (!this.coreLoaded) {
       this.coreLoaded = true; // technically, this isn't quite true, as core.schem isn't actually loaded yet, but the flag has to be set so the call to arep below may return
         const core = require('!raw-loader!../schemScripts/core.schem');
         await this.arep(core);
     }
+  }
+
+  async arep(expression: string, overwrites?: EnvSetupMap): Promise<string> {
+    if (typeof expression === 'undefined' || expression.length === 0) {
+      expression = 'nil';
+    }
+    await this.loadCore();
     if (overwrites) {
       this.replEnv.addMap(overwrites, true);
     }
