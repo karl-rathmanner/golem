@@ -23,6 +23,7 @@ export class SchemEditor {
       interpreter = new Schem();
       interpreter.replEnv.addMap(eventPageMessagingSchemFunctions);
       interpreter.replEnv.addMap(this.editorManipulationSchemFunctions);
+      interpreter.loadCore();
     } else {
       interpreter = options.interpreter;
     }
