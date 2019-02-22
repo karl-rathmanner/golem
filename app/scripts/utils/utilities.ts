@@ -29,7 +29,7 @@ export function extractErrorMessage(error: any) {
   return (typeof error === 'string') ? error :  // I still throw many plain strings as errors. This band-aid 'fixes' that.
          ('error' in error) ? error.error :     // I also throw whatever that is. Somewhere. This clearly calls for more band-aids.
          ('message' in error) ? error.message : // This is what an error is supposed to look like...
-         `Unknown error type thrown. Trey checking the browser's console for more information !`; // ...but if it doesn't, at least tell the user.
+         `Unknown error type thrown. Try checking the browser's console for more information !`; // ...but if it doesn't, at least tell the user.
 }
 
 /** Surrounds a string with some sensible number of parens, trying to turn it into an s-expression. */
