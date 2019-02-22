@@ -14,6 +14,7 @@ import { pages } from './tasks/pages';
 import { schemScripts } from './tasks/schemScripts';
 import { scripts } from './tasks/scripts';
 import { styles } from './tasks/styles';
+import { libraries } from './tasks/libraries.js';
 
 export { feature, patch, release } from './tasks/version';
 
@@ -24,7 +25,8 @@ export const build = gulp.series(
   gulp.parallel(
     manifest,
     scripts,
-    schemScripts, 
+    schemScripts,
+    libraries,
     styles,
     pages,
     locales,
