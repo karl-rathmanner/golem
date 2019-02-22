@@ -187,12 +187,23 @@ async function createSchemCompletionItems(interpreter: Schem) {
         return `${SchemTypes[value.typeTag]}: ${value.toString()}`;
       }
     };
+
+    const pickDocumentation = (value: any) => {
+      if (isSchemFunction(value)) {
+        if (value.metadata != null) {
+          return value.metadata.docstring;
+        }
+      }
+
+      return 'No documentation';
+    }
   
     return {
       label: sym.name,
       kind: pickKind(resolvedValue),
       insertText: pickInsertText(sym, resolvedValue),
-      detail: pickDetail(resolvedValue)
+      detail: pickDetail(resolvedValue),
+      documentation: pickDocumentation(resolvedValue)
     };
   };
 
@@ -218,8 +229,6 @@ async function createSchemCompletionItems(interpreter: Schem) {
     return reservedKeywordCompletionItems;
   }
 }
-
-
 
 /** Handles completion for js-symbols by looking up object properties in the current editor environment at runtime. 
  * TODO: Add special case for foreign execution context forms? (By looking up properties in foreign js contexts.)
