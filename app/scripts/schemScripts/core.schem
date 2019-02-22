@@ -1,39 +1,64 @@
 (do 
+  ;;; Defnitely the most important macro of all.
+  (defmacro defn
+    (fn
+      "(defn name [args] (body)) is a shortcut for (def name (fn [args] (body))) \n You can also provide a docstring bevore the [args]-part." 
+      [name & args] 
+      `(def ~name (fn ~name ~@args))))
 
-  (defmacro when (fn (predicate & expressions)
-                     `(if ~predicate (do ~@expressions))))
+  ;;; Logic and comparison stuff
+  (defmacro when 
+    (fn "(when predicate & expressions)"
+      [predicate & expressions]
+      `(if ~predicate (do ~@expressions))))
 
-  (def not (fn (a) (if a false true)))
+  (defn not "Negates a boolean value" [a] (if a false true))
+  (defmacro not=  (fn "Returns true if any argument is not equal to all others." [& args] `(not (= ~@args))))
+  (defn nil? "Returns true if argument has the schem value nil; otherwise: false." [x] (= x nil))
+  (defn null? "Returns true if argument has the javascript value null; otherwise: false." [x] (= x null))
+  (defn undefined? "Returns true if argument is undefined; otherwise: false." [x] (= x undefined))
+  (defn defined? "Returns true if argument is not undefined; otherwise: false." [x] (not= x undefined))
+  
+  (defmacro or 
+    (fn 
+      "Evaluates args from left to right until it finds the value 'true'. \n Any arguments following the first 'true' won't be evaluated. \n If none of the arguments are true, 'or' returns the value of the last argument."
+      [& args]      
+      (if (= (count args) 1)
+        (first args)
+        (if (= (first args) true) 
+          true
+          (apply or (rest args))))))
 
+  ; adapted from: https://github.com/kanaka/mal/blob/master/process/guide.md
+  (defmacro cond 
+    (fn 
+      "see: https://clojuredocs.org/clojure.core/cond"
+      [& xs]
+      (if (> (count xs) 0) 
+        (list 'if (first xs) 
+          (if (> (count xs) 1) 
+            (nth xs 1) 
+            (throw "odd number of forms supplied to cond")) 
+          (cons 'cond (rest (rest xs)))))))
+
+  ;;; Quality of life stuff
   (def load-file 
     (fn (file) 
         (eval (read-string (str "(do " (slurp file) " )")))))
 
-  (defmacro defn
-    (fn (name & args) `(def ~name (fn ~name ~@args))))
-
-  ; The thread first macro turns this:
-  ; (-> x fn1 (fn2 y z) fn3)
-  ; into this:
-  ; (fn3 (fn2 (fn1 x) y z))
-  (defmacro -> (fn self (value & forms)
-                        (if (> (count forms) 0)
-                          (let (lastForm (last forms))
-                            (if (list? lastForm)
-                              `(
-                                ~(first lastForm)
-                                ~(apply self (cons value (butlast forms)))
-                                ~@(rest lastForm))
-                              `(
-                                ~lastForm 
-                                ~(apply self (cons value (butlast forms)))))) 
-                          value)))
-
-  ; adapted from: https://github.com/kanaka/mal/blob/master/process/guide.md
-  (defmacro cond (fn (& xs) 
-                    (if (> (count xs) 0) 
-                      (list 'if (first xs) 
-                        (if (> (count xs) 1) 
-                          (nth xs 1) 
-                          (throw "odd number of forms supplied to cond")) 
-                        (cons 'cond (rest (rest xs))))))))
+  ;;; Last but not least: thread first
+  (defmacro -> 
+    (fn self 
+      "The thread first macro turns this:\n (-> x fn1 (fn2 y z) fn3) \n into this:\n (fn3 (fn2 (fn1 x) y z))"
+      [value & forms]
+      (if (> (count forms) 0)
+        (let (lastForm (last forms))
+          (if (list? lastForm)
+            `(
+              ~(first lastForm)
+              ~(apply self (cons value (butlast forms)))
+              ~@(rest lastForm))
+            `(
+              ~lastForm 
+              ~(apply self (cons value (butlast forms)))))) 
+        value))))
