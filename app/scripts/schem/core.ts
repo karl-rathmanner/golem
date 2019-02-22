@@ -189,7 +189,7 @@ export const coreFunctions: {[symbol: string]: any} = {
     pathOrUrl = pathOrUrl.valueOf();
     // get full URL for files packaged with the browser extension, when url begins with a slash
     if (pathOrUrl[0] === '/') {
-      return new SchemString(await xhrPromise('GET', browser.extension.getURL('/schemScripts' + pathOrUrl)));
+      return new SchemString(await xhrPromise('GET', browser.extension.getURL(pathOrUrl)));
     }
 
     let url: URL;
