@@ -228,7 +228,7 @@ export class SchemMap implements Callable, Reducible, Countable, Metadatable, Ta
   static isCollection = true;
   metadata: SchemMetadata;
 
-  private nativeMap: Map<string, AnySchemType> = new Map<string, AnySchemType>();
+  private nativeMap: Map<string, any> = new Map<string, AnySchemType>();
   /** Returns an array of alternating key value pairs
    * @returns
    * [key: SchemSymbol, value:  SchemType, ...] */
@@ -325,10 +325,10 @@ export class SchemLazyVector implements Countable, Indexable, TaggedType {
   public typeTag: SchemTypes.SchemLazyVector = SchemTypes.SchemLazyVector;
   static isCollection = true;
 
-  private cachedValues: Map<number, AnySchemType>;
+  private cachedValues: Map<number, any>;
 
   constructor(private producer: SchemFunction, public maximumSize = Infinity) {
-    this.cachedValues = new Map<number, AnySchemType>();
+    this.cachedValues = new Map<number, any>();
   }
 
   async nth(index: number): Promise<AnySchemType> {
