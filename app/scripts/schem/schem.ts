@@ -1,6 +1,6 @@
 import { browser } from 'webextension-polyfill-ts';
 import { SchemContextManager } from '../contextManager';
-import { getJsProperty, interopFunctions, invokeJsProcedure, schemToJs, coerceToSchem, coerceToJs, resolveJSPropertyChain } from '../javascriptInterop';
+import { getJsProperty, interopFunctions, invokeJsProcedure, schemToJs, coerceToSchem, coerceToJs, resolveJSPropertyChain, resolveToParentAndProperty } from '../javascriptInterop';
 import { coreFunctions } from './core';
 import { Env, EnvSetupMap } from './env';
 import { pr_str } from './printer';
@@ -193,7 +193,7 @@ export class Schem {
 
                 return SchemBoolean.true;
               }
-              /** (let (symbol1 value1 symbol2 value2 ...) expression) or (let [symbol1 value1 symbol2 value2 ...] expression)
+              /** (let (symbol1 value1 symbol2 value2 ...) & expressions) or (let [symbol1 value1 symbol2 value2 ...] & expressions)
                * Creates a new child environment and binds a list of symbols and values, the following expression is evaluated in that environment
                * Supports basic sequential destructuring
                */
@@ -219,8 +219,8 @@ export class Schem {
 
                 // TCO: switch to the new environment
                 env = childEnv;
-                // TCO: evaluate the expression
-                ast = ast[2];
+                // TCO: evaluate the expressions
+                ast = new SchemList(SchemSymbol.from('do'), ...ast.slice(2))
                 continue fromTheTop;
 
               /** (do x y & more)
@@ -309,17 +309,18 @@ export class Schem {
                 return SchemNil.instance;
 
             }
-            /** (.property jsobject &args)
-             * Clojurescript-like accessor syntax
+            /** (.property jsobject & args)
+             * property accessor / invocation syntax
              */
             if (first.name[0] === '.' && first.name.length > 1) {
-              let [jsobject, ...args] = await this.evalAST(ast.rest(), env) as SchemList;
+              let [jsobject, ...args] = await this.evalAST(ast.rest(), env) as any;
               if (!isSchemType(jsobject)) {
-                const property = resolveJSPropertyChain(jsobject, first.name.slice(1));
-                if (typeof property === 'function') {
-                  return new SchemJSReference(jsobject, first.name.slice(1));
+                const [parentObject, propertyValue] = resolveToParentAndProperty(jsobject, first.name.slice(1));
+                if (typeof propertyValue === 'function') {
+                  return propertyValue.call(parentObject, ...args.map(coerceToJs));
                 } else {
-                  return property;
+                  if (args.length > 0) console.warn(`You accessed a non-function-property of an js object and supplied arguments. They were ignored.`)
+                  return propertyValue;
                 }
               } else {
                 throw new Error(`Expected a js object as argument to the property accessor special form.`)
@@ -335,14 +336,15 @@ export class Schem {
               let [jsobject, newValue] = await this.evalAST(rest, env) as SchemList;
               
               if (!isSchemType(jsobject)) {
-                const propertyChain = first.name.slice(1).split('.'); // Throw out the "!" aand split into property names
-                if (propertyChain.length > 1) {
-                  const lastPropertyName = propertyChain[propertyChain.length - 1];
+                const propertyChain = first.name.slice(1).split('.'); // Throw out the "!" and split into property names
+                const lastPropertyName = propertyChain[propertyChain.length - 1];
+
+                if (propertyChain.length > 1) { // Make sure jsobject is the actual parent of our property, not some ancestor
                   const butLastProperties = propertyChain.slice(0, -1);
-                  const parentOfLastProperty = resolveJSPropertyChain(jsobject, ...butLastProperties);
-                  return (parentOfLastProperty as any)[lastPropertyName] = coerceToJs(newValue);
+                  jsobject = resolveJSPropertyChain(jsobject, ...butLastProperties);
                 }
-                return (jsobject as any)[first.name.slice(1)] = coerceToJs(newValue);
+
+                return (jsobject as any)[lastPropertyName] = coerceToJs(newValue);
               } else {
                 throw new Error(`Expected a js object the first argument of the property setter special form.`)
               }
