@@ -119,34 +119,38 @@ export const coreFunctions: {[symbol: string]: any} = {
       throw `tried to count soemthing other than a collection, string or nil`;
     }
   },
-  'first': (sequential: SchemList | SchemVector) => {
+  'first': (sequential: SchemList | SchemVector | Array<any>) => {
     throwErrorForNonSequentialArguments(sequential);
     if (sequential.length === 0) return SchemNil.instance;
     return sequential[0];
   },
-  'rest': (sequential: SchemList | SchemVector) => {
+  'rest': (sequential: SchemList | SchemVector | Array<any>) => {
     throwErrorForNonSequentialArguments(sequential);
     if (sequential.length === 0) return SchemNil.instance;
     return new SchemList(...sequential.slice(1));
   },
-  'last': (sequential: SchemList | SchemVector) => {
+  'last': (sequential: SchemList | SchemVector | Array<any>) => {
     throwErrorForNonSequentialArguments(sequential);
     if (sequential.length === 0) return SchemNil.instance;
     return sequential[sequential.length - 1];
   },
-  'butlast': (sequential: SchemList | SchemVector) => {
+  'butlast': (sequential: SchemList | SchemVector | Array<any>) => {
     throwErrorForNonSequentialArguments(sequential);
     if (sequential.length === 0) return SchemNil.instance;
     return new SchemList(...sequential.slice(0, sequential.length - 1));
   },
-  'nth': (sequential: SchemList | SchemVector, index: SchemNumber) => {
+  'nth': (sequential: SchemList | SchemVector | Array<any>, index: SchemNumber) => {
     throwErrorForNonSequentialArguments(sequential);
     const i = index.valueOf();
     if (i < 0) throw `index value must be positive`;
     if (!( isSchemLazyVector(sequential)) && i >= sequential.length) {
       throw `index out of bounds: ${i} >= ${sequential.length}`;
     }
-    return sequential.nth(index.valueOf());
+    if (isSchemVector(sequential) || isSchemList(sequential)) {
+      return sequential.nth(index.valueOf());
+    } else {
+      return sequential[index.valueOf()];
+    }
   },
   /** calls pr_str (escaped) on each argument, joins the results, seperated by ' ' */
   'pr-str': async (...args: AnySchemType[]) => {
@@ -283,7 +287,7 @@ export const coreFunctions: {[symbol: string]: any} = {
     return newList;
 
   },
-  'map': async (fn: SchemFunction, ...sequentials: (SchemList | SchemVector)[]) => {
+  'map': async (fn: SchemFunction, ...sequentials: (SchemList | SchemVector | Array<any>)[]) => {
     throwErrorForNonSequentialArguments(...sequentials);
 
     if (sequentials.length === 1) {
@@ -549,9 +553,9 @@ function throwErrorIfArityIsInvalid(argsLength: number, min: number = 1, max: nu
   }
 }
 
-function throwErrorForNonSequentialArguments(...args: AnySchemType[]) {
+function throwErrorForNonSequentialArguments(...args: any[]) {
   args.forEach(arg => {
-    if (!(isSequential(arg) || ('nth' in arg))) {
+    if (!(isSequential(arg) || ('nth' in arg) || Array.isArray(arg))) {
       throw `Expected argument to be sequential. Got this instead: ${arg}`;
     }
   });
