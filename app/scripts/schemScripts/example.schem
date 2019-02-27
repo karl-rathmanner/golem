@@ -360,11 +360,17 @@
   (def interesting-properties ['title 'location.hostname "body.innerHTML.length"])
   (map stringify-document-property interesting-properties))
 
-; If the property you're trying to access is a js function, a js-reference is returned instead of the plain js function.
-; Since a js-ref keeps track of the property's parent / context, you're be able to call them later.
-((.alert window) "mhkay")
-; This migth get awkward, paren-wise. But hey, it's a LISP!
-(str ((.toUpperCase document.URL)))
+;; Invokation using the 'dot' accessor form
+; (.functionName javascript-object & arguments)
+
+; If the property you're trying to access is a js function, it gets invoked immediately. (Instead of the function itself being returned.)
+; This is inconsistent and ambiguous but it makes function chaining possible (using the '->' operator) 
+; It also drastically reduces the number of parentheses you have to look at. 
+(.alert window "mhkay")
+(.toUpperCase document.URL)
+
+; If you really, really need to retrieve a javascript function instead of calling it, use the 'dot' function:
+(. window 'alert)
 
 ;; Setting Stuff
 
@@ -375,8 +381,11 @@
 (!title document "Schmäh Editor")
 
 ; Polluting the global namespace with a Schem Function that will magically turn into a javascript function.
-(!albert window (fn [msg] (window.alert ((.toUpperCase (schem->js msg))))))
-; Now open your browser console and try calling albert("Hello?")
+(!albert window (fn [msg] (window.alert (.toUpperCase (schem->js msg)))))
+; Now open your browser console and try running the following -> albert("Hello?")
+
+; CAVEAT:
+; These functions will always return an ES6 Promise due to the interpreter's asynchronous nature!
 
 ; And then there's the set function if you have to be explicit about things:
 ; (notice that the js symbol is quoted!)
