@@ -122,7 +122,7 @@ export class SchemFunction implements Callable, Metadatable, TaggedType {
 
 // classes - Schem collection types
 
-export class SchemList extends Array<AnySchemType> implements Reducible, Countable, Indexable, Metadatable, Sequable, TaggedType {
+export class SchemList extends Array<any> implements Reducible, Countable, Indexable, Metadatable, Sequable, TaggedType {
   static isCollection = true;
   public typeTag: SchemTypes.SchemList = SchemTypes.SchemList;
   metadata: SchemMetadata;
@@ -170,7 +170,7 @@ export class SchemList extends Array<AnySchemType> implements Reducible, Countab
 
 }
 
-export class SchemVector extends Array<AnySchemType> implements Callable, Indexable, Countable, Metadatable, Sequable, TaggedType {
+export class SchemVector extends Array<any> implements Callable, Indexable, Countable, Metadatable, Sequable, TaggedType {
   public typeTag: SchemTypes.SchemVector = SchemTypes.SchemVector;
   static isCollection = true;
   metadata: SchemMetadata;
