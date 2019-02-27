@@ -60,7 +60,7 @@ export class Env {
         }
 
         for (let i = 0; i < targetStructure.length; i++) {
-          let sourceElement = await sourceStructure.nth(i);
+          let sourceElement = await sourceStructure.nth(i) as AnySchemType;
           // Default to Nil if no value could be found in the source data structure
           // e.g. when there are more elements in the target than in value
           if (sourceElement == null) {
