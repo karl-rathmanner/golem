@@ -328,6 +328,19 @@ export function resolveJSPropertyChain(parentObject: any, ...propertyNames: stri
   return obj;
 }
 
+/** Returns a tuple of [parentObject, propertyValue] by descending down the property chain starting from the original parent object */
+export function resolveToParentAndProperty(parentObject: any, propertyChain: string | string[]): [any, any] {
+  const propertyNames = (typeof propertyChain === 'string') ? propertyChain.split('.') : propertyChain; // split into property names, if necessary
+  const lastPropertyName = propertyNames[propertyNames.length - 1];
+
+  if (propertyNames.length > 1) {
+    const butLastProperties = propertyNames.slice(0, -1);
+    const parentOfLastProperty = resolveJSPropertyChain(parentObject, ...butLastProperties);
+    return [parentOfLastProperty, parentOfLastProperty[lastPropertyName]];
+  } else {
+    return [parentObject, parentObject[lastPropertyName]];
+  }
+}
 
 /** Returns all properties of an object, including those of its prototypes and not enumerable ones. */
 export function getAllProperties(obj: any): string[] | void {
