@@ -2,11 +2,11 @@ import { isSchemString, isSchemMap, isSchemKeyword, isSequable, isSchemCollectio
 import { AnySchemType, SchemJSReference, SchemMap, SchemString, SchemSymbol, toSchemMapKey, SchemNil, SchemKeyword, SchemList, SchemVector, SchemNumber, SchemBoolean } from './schem/types';
 
 export const interopFunctions: {[symbol: string]: any} = {
-  'js->schem': async (value: AnySchemType, options?: SchemMap) => {
-    if (options != null) {
-      options = schemToJs(options, {keySerialization: 'toPropertyIdentifier'});
+  'js->schem': async (value: any, options?: any) => {
+    if (options == null) {
+      options = {arraysToVectors: true, depth: 99};
     }
-    return jsObjectToSchemType(value, options as any);
+    return jsObjectToSchemType(value, options);
   },
   'schem->js': (value: AnySchemType, options?: SchemMap) => {
     if (options == null) return schemToJs(value);
