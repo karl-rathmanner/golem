@@ -692,7 +692,7 @@ export class SchemAtom implements TaggedType {
       // The parameters being: the watches' "key", the atom itself, its old value, its new value
       watch[1].invoke(watch[0], this, this.value, v);
     });
-    this.value = v;
+    return this.value = v;
   }
 
   private findWatchIndex(key: SchemKeyword): number {
