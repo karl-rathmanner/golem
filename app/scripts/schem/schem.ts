@@ -257,7 +257,7 @@ export class Schem {
                   continue fromTheTop;
                 }
 
-              /** (fn name? docstring? [parameters] (functionBody)
+              /** (fn name? docstring? [parameters] & expressions)
                *  Defines a new function in the current environment. When it's called, the function body gets executed in a new child environmet.
                *  In this child environmet, the symbols provided in params are bound to the values provided as arguments by the caller.
               */
@@ -470,19 +470,24 @@ export class Schem {
   private fn(env: Env, ast: SchemList) {
     let name, docstring, params, fnBody;
 
+      // Both the name and docstring parameters are optional
       if (isSchemSymbol(ast[1])) {
         if (isSchemString(ast[2])) {
-          [, name, docstring , params, fnBody] = ast;
+          // case: (fn name docstring [params] (expr1) (expr2) ...)
+          [, name, docstring , params, ...fnBody] = ast;
           docstring = (docstring as SchemString).valueOf();
         } else {
-          [, name, params, fnBody] = ast;
+          // case: (fn name [params] (expr1) (expr2) ...)
+          [, name, params, ...fnBody] = ast;
         }
         name = (name as SchemSymbol).name;
       } else if (isSchemString(ast[1])) {
-        [, docstring, params, fnBody] = ast;
+        // case: (fn docstring [params] (expr1) (expr2) ...)
+        [, docstring, params, ...fnBody] = ast;
         docstring = (docstring as SchemString).valueOf();
       } else {
-        [, params, fnBody] = ast;
+        // case: (fn [params] (expr1) (expr2) ...)
+        [, params, ...fnBody] = ast;
       }
 
       if (!(isSchemList(params) || isSchemVector(params))) {
@@ -493,6 +498,10 @@ export class Schem {
         let metadata: SchemMetadata = {};
         if (name) metadata.name = name;
         if (docstring) metadata.docstring = docstring;
+
+        if (fnBody.length > 0) {
+          fnBody = new SchemList(SchemSymbol.from('do'), ...fnBody); // wrap implicit 'do' form, around multi-expression function bodies
+        }
         return SchemFunction.fromSchemWithContext(this, env, params, fnBody, metadata);
 
       } catch (error) {
