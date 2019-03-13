@@ -493,14 +493,18 @@ export class Schem {
       if (!(isSchemList(params) || isSchemVector(params))) {
         throw `expected a list or vector of parameters`;
       }
-
+  
       try {
         let metadata: SchemMetadata = {};
         if (name) metadata.name = name;
         if (docstring) metadata.docstring = docstring;
 
         if (fnBody.length > 0) {
-          fnBody = new SchemList(SchemSymbol.from('do'), ...fnBody); // wrap implicit 'do' form, around multi-expression function bodies
+          fnBody = (new SchemList(SchemSymbol.from('do'), ...fnBody)); // wrap implicit 'do' form around multi-expression function bodies
+        }
+
+        if (!isSchemType(fnBody)) {
+          throw new Error(`Function Body must be a Schem expression.`)
         }
         return SchemFunction.fromSchemWithContext(this, env, params, fnBody, metadata);
 
