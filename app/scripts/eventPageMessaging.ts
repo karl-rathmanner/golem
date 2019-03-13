@@ -5,7 +5,9 @@ import { GolemContextMessage } from './contentScriptMessaging';
 
 /// message type definitions
 
-export type EventPageActionName = 'create-contexts' | 'forward-context-action' | 'invoke-context-procedure' | 'invoke-js-procedure' | 'set-js-property' | 'inject-interpreter' | 'arep-in-contexts' | 'notify';
+export type EventPageActionName = 
+  'create-contexts' | 'forward-context-action' | 'invoke-context-procedure' | 'invoke-js-procedure' | 'set-js-property' | 
+  'inject-interpreter' | 'arep-in-contexts' | 'notify' | 'execute-run-commands' | 'reload-golem';
 
 export type EventPageMessage = {
   action: EventPageActionName,

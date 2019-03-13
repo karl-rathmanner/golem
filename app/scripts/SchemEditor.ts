@@ -1,15 +1,13 @@
 import * as monaco from 'monaco-editor';
 import * as parinfer from './monaco/parinfer';
-import { eventPageMessagingSchemFunctions } from './eventPageMessaging';
+import { eventPageMessagingSchemFunctions, EventPageMessage } from './eventPageMessaging';
 import { AddSchemSupportToEditor } from './monaco/schemLanguage';
 import { readStr, unescape as schemUnescape } from './schem/reader';
 import { filterRecursively, Schem } from './schem/schem';
 import { AnySchemType, SchemBoolean, SchemList, SchemNil, SchemString } from './schem/types';
 import { extractErrorMessage } from './utils/utilities';
 import { VirtualFileSystem } from './virtualFilesystem';
-
-
-const example = require('!raw-loader!./schemScripts/example.schem');
+import { Settings } from './settings';
 
 export class SchemEditor {
   public monacoEditor: monaco.editor.IStandaloneCodeEditor;
@@ -41,7 +39,6 @@ export class SchemEditor {
     AddSchemSupportToEditor(interpreter);
 
     this.monacoEditor = monaco.editor.create(containerElement, {
-      value: example,
       language: 'schem',
       theme: 'vs-dark'
     });
@@ -292,6 +289,16 @@ export class SchemEditor {
   }
 
   public async loadLocalScript(qualifiedFileName: string): Promise<void> {
+    switch (qualifiedFileName) {
+      case '.golemrc':
+        this.openFileName = '.golemrc';
+        this.loadRunCommands();
+        return;
+      case 'examples.schem':
+        this.loadExampleFile();
+        return;
+    }
+
     let fileExists = await VirtualFileSystem.existsOject(qualifiedFileName);
     if (!fileExists) {
       window.alert('File not found.');
@@ -309,6 +316,11 @@ export class SchemEditor {
   }
 
   public async saveScriptLocally(qualifiedFileName: string): Promise<void> {
+    if (this.openFileName === '.golemrc') {
+      this.saveAsRunCommands();
+      return;
+    }
+
     const script = this.monacoEditor.getValue();
     let mayOverwrite = true;
     if (await VirtualFileSystem.existsOject(qualifiedFileName)) {
@@ -322,5 +334,29 @@ export class SchemEditor {
         return;
       }).catch(e => e);
     }
+  }
+
+  public async loadExampleFile() {
+    const examples = require('!raw-loader!./schemScripts/example.schem');
+    this.monacoEditor.setValue(examples);
+  }
+
+  public async loadRunCommands(): Promise<void> {
+    window.location.hash = this.openFileName = '.golemrc';
+    let settings = await Settings.loadSettings();
+    if (settings.runCommands.length > 0) {
+      this.monacoEditor.setValue(settings.runCommands);
+    }
+  }
+
+  public async saveAsRunCommands(): Promise<void> {
+      const editorContents = this.monacoEditor.getValue();
+      await Settings.saveSettings({runCommands: editorContents});
+
+      if (window.confirm('New run commands will be executed now. (Click "cancel" to save without running them.)')) {
+        let msg: EventPageMessage = {action: 'execute-run-commands'}
+        chrome.runtime.sendMessage(msg);
+      };
+
   }
 }

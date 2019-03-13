@@ -1,6 +1,6 @@
 import * as $ from 'jquery';
 import { browser } from 'webextension-polyfill-ts';
-import { Settings } from './options';
+import { Settings } from './settings';
 import { EnvSetupMap } from './schem/env';
 import { pr_str } from './schem/printer';
 import { tokenize } from './schem/reader';
@@ -22,7 +22,7 @@ $.when($.ready).then(() => {
   let lastManuallyTypedToken: string;
 
   Settings.loadSettings().then(s => {
-    interpreter.arep(s.configScript, envOverwrites);
+    interpreter.arep(s.runCommands, envOverwrites);
   });
 
   const separatorPresets: any = {

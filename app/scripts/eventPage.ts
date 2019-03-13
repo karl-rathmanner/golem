@@ -5,12 +5,11 @@ import { EventPageMessage } from './eventPageMessaging';
 import { Schem } from './schem/schem';
 import { isSchemList, isSchemSymbol } from './schem/typeGuards';
 import { CommandHistory } from './utils/commandHistory';
-import { extractErrorMessage, addParensAsNecessary, escapeXml } from './utils/utilities';
+import { addParensAsNecessary, escapeXml } from './utils/utilities';
 import { schemToJs } from './javascriptInterop';
+import { Settings } from './settings';
 
-chrome.runtime.onInstalled.addListener((details) => {
-  console.log('previousVersion', details.previousVersion);
-});
+
 
 window.golem = {
   contextId: 0,
@@ -21,7 +20,8 @@ window.golem = {
 };
 
 const contextManager = window.golem.priviledgedContext!.contextManager;
-const omniboxInterpreter = new Schem();
+const eventPageInterpreter = new Schem();
+
 const omniboxEnvOverride = {
   'notify': (msg: any) => notify(schemToJs(msg))
 };
@@ -51,6 +51,16 @@ browser.runtime.onMessage.addListener(async (message: EventPageMessage, sender):
       return true;
     }
 
+    case 'execute-run-commands': {
+      executeRunCommands();
+      break;
+    }
+
+    case 'reload-golem': {
+      chrome.runtime.reload();
+      break;
+    }
+
     default: {
       console.warn(`unknown message received`);
       console.warn(message);
@@ -58,6 +68,24 @@ browser.runtime.onMessage.addListener(async (message: EventPageMessage, sender):
     }
   }
 });
+
+browser.runtime.onStartup.addListener(executeRunCommands);
+chrome.runtime.onInstalled.addListener((details) => {
+  console.log('previousVersion', details.previousVersion);
+  executeRunCommands();
+});
+
+export async function executeRunCommands() {
+  let settings = await Settings.loadSettings();
+  
+  if (settings.runCommands.length > 0) {
+    console.log("Executing run commands.")
+    await eventPageInterpreter.arep(`(do ${settings.runCommands})`);
+    console.log("Run commands executed.")
+  } else {
+    console.log("No run commands found.")
+  }
+}
 
 function notify(message: string, title?: string) {
   browser.notifications.create('noty', {
@@ -115,7 +143,7 @@ browser.omnibox.onInputChanged.addListener((text: string, suggest) => {
 
   // get a list of bound symbols and turn them into SuggestionResults
   // also: add a 'notify' symbol because that function will be made available through omniboxEnvOverride
-  omniboxInterpreter.readEval(`(sort-and-filter-by-string-similarity "${lastToken}" (cons 'notify (list-symbols)))`).then(async (result) => {
+  eventPageInterpreter.readEval(`(sort-and-filter-by-string-similarity "${lastToken}" (cons 'notify (list-symbols)))`).then(async (result) => {
     let suggestions: Omnibox.SuggestResult[] = [];
 
     // add at most three autocomplete suggestions (to leave some space for command history items)
@@ -151,7 +179,7 @@ browser.omnibox.onInputEntered.addListener((text: string) => {
   // evaluate omnibox expression and display results in a notification
   text = addParensAsNecessary(text);
   omniboxHistory.addCommandToHistory(text);
-  omniboxInterpreter.arep(text, omniboxEnvOverride).then(result => {
+  eventPageInterpreter.arep(text, omniboxEnvOverride).then(result => {
     console.log('Omnibox evalutation result:', result);
   }).catch(e => {
     console.error('Omnibox evaluation error:', e);
