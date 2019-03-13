@@ -1,5 +1,6 @@
 import { isSchemString, isSchemMap, isSchemKeyword, isSequable, isSchemCollection, isSchemType, isSchemNil, isSchemNumber, isSchemSymbol, isSchemFunction } from './schem/typeGuards';
 import { AnySchemType, SchemJSReference, SchemMap, SchemString, SchemSymbol, toSchemMapKey, SchemNil, SchemKeyword, SchemList, SchemVector, SchemNumber, SchemBoolean } from './schem/types';
+const browser = chrome;
 
 export const interopFunctions: {[symbol: string]: any} = {
   'js->schem': async (value: any, options?: any) => {
@@ -233,9 +234,24 @@ export function primitiveValueToSchemType(value: any, defaultValue?: AnySchemTyp
   }
 }
 
+//** Can contain references to objects or property names. TODO: Add a second list for read only stuff. (Like innerHTML?) */
+const jsBlackList = [eval, 'innerHTML', browser.storage, browser.runtime];
+
+
+/** Returns true if either the object or property name match the black list of forbidden js things. */
+function isOnBlackList(obj: any, propertyName: string) {
+  return jsBlackList.some(element => {
+    if (typeof element === 'string' && (propertyName.lastIndexOf(element) > -1)) {
+      return true;
+    } else {
+      return (element === obj[propertyName]);
+    }
+  });
+}
+
 /** Invokes a js function */
 export async function invokeJsProcedure(qualifiedProcedureName: string, procedureArgs: any[]) {
-  const blackList = ['eval', 'innerHTML'];
+
   let propertyNames = qualifiedProcedureName.split('.');
   const procedureName: string = propertyNames.pop()!;
   let obj: any = window;
@@ -249,7 +265,7 @@ export async function invokeJsProcedure(qualifiedProcedureName: string, procedur
     obj = resolveJSPropertyChain(window, ...propertyNames);
   }
 
-  if (blackList.some(element => procedureName.lastIndexOf(element) > -1)) {
+  if (isOnBlackList(obj, procedureName)) {
     return Promise.reject('Tried to invoke a blacklisted JS function.');
   } else {
     try {
@@ -286,7 +302,7 @@ export async function setJsProperty(qualifiedPropertyName: string, value: any) {
 }
 
 async function getOrSetJSProperty(qualifiedName: string, value?: any): Promise<any> {
-  const blackList = ['eval', 'innerHTML'];
+
   const propertyNames: string[] = qualifiedName.split('.');
   const lastPropertyName = propertyNames.pop()!;
   let obj: any = window;
@@ -300,7 +316,7 @@ async function getOrSetJSProperty(qualifiedName: string, value?: any): Promise<a
     obj = resolveJSPropertyChain(window, ...propertyNames);
   }
 
-  if (blackList.some(element => propertyNames.lastIndexOf(element) > -1)) {
+  if (isOnBlackList(obj, lastPropertyName)) {
     return Promise.reject('Tried to access a blacklisted JS object.');
   } else {
     if (typeof  value !== 'undefined') {
@@ -322,6 +338,9 @@ export function resolveJSPropertyChain(parentObject: any, ...propertyNames: stri
 
   // "descend" into properties
   for (let i = 0; i < propertyNames.length; i++) {
+    if (isOnBlackList(obj, propertyNames[i])) {
+      throw new Error('Tried to access a blacklisted JS object or property.');
+    } 
     obj = obj[propertyNames[i]];
   }
 
