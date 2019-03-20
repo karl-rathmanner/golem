@@ -4,7 +4,6 @@ import { GolemContextMessage } from './contentScriptMessaging';
 import { objectPatternMatch } from './utils/utilities';
 import { pr_str } from './schem/printer';
 
-
 export type AvailableSchemContextFeatures = 'schem-interpreter' | 'lightweight-js-interop' | 'demo-functions' | 'dom-manipulation' | 'tiny-repl' | 'shlukerts';
 
 export class SchemContextManager {
@@ -121,7 +120,8 @@ export class SchemContextManager {
     return candidateId;
   }
 
-  idOfContextInstanceMatchingPattern(pattern: any, ignorePropertiesNamed: string[] = []) {
+  /** Returns the ID of a context that matches the pattern object. */
+  idOfContextInstanceMatchingPattern(pattern: any) {
     for (const context of this.activeContextInstances.values()) {
       if (objectPatternMatch(context, pattern)) {
         return context.id;
@@ -130,6 +130,7 @@ export class SchemContextManager {
     return null;
   }
 
+  /** Returns a context instance */
   getContextInstance(contextId: number): SchemContextInstance {
     const c = this.activeContextInstances.get(contextId);
     if (c == null) {
@@ -138,6 +139,7 @@ export class SchemContextManager {
     return c;
   }
 
+  /** Returns true if a context with the supplied ID exists. */
   hasContextInstance(contextId: number): boolean {
     try {
       this.getContextInstance(contextId);
@@ -147,13 +149,15 @@ export class SchemContextManager {
     }
   }
 
+  /** Adds some functionality to a Schem context by injecting a content script into the appropriate tab. */
   async injectFeature(context: SchemContextInstance, feature: AvailableSchemContextFeatures) {
     const contentScriptURL = SchemContextManager.featureNameToContentScriptPath.get(feature);
-    return browser.tabs.executeScript(context.tabId, {file: contentScriptURL}).then(result => {
+    return browser.tabs.executeScript(context.tabId, {file: contentScriptURL}).then(() => {
       return true;
     }).catch(e => e);
   }
 
+  /** Adds some functionality to a Schem context only if it is currently missing the feature. */
   async injectFeatureIfNecessary(context: SchemContextInstance, feature: AvailableSchemContextFeatures) {
     const hasFeature = await this.checkFeature(context, feature);
     if (!hasFeature) {
@@ -162,6 +166,7 @@ export class SchemContextManager {
     return true;
   }
 
+  /** Returns true if the base content script was already injected into the tab. */
   async hasActiveBaseContentScript(context: SchemContextInstance): Promise<boolean> {
     const msg: GolemContextMessage = {action: 'has-base-content-script'};
     return browser.tabs.sendMessage(context.tabId, msg).then(result => {
@@ -172,6 +177,7 @@ export class SchemContextManager {
     });
   }
 
+  /** Returns true if a given feature was already set-up for a given context. */
   async checkFeature(context: SchemContextInstance, feature: AvailableSchemContextFeatures): Promise<boolean> {
     const msg: GolemContextMessage = {action: 'has-feature', args: feature};
     return browser.tabs.sendMessage(context.tabId, msg).then(result => {
@@ -182,6 +188,7 @@ export class SchemContextManager {
     });
   }
 
+  /** Executes a Schem script in a particular context, sets up an interpreter instance if necessary. */
   async arepInContexts(contextIds: number[], schemCode: string, options?: any) {
     const contexts = contextIds.map(id => this.getContextInstance(id));
     // inject interpreter where necessary
@@ -202,6 +209,7 @@ export class SchemContextManager {
 
   }
 
+  /** Restores all persistent contexts after their tabs were reloaded. Deletes unused conext instances. */
   async restoreContextsAfterReload(tabId: number) {
     const contextsInTab = Array.from(this.activeContextInstances.values()).filter(ci => {
       return ci.tabId === tabId;
@@ -223,6 +231,7 @@ export class SchemContextManager {
     });
   }
 
+  /** Uses the lightweight interop module to invoke a javascript function. (Without creating an interpreter instance) */
   async invokeJsProcedure(contextIds: number[], qualifiedProcedureName: string, ...procedureArgs: any[]) {
     // NOT DRY!
     const contexts = contextIds.map(id => this.getContextInstance(id));
@@ -245,6 +254,7 @@ export class SchemContextManager {
     return resultsAndReasons;
   }
 
+  /** Uses the lightweight interop module to get a javascript property. (Without creating an interpreter instance) */
   async getJsProperty(contextIds: number[], qualifiedPropertyName: string) {
     // STILL NOT DRY!
     const contexts = contextIds.map(id => this.getContextInstance(id));
