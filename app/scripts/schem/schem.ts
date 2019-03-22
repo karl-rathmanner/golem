@@ -60,7 +60,7 @@ export class Schem {
           throw new Error(`priviledged context is not set up`);
         }
         
-        this.contextManager = priviledgedContext.contextManager;
+        this.contextManager = priviledgedContext.globalState.contextManager;
       }
     }
     
