@@ -1,20 +1,22 @@
 import * as monaco from 'monaco-editor';
 import { Schem } from '../schem/schem';
-import { isSchemCollection, isSchemFunction, isSchemSymbol, isSchemType } from '../schem/typeGuards';
-import { AnySchemType, SchemContextSymbol, SchemList, SchemSymbol, SchemTypes } from '../schem/types';
+import { isSchemCollection, isSchemFunction, isSchemSymbol, isSchemType, isSchemList } from '../schem/typeGuards';
+import { AnySchemType, SchemContextSymbol, SchemSymbol, SchemTypes } from '../schem/types';
 import ILanguage = monaco.languages.IMonarchLanguage;
 import { resolveJSPropertyChain, getAllProperties } from '../javascriptInterop';
-
 
 export function AddSchemSupportToEditor(interpreter: Schem) {
   registerLanguage();
   setLanguageConfiguration();
   setMonarchTokensProvider();
-  registerCompletionItemProvider(interpreter);
+  registerCompletionItemProvider();
+  SetInterpreterForCompletion(interpreter);
 }
 
+let interpreterForCompletion: Schem
+
 export function SetInterpreterForCompletion(interpreter: Schem) {
-  this.registerCompletionItemProvider(interpreter);
+  interpreterForCompletion = interpreter;
 }
 
 function registerLanguage() {
@@ -109,28 +111,28 @@ function setMonarchTokensProvider() {
   });
 }
 
-function registerCompletionItemProvider(interpreter: Schem) {
+function registerCompletionItemProvider() {
   monaco.languages.registerCompletionItemProvider('schem', {
     triggerCharacters: ['.'],
     provideCompletionItems: async (textModel, position, token, context) => {
-
+      
       // Completion was triggered by the user typing a dot -> propose javascript completion items
       if (context.triggerCharacter == '.') {
         return createJSCompletionItems(textModel, position);
       } else {
         // propose schem completion items
-        return createSchemCompletionItems(interpreter);
+        return createSchemCompletionItems();
       }
     }
   });
 }
 
 /** Creates a list of completion items of all symbols currently bound in the interpreter's root environment. */
-async function createSchemCompletionItems(interpreter: Schem) {
+async function createSchemCompletionItems() {
 
   /** Turns a single schem symbol into a completion item with runtime information */
   function schemSymbolToCompletionItem (sym: SchemSymbol): monaco.languages.CompletionItem {
-    const resolvedValue: any = interpreter.replEnv.get(sym);
+    const resolvedValue: any = interpreterForCompletion.replEnv.get(sym);
   
     const pickKind = (v: any) => {
       // Not caring about the semantics here, just trying to pick ones with a fitting icon
@@ -220,8 +222,8 @@ async function createSchemCompletionItems(interpreter: Schem) {
   });
 
   // Get all symbols bound in the interpreter's root environment
-  let symbols = await interpreter.readEval(`(list-symbols)`);
-  if (symbols instanceof SchemList) {
+  let symbols = await interpreterForCompletion.readEval(`(list-symbols)`);
+  if (isSchemList(symbols)) {
     const completionItems: monaco.languages.CompletionItem[] = symbols.map(schemSymbolToCompletionItem);
     return completionItems.concat(reservedKeywordCompletionItems);
   } else {

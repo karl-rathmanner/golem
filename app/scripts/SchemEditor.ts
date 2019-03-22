@@ -1,13 +1,14 @@
 import * as monaco from 'monaco-editor';
 import * as parinfer from './monaco/parinfer';
 import { eventPageMessagingSchemFunctions, EventPageMessage } from './eventPageMessaging';
-import { AddSchemSupportToEditor } from './monaco/schemLanguage';
+import { AddSchemSupportToEditor, SetInterpreterForCompletion } from './monaco/schemLanguage';
 import { readStr, unescape as schemUnescape } from './schem/reader';
 import { filterRecursively, Schem } from './schem/schem';
 import { AnySchemType, SchemBoolean, SchemList, SchemNil, SchemString } from './schem/types';
 import { extractErrorMessage } from './utils/utilities';
 import { VirtualFileSystem } from './virtualFilesystem';
 import { Settings } from './settings';
+import { browser } from 'webextension-polyfill-ts';
 
 export class SchemEditor {
   public monacoEditor: monaco.editor.IStandaloneCodeEditor;
@@ -144,7 +145,9 @@ export class SchemEditor {
 
         const viewZoneAfterLineNumber = evaluationRange.endLineNumber;
         this.addEvaluationViewZone(viewZoneAfterLineNumber, '...evaluating...', 'evalWaitingForResultViewZone');
-        interpreter.arep(schemCode).then((result) => {
+        
+        // TODO: clean up
+        window.golem.interpreter!.arep(schemCode).then((result) => {
           this.addEvaluationViewZone(viewZoneAfterLineNumber, schemUnescape(result), 'evalResultViewZone');
         }).catch(error => {
           console.error(error);
@@ -289,9 +292,12 @@ export class SchemEditor {
   }
 
   public async loadLocalScript(qualifiedFileName: string): Promise<void> {
+
+    // Handle magic filenames (these are not part of the virtual file system and may cause special behaviour)
     switch (qualifiedFileName) {
       case '.golemrc':
         this.openFileName = '.golemrc';
+        this.switchToEventPageInterpreter();
         this.loadRunCommands();
         return;
       case 'examples.schem':
@@ -299,6 +305,7 @@ export class SchemEditor {
         return;
     }
 
+    // Handle regular filenames
     let fileExists = await VirtualFileSystem.existsOject(qualifiedFileName);
     if (!fileExists) {
       window.alert('File not found.');
@@ -341,8 +348,15 @@ export class SchemEditor {
     this.monacoEditor.setValue(examples);
   }
 
+  private async switchToEventPageInterpreter() {
+    const bgp = await browser.runtime.getBackgroundPage();
+    window.golem.interpreter = bgp.golem.interpreter;
+    SetInterpreterForCompletion(window.golem.interpreter!);
+  }
+
   public async loadRunCommands(): Promise<void> {
     window.location.hash = this.openFileName = '.golemrc';
+    
     let settings = await Settings.loadSettings();
     if (settings.runCommands.length > 0) {
       this.monacoEditor.setValue(settings.runCommands);
