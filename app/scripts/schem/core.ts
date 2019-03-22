@@ -513,9 +513,9 @@ export const coreFunctions: {[symbol: string]: any} = {
     }
     return new SchemString('Clearing the storage was canceled.');
   },
-  'storage-get-vfstree': async() => {
-    const vfst = await VirtualFileSystem.getVFSTree();
-    return jsObjectToSchemType(vfst, {depth: 900});
+  'storage-ls': async(path: SchemString) => {
+    const folderInfo = await VirtualFileSystem.listFolderContents(path.valueOf());
+    return jsObjectToSchemType(folderInfo, {depth: 9001});
   },
   'resolve-js-property-chain': (jsObject: any, ...propertyNames: Array<SchemString | SchemKeyword>) => {
     const pNames: string[] = propertyNames.map(e => isSchemKeyword(e) ? e.name : e.valueOf());

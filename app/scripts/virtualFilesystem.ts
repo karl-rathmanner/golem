@@ -6,7 +6,7 @@ type VFSObjectKeysNode = {
   folders: {[name: string]: VFSObjectKeysNode};
 };
 
-/** The Virtual File System makes it possible to create, read, update, and delete objects in the browser's local storage, in a hierachical, file-system-like way.
+/** The Virtual File System allows you to create, read, update, and delete objects in the browser's local storage, in a hierachical, file-system-like way.
  * The VFS keeps track of directory and object names using a tree. Each tree node represents a folder. Each folder can contain multiple objects or child folders.
  * Oualified object names (like "exampleFolder/subFolder/objectName") can be resolved to a key that is radomly generated during object creation.
  * It's these keys that map to the objects' value in the browser's 'flat' local storage.
@@ -37,19 +37,32 @@ export class VirtualFileSystem {
     return browser.storage.local.clear();
   }
 
-  public static async getVFSTree() {
+  private static async getVFSTree() {
     return browser.storage.local.get({virtualFileSystemKeyTree: {}}).then(async results => {
       const objectKeyTree = results.virtualFileSystemKeyTree as VFSObjectKeysNode;
-      return (objectKeyTree);
+      return objectKeyTree;
     });
   }
 
-  /*
-  public static listDirectoryContents() {
-    return browser.storage.local.get({virtualFileSystemKeyTree: {}}).then(async results => {
-      const objectKeyTree = results.virtualFileSystemKeyTree as VFSObjectKeyTree;
-    });
-  }*/
+  public static async listFolderContents(path: string = '/') {
+    const okt = await this.getVFSTree();
+    const folderNames = path.split('/');
+    let folderPointer = okt;
+
+    for (const folder of folderNames) {
+      if (folder.length > 0) {
+        folderPointer = okt.folders[folder];
+        if (folderPointer === undefined) {
+          throw new Error(`Folder ${folder} does not exist. (requested path: ${path})`);
+        }
+      }
+    }
+
+    return {
+      folders: Object.getOwnPropertyNames(folderPointer.folders), 
+      objects: Object.getOwnPropertyNames(folderPointer.objects)
+    };
+  }
 
   // private methods
 
