@@ -3,7 +3,7 @@ export function objectPatternMatch(object: any, needle: any) {
   const needleProperties = Object.getOwnPropertyNames(needle);
 
   const invertedMatch = needleProperties.findIndex(needleProperty => {
-    // return true for the first mismatch between pattern and object
+    // return true for the first *mismatch* between pattern and object
     if (!(needleProperty in object)) {
       return true;
     }
@@ -11,7 +11,7 @@ export function objectPatternMatch(object: any, needle: any) {
     const needlePropertyValue = (needle as any)[needleProperty];
 
     if (typeof objectPropertyValue === 'object') {
-      return this.objectPatternMatch(objectPropertyValue, needlePropertyValue);
+      return (! this.objectPatternMatch(objectPropertyValue, needlePropertyValue));
     } else if (typeof objectPropertyValue === 'function') {
       throw new Error(`can't compare functions`);
     } else {
