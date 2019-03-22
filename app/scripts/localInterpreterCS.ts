@@ -9,13 +9,18 @@ export interface ContextArepResponse {
 }
 
 (async function addInterpreter() {
-  console.log('interpreter injected');
-
   // for *some* reason, the interpreter gets injected twice when preparing a context that explicitly requested the 'schem-interpreter' feature
   // TODO: investigate
+  if (window.golem == null) {
+    console.warn('trying to inject interpreter before the base content script')
+  } else {
+    console.log('injecting interpreter');
+  }
+
   if (window.golem.interpreter == null) {
     window.golem.features.push('schem-interpreter');
     const interpreter = new Schem();
+    interpreter.loadCore();
     window.golem.interpreter = interpreter;
 
     if (window.golem.injectedProcedures != null) {

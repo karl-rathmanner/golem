@@ -8,6 +8,7 @@ export type AvailableSchemContextFeatures = 'schem-interpreter' | 'lightweight-j
 
 export class SchemContextManager {
   activeContextInstances = new Map<number, SchemContextInstance>();
+
   private static featureNameToContentScriptPath = new Map<AvailableSchemContextFeatures, string>([
     ['schem-interpreter', 'scripts/localInterpreterCS.js'],
     ['demo-functions', 'scripts/demoContentScript.js'],
@@ -31,10 +32,9 @@ export class SchemContextManager {
     // inject a global golem object that content scripts can share
     await browser.tabs.executeScript(contextInstance.tabId, {
       code: `
-        var golem = {contextId: ${contextInstance.id}};
+        var golem = {contextId: ${contextInstance.id}, features:[]};
         golem.injectedProcedures = new Map();
         `,
-      // frameId: contextInstance.definition.frameId
     }).catch(e => {
       console.error(e);
       return Promise.reject(`Couldn't inject golem object`);
@@ -57,7 +57,7 @@ export class SchemContextManager {
   }
 
   /** Creates new context instances if necessary, adds them to the registry and returns their ids */
-  async prepareContexts(contextDef: SchemContextDefinition): Promise<number[]> {
+  async prepareContexts(contextDef: SchemContextDefinition, restrictToTabId?: number): Promise<number[]> {
     const queryInfo: Tabs.QueryQueryInfoType = contextDef.tabQuery;
     const frameId: number | undefined = contextDef.frameId;
 
@@ -70,16 +70,30 @@ export class SchemContextManager {
       return Promise.reject({error: {message: e.message}});
     }
 
+    if (restrictToTabId != null) {
+      tabs = tabs.filter(tab => tab.id === restrictToTabId);
+    }
+
     // get contexts that match the description, create new ones as necessary
     const contexts = tabs.map(tab => {
       const windowId = typeof tab.windowId !== 'undefined' ? tab.windowId : -1;
       const tabId = typeof tab.id !== 'undefined' ? tab.id : -1;
 
       // instantiate new context only if the frame>tab>window doesn't already have one matching the definition
-      const matchingContextId = this.idOfContextInstanceMatchingPattern({frameId: frameId, tabId: tabId, windowId: windowId, tabQuery: queryInfo});
+      const matchingContextId = this.idOfContextInstanceMatchingPattern(
+        {
+          frameId: frameId, 
+          tabId: tabId, 
+          windowId: windowId, 
+          definition: {
+            tabQuery: queryInfo
+          }
+        });
 
       if (matchingContextId === null) {
-        if (contextDef.lifetime == null) contextDef.lifetime = 'inject-once';
+        if (contextDef.lifetime == null) {
+          contextDef.lifetime = 'inject-once';
+        }
         const newContext = new SchemContextInstance(this.getNewContextId(), tabId, windowId, contextDef);
         this.activeContextInstances.set(newContext.id, newContext);
         return newContext;
@@ -88,19 +102,26 @@ export class SchemContextManager {
       }
     });
 
-    const contextIds = Promise.all(contexts.map(async context => {
-      await this.injectBaseContentScriptIfNecessary(context);
-
-      if (contextDef.features != null) {
-        await Promise.all(contextDef.features.map((feature) => {
-          this.injectFeatureIfNecessary(context, feature as AvailableSchemContextFeatures);
-        }));
-      }
-
+    const contextIds = await Promise.all(contexts.map(async context => {
+      this.setupContext(context);
       return context.id;
     }));
-
+    
     return contextIds;
+  }
+  
+  private async setupContext(context: SchemContextInstance) {    
+    await this.injectBaseContentScriptIfNecessary(context);
+  
+    if (context.definition.features != null) {
+      for (const feature of context.definition.features) {
+        await this.injectFeatureIfNecessary(context, feature as AvailableSchemContextFeatures);
+      }
+    }
+
+    if (context.definition.init != null) {
+      this.arepInContexts([context.id], await pr_str(await context.definition.parentContext!.evalSchem(context.definition.init)));
+    }
   }
 
   private async injectBaseContentScriptIfNecessary(context: SchemContextInstance) {
@@ -120,7 +141,7 @@ export class SchemContextManager {
     return candidateId;
   }
 
-  /** Returns the ID of a context that matches the pattern object. */
+  /** Returns the first ID of a context that matches the pattern object. */
   idOfContextInstanceMatchingPattern(pattern: any) {
     for (const context of this.activeContextInstances.values()) {
       if (objectPatternMatch(context, pattern)) {
@@ -128,6 +149,12 @@ export class SchemContextManager {
       }
     }
     return null;
+  }
+
+  /** Returns the IDs of all contexts that contain all key value pairs of the pattern object. */
+  getMatchingContextIds(pattern: any) {
+    const keys = Array.from(this.activeContextInstances.keys());
+    return keys.filter(key => objectPatternMatch(this.activeContextInstances.get(key), pattern));
   }
 
   /** Returns a context instance */
@@ -197,15 +224,14 @@ export class SchemContextManager {
     // send arep messages
     const tabIds: Array<number> = contextIds.map((contextId: number) => this.getContextInstance(contextId)!.tabId);
     return await Promise.all(tabIds.map(async tabId => {
-        return browser.tabs.sendMessage(tabId, {
-          action: 'invoke-context-procedure',
-          args: {
-            procedureName: 'arep',
-            procedureArgs: [schemCode, options]
-          }
-        });
-      })
-    );
+      return browser.tabs.sendMessage(tabId, {
+        action: 'invoke-context-procedure',
+        args: {
+          procedureName: 'arep',
+          procedureArgs: [schemCode, options]
+        }
+      });
+    }));
 
   }
 
@@ -215,20 +241,14 @@ export class SchemContextManager {
       return ci.tabId === tabId;
     });
 
-    contextsInTab.forEach(async context => {
+    for (const context of contextsInTab) {
       if (context.definition.lifetime === 'persistent') {
-        await this.injectBaseContentScriptIfNecessary(context);
-        if (context.definition.features != null) context.definition.features.forEach(feature => {
-          this.injectFeatureIfNecessary(context, feature);
-        });
-        if (context.definition.init != null) {
-          this.arepInContexts([context.id], await pr_str(await context.definition.parentContext!.evalSchem(context.definition.init)));
-        }
+        this.setupContext(context);
       } else {
         // this context is not needed anymore
         this.activeContextInstances.delete(context.id);
       }
-    });
+    }
   }
 
   /** Uses the lightweight interop module to invoke a javascript function. (Without creating an interpreter instance) */
