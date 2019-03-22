@@ -506,7 +506,36 @@
                          :init beautify})
   (happyTab:(prn "Brace yourself!")))
 
+;;; Autoinstantiate contexts
 
+; These will finally let you do, what a user script manager is supposed to let you do: 
+; Change the looks or behaviour of a web page "permanently"
+
+; They can only be registered in your .golemrc file (which can't be written or read from the virtual file system)
+; You can edit your rc-file from the options window, or just open it in the editor like a regular file.
+
+; Paste the five lines below into your .golemrc and uncomment them. (Tip: select them and press [ctrl+k], [ctrl+u])
+
+; (clear-autoinstantiate-context)
+; (defcontext xkcd: { :tabQuery {:url "*://*.xkcd.com/*"}
+;                     :init '(load-file "xkcd")
+;                     :features ["schem-interpreter" "dom-manipulation" "tiny-repl" "shlukerts"]})
+; (add-autoinstantiate-context xkcd:)
+
+; When you save the .golemrc file, you are asked whether you want to execute its contents immediately. Click "ok" to do so.
+
+; Your new rc-file registers a context in the autoinstantiate list. This means golem will automatically create the xkcd: context
+; whenever a page is loaded that matches it's :url parameter in :tabQuery. Then, according to the context's :init parameter, 
+; it will load a file named "xkcd" and locally execute its contents. We still need that "xkcd" file, though.
+
+; So open a new editor window, paste (and uncomment) the following script into it. Then save [ctrl+s] the file as "xkcd":
+
+; (set-css-text "body" "font-family: \"Comic Sans MS\", \"Comic Sans\", cursive")
+; (prn "Increased the comicness!")
+
+; Notice how, the next time you open xkcd.com in any tab, the page's font changes after it finishes loading.
+; Since the .golemrc script is executed every time you start your browser, your modification will be active until you remove
+; the context from the autoinstantiate list. 
 
 ;;; XML support
 
