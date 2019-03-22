@@ -5,7 +5,6 @@ import { AvailableSchemContextFeatures } from './contextManager';
 
 (function addMessageListener() {
   console.log('base content script injected');
-  window.golem.features = [];
 
   browser.runtime.onMessage.addListener(async (message: GolemContextMessage, sender: Runtime.MessageSender): Promise<any> => {
     switch (message.action) {
