@@ -1,10 +1,15 @@
 ## 0.7.0
+Golem finally has a mechanism that makes "permanent" changes to websites possible. :)
+
 Notable features:
 - Added a '.golemrc'-file that is executed on browser startup. (Not part of the virtual file system; can be accessed through the options page.)
+- Autoinstantiation of contexts. (see example)
+- Popup: More links and some indicator of whether there's an active context in the current tab.
+- Opening the editor won't automatically load the "examples" script.
+- The background page shows some status information about active contexts and such.
 - Docstrings show up during auto-completion.
 - Bundled d3 with this release, just for fun.
 - Better js interop (plus examples).
-- Opening the editor won't automatically load the "examples" script.
 
 ## 0.6.0
 Dear Diary,
