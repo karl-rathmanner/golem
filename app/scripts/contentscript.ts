@@ -1,9 +1,9 @@
 // Enable chromereload by uncommenting this line:
-import 'chromereload/devonly';
 import { browser, Runtime } from 'webextension-polyfill-ts';
 import * as $ from 'jquery';
 
 if (process.env.NODE_ENV === 'development') {
+  require('chromereload/devonly');
   // Exposing jQuery because chrome's dev tools use '$' as an alias for document.querySelector.
   // If you want to call jQuery from the dev tool's console: use jQuery() instead of $()
   (window as any).jQuery = $;

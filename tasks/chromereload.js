@@ -12,9 +12,11 @@ import { stylesCss, stylesLess, stylesSass } from './styles';
 import { changelog } from './changelog';
 
 // In order to make chromereload work you'll need to include
-// the following line in your `scipts/background.ts` file.
+// the following lines in your `scipts/background.ts` file.
 //
-//    import 'chromereload/devonly';
+// if (process.env.NODE_ENV === 'development') {
+//   require('chromereload/devonly');
+// }
 //
 // This will reload your extension everytime a file changes.
 // If you just want to reload a specific context of your extension
@@ -29,7 +31,9 @@ import { changelog } from './changelog';
 export const chromereload = (cb) => {
   // This task runs only if the
   // watch argument is present!
-  if (!args.watch) return cb();
+  if (!args.watch) {
+    return cb();
+  }
 
   // Start livereload server
   livereload.listen({

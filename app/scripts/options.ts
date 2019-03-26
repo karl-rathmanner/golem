@@ -1,5 +1,3 @@
-// Enable chromereload by uncommenting this line:
-// import 'chromereload/devonly';
 import { browser } from 'webextension-polyfill-ts';
 import { Settings } from './settings';
 

@@ -1,5 +1,8 @@
-import 'chromereload/devonly'
 import { browser } from 'webextension-polyfill-ts';
+
+if (process.env.NODE_ENV === 'development') {
+  require('chromereload/devonly');
+}
 
 document.addEventListener("DOMContentLoaded", async () => {
 

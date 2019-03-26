@@ -1,4 +1,5 @@
-// Enable chromereload by uncommenting this line:
-// import 'chromereload/devonly'
+if (process.env.NODE_ENV === 'development') {
+  require('chromereload/devonly');
+}
 
-console.log(`'Allo 'Allo! Devtools Extension`);
+// Nothing to see here. Move along!

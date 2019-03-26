@@ -1,4 +1,3 @@
-import 'chromereload/devonly';
 import { browser, Omnibox, Tabs } from 'webextension-polyfill-ts';
 import { SchemContextManager } from './contextManager';
 import { EventPageMessage } from './eventPageMessaging';
@@ -10,6 +9,10 @@ import { schemToJs } from './javascriptInterop';
 import { Settings } from './settings';
 import { SchemContextDefinition, SchemString, SchemBoolean, SchemList } from './schem/types';
 import { VirtualFileSystem } from './virtualFilesystem';
+
+if (process.env.NODE_ENV === 'development') {
+  require('chromereload/devonly');
+}
 
 /** WIP: haphazardly moving stuff from the old event page to GlobalGolemState to deal with stuff that happens when the background page is opened in multiple tabs. 
  * TODO: Break this file up into meaningful parts / classes. */
