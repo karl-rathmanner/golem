@@ -270,7 +270,7 @@ function initialize() {
 export async function executeRunCommands() {
   let settings = await Settings.loadSettings();
   
-  if (settings.runCommands.length > 0) {
+  if (settings.runCommands != null && settings.runCommands.length > 0) {
     console.log("Executing run commands.")
     await globalState.eventPageInterpreter.arep(`(do ${settings.runCommands})`);
     console.log("Run commands executed.")
