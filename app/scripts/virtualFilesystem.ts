@@ -52,11 +52,13 @@ export class VirtualFileSystem {
     for (const folder of folderNames) {
       if (folder.length > 0) {
         folderPointer = okt.folders[folder];
-        if (folderPointer === undefined) {
+        if (folderPointer.folders === undefined) {
           throw new Error(`Folder ${folder} does not exist. (requested path: ${path})`);
         }
       }
     }
+
+    if (folderPointer.folders == null) return null;
 
     return {
       folders: Object.getOwnPropertyNames(folderPointer.folders), 
