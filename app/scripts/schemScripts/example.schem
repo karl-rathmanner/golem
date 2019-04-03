@@ -1,11 +1,19 @@
 ;;; This is a REPL, a live coding environment.
-;;; Place your cursor inside a form and press alt+e to see immediate results!
+;;; Place your cursor inside a form and press [alt+e] evaluate it.
 
-; Caveats:
+;;; Shortcuts:
+; [alt+e] evaluates the form surrounding your cursor
+; [alt+shift+e] evaluates the top-level form around cursor
+; [ctrl+s], [ctrl+o] save or open file, respectively
+
+; Many shortcuts that you might know from VS Code are available here, too. 
+; Press [F1] to open command pallette and find out more
+
+;;; Caveats:
 ; Make sure you don't have too many or too few parentheses in the file. That confuses the parser!
 ; Some of these examples depend on symbols defined above them. Evaluating them in order is 
 ; recommended.
-; When in doubt: check your browser's console.
+; When in doubt: check your browser's console (and the background page's console)
 ; If all else fails: reload this tab.
 
 
@@ -55,7 +63,6 @@
 
 ; And who could live without regular expressions? Here's one in action:
 (re-find #"(.[ge]+).*(.x)\w*" "An irregular expression or something, i guess...")
-
 
 
 ;;; Reading LISP Forms
