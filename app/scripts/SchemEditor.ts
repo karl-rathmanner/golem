@@ -9,6 +9,8 @@ import { extractErrorMessage } from './utils/utilities';
 import { VirtualFileSystem } from './virtualFilesystem';
 import { Settings } from './Settings';
 import { browser } from 'webextension-polyfill-ts';
+import { dexieIntegration } from './dexieWrapper';
+
 
 export class SchemEditor {
   public monacoEditor: monaco.editor.IStandaloneCodeEditor;
@@ -22,6 +24,7 @@ export class SchemEditor {
       interpreter = new Schem();
       interpreter.replEnv.addMap(eventPageMessagingSchemFunctions);
       interpreter.replEnv.addMap(this.editorManipulationSchemFunctions);
+      interpreter.replEnv.addMap(dexieIntegration);
       interpreter.loadCore();
     } else {
       interpreter = options.interpreter;
