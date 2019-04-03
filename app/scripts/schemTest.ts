@@ -1,6 +1,6 @@
 import * as $ from 'jquery';
 import { browser } from 'webextension-polyfill-ts';
-import { Settings } from './settings';
+import { Settings } from './Settings';
 import { EnvSetupMap } from './schem/env';
 import { pr_str } from './schem/printer';
 import { tokenize } from './schem/reader';

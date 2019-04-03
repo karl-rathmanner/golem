@@ -4,7 +4,6 @@ type GolemSettings = {
   runCommands: string;
 };
 
-
 export class Settings {
   public static async loadSettings(): Promise<GolemSettings> {
     return await browser.storage.local.get({settings: {}}).then(results => {

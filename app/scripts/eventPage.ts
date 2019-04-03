@@ -6,7 +6,7 @@ import { isSchemList, isSchemSymbol } from './schem/typeGuards';
 import { CommandHistory } from './utils/commandHistory';
 import { addParensAsNecessary, escapeXml, objectPatternMatch } from './utils/utilities';
 import { schemToJs } from './javascriptInterop';
-import { Settings } from './settings';
+import { Settings } from './Settings';
 import { SchemContextDefinition, SchemString, SchemBoolean, SchemList } from './schem/types';
 import { VirtualFileSystem } from './virtualFilesystem';
 
@@ -19,6 +19,8 @@ if (process.env.NODE_ENV === 'development') {
 export class GlobalGolemState {
   private bgp: Window;
   public contextManager = new SchemContextManager();
+
+  // TODO: Move anything that has to be persistent to storage!
   public autoinstantiateContexts = new Array<SchemContextDefinition>();
   public eventPageInterpreter: Schem; 
   public isReady = false;

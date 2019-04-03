@@ -7,7 +7,7 @@ import { filterRecursively, Schem } from './schem/schem';
 import { AnySchemType, SchemBoolean, SchemList, SchemNil, SchemString } from './schem/types';
 import { extractErrorMessage } from './utils/utilities';
 import { VirtualFileSystem } from './virtualFilesystem';
-import { Settings } from './settings';
+import { Settings } from './Settings';
 import { browser } from 'webextension-polyfill-ts';
 
 export class SchemEditor {

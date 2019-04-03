@@ -1,5 +1,5 @@
 import { browser } from 'webextension-polyfill-ts';
-import { Settings } from './settings';
+import { Settings } from './Settings';
 
 document.addEventListener('DOMContentLoaded', () => {
     Settings.loadSettings().then(settings => {
