@@ -14,7 +14,7 @@ if (process.env.NODE_ENV === 'development') {
   require('chromereload/devonly');
 }
 
-/** WIP: haphazardly moving stuff from the old event page to GlobalGolemState to deal with stuff that happens when the background page is opened in multiple tabs. 
+/** WIP: haphazardly moving stuff from the old event page to GlobalGolemState to deal with stuff that happens when the background page is opened in multiple tabs.
  * TODO: Break this file up into meaningful parts / classes. */
 export class GlobalGolemState {
   private bgp: Window;
@@ -22,9 +22,9 @@ export class GlobalGolemState {
 
   // TODO: Move anything that has to be persistent to storage!
   public autoinstantiateContexts = new Array<SchemContextDefinition>();
-  public eventPageInterpreter: Schem; 
+  public eventPageInterpreter: Schem;
   public isReady = false;
-  
+
   constructor() {
     this.init();
   }
@@ -34,9 +34,9 @@ export class GlobalGolemState {
     this.eventPageInterpreter = new Schem();
     window.golem.interpreter = globalState.eventPageInterpreter;
     if (this.bgp.golem.priviledgedContext!.globalState.isReady) {
-      console.log("was ready before");
+      console.log('was ready before');
     } else {
-      console.log("adding listeners and stuff");      
+      console.log('adding listeners and stuff');
       this.addRuntimeListeners();
       this.addAdditionalListeners();
       this.eventPageInterpreter.replEnv.addMap(eventPageInterpreterFunctions);
@@ -63,22 +63,22 @@ export class GlobalGolemState {
             return resultsAndReasons;
           }
         }
-    
+
         case 'notify': {
           notify(message.args.message);
           return true;
         }
-    
+
         case 'execute-run-commands': {
           executeRunCommands();
           break;
         }
-    
+
         case 'reload-golem': {
           chrome.runtime.reload();
           break;
         }
-    
+
         default: {
           console.warn(`unknown message received`);
           console.warn(message);
@@ -86,12 +86,12 @@ export class GlobalGolemState {
         }
       }
     });
-    
+
     browser.runtime.onInstalled.addListener((details) => {
       console.log('previousVersion', details.previousVersion);
       initialize();
     });
-    
+
     browser.runtime.onStartup.addListener(initialize);
   }
 
@@ -103,7 +103,7 @@ export class GlobalGolemState {
         await this.contextManager.restoreContextsAfterReload(tabId);
         for (const context of await getAutoinstantiateContexts()) {
           await this.contextManager.prepareContexts(context, tabId);
-        } 
+        }
       }
     });
   }
@@ -156,14 +156,14 @@ const eventPageInterpreterFunctions = {
   'notify': (msg: SchemString) => {
     notify(msg.valueOf());
   }
-}
+};
 
 async function getAutoinstantiateContexts() {
   const bgp = await browser.runtime.getBackgroundPage();
   return bgp.golem.priviledgedContext!.globalState.autoinstantiateContexts;
 }
 
-document.addEventListener("DOMContentLoaded", updateBGPInfoPanel);
+document.addEventListener('DOMContentLoaded', updateBGPInfoPanel);
 
 /** Prints a lazy status message to the background page */
 async function updateBGPInfoPanel() {
@@ -274,13 +274,13 @@ function initialize() {
 
 export async function executeRunCommands() {
   let settings = await Settings.loadSettings();
-  
+
   if (settings.runCommands != null && settings.runCommands.length > 0) {
-    console.log("Executing run commands.")
+    console.log('Executing run commands.');
     await globalState.eventPageInterpreter.arep(`(do ${settings.runCommands})`);
-    console.log("Run commands executed.")
+    console.log('Run commands executed.');
   } else {
-    console.log("No run commands found.")
+    console.log('No run commands found.');
   }
 }
 
