@@ -9,7 +9,7 @@ import { extractErrorMessage } from './utils/utilities';
 import { VirtualFileSystem } from './virtualFilesystem';
 import { Settings } from './Settings';
 import { browser } from 'webextension-polyfill-ts';
-import { dexieIntegration } from './dexieWrapper';
+import { createDexieIntegrationMap } from './dexieWrapper';
 
 
 export class SchemEditor {
@@ -17,30 +17,31 @@ export class SchemEditor {
   public openFileName: string;
   private evalZoneId: number;
   private ast: AnySchemType;
+  private interpreter: Schem;
 
   constructor (private containerElement: HTMLElement, private options: {interpreter?: Schem, expandContainer: boolean} = {expandContainer: true}) {
-    let interpreter: Schem;
+
     if (options.interpreter == null) {
-      interpreter = new Schem();
-      interpreter.replEnv.addMap(eventPageMessagingSchemFunctions);
-      interpreter.replEnv.addMap(this.editorManipulationSchemFunctions);
-      interpreter.replEnv.addMap(dexieIntegration);
-      interpreter.loadCore();
+      this.interpreter = new Schem();
+      this.interpreter.replEnv.addMap(eventPageMessagingSchemFunctions);
+      this.interpreter.replEnv.addMap(this.editorManipulationSchemFunctions);
+      createDexieIntegrationMap().then(map => this.interpreter.replEnv.addMap(map));
+      this.interpreter.loadCore();
     } else {
-      interpreter = options.interpreter;
+      this.interpreter = options.interpreter;
     }
 
-    if (window.golem == null) {
+    if (window.golem == null) {}
+
       // Expose the interpreter via the global golem object.
       // TODO: create context via conext manager?
-      window.golem = {
-        contextId: 0,
-        features: ['schem-interpreter'],
-        interpreter: interpreter
-      };
-    }
+    window.golem = {
+      contextId: 0,
+      features: ['schem-interpreter'],
+      interpreter: this.interpreter
+    };
 
-    AddSchemSupportToEditor(interpreter);
+    AddSchemSupportToEditor(this.interpreter);
 
     this.monacoEditor = monaco.editor.create(containerElement, {
       language: 'schem',
@@ -51,7 +52,7 @@ export class SchemEditor {
     this.updateEditorLayout();
     this.monacoEditor.focus();
     this.addCustomActionsToCommandPalette();
-    this.addFormEvaluationCommand(interpreter);
+    this.addFormEvaluationCommand(this.interpreter);
 
     this.addParinfer();
   }
@@ -150,7 +151,7 @@ export class SchemEditor {
         this.addEvaluationViewZone(viewZoneAfterLineNumber, '...evaluating...', 'evalWaitingForResultViewZone');
         
         // TODO: clean up
-        window.golem.interpreter!.arep(schemCode).then((result) => {
+        this.interpreter.arep(schemCode).then((result) => {
           this.addEvaluationViewZone(viewZoneAfterLineNumber, schemUnescape(result), 'evalResultViewZone');
         }).catch(error => {
           console.error(error);
@@ -353,7 +354,7 @@ export class SchemEditor {
 
   private async switchToEventPageInterpreter() {
     const bgp = await browser.runtime.getBackgroundPage();
-    window.golem.interpreter = bgp.golem.interpreter;
+    this.interpreter = bgp.golem.interpreter!;
     SetInterpreterForCompletion(window.golem.interpreter!);
   }
 
