@@ -6,7 +6,8 @@ interface Window {
     injectedProcedures?: Map<string, Function>,
     interpreter?: import('../schem/schem').Schem,
     priviledgedContext?: {
-      globalState: import('../eventPage').GlobalGolemState
+      globalState: import('../GlobalGolemState').GlobalGolemState,
+      globalFunctions: import('../GlobalGolemFunctions').GlobalGolemFunctions
     }
   };
 }

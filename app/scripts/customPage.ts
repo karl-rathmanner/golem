@@ -5,7 +5,7 @@ import { SchemEditor } from './SchemEditor';
 import { shlukerts } from './shlukerts';
 import { VirtualFileSystem } from './virtualFilesystem';
 
-window.onload = () => {
+window.onload = async () => {
   const interpreter = new Schem();
 
   // create a global golem object, so functions that were written with a content script environment in mind can be used in this background-page-ish context

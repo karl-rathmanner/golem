@@ -10,7 +10,7 @@ import { CommandHistory } from './utils/commandHistory';
 import { Key } from './utils/Key.enum';
 import { isSchemKeyword, isSchemSymbol, isSchemString } from './schem/typeGuards';
 
-$.when($.ready).then(() => {
+$.when($.ready).then(async () => {
   const inputElement = $('#input');
   const commandHistory = new CommandHistory();
   const interpreter = new Schem();

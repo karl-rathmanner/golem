@@ -9,9 +9,8 @@ import { extractErrorMessage } from './utils/utilities';
 import { VirtualFileSystem } from './virtualFilesystem';
 import { Settings } from './Settings';
 import { browser } from 'webextension-polyfill-ts';
-import { createDexieIntegrationMap } from './dexieWrapper';
 
-
+/** Uses the Monaco editor to provide a very integrated Schem development environment. */
 export class SchemEditor {
   public monacoEditor: monaco.editor.IStandaloneCodeEditor;
   public openFileName: string;
@@ -25,7 +24,6 @@ export class SchemEditor {
       this.interpreter = new Schem();
       this.interpreter.replEnv.addMap(eventPageMessagingSchemFunctions);
       this.interpreter.replEnv.addMap(this.editorManipulationSchemFunctions);
-      createDexieIntegrationMap().then(map => this.interpreter.replEnv.addMap(map));
       this.interpreter.loadCore();
     } else {
       this.interpreter = options.interpreter;
@@ -33,8 +31,6 @@ export class SchemEditor {
 
     if (window.golem == null) {}
 
-      // Expose the interpreter via the global golem object.
-      // TODO: create context via conext manager?
     window.golem = {
       contextId: 0,
       features: ['schem-interpreter'],
@@ -72,6 +68,7 @@ export class SchemEditor {
     }
   };
 
+  /** Add command shortcuts. */
   private addFormEvaluationCommand(interpreter: Schem) {
     this.monacoEditor.createContextKey('evalEnabled', true);
     this.monacoEditor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.KEY_E, this.evaluateEditorContents(interpreter, 'bracketsSurroundingCursor'), 'evalEnabled');
@@ -79,12 +76,14 @@ export class SchemEditor {
     this.monacoEditor.addCommand(monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_E, this.evaluateEditorContents(interpreter, 'wholeBuffer'), 'evalEnabled');
   }
 
+  /** Parinfer is a library that automatically creates all those pesky parens for you. */
   private addParinfer() {
     // Gist: When a (probably) user generated change to the model is detected, wait 700ms before running parinfer.
     // Parinfer returns the whole buffer and unless I integrate its smart mode or find a way to only edit the parts of the model that include changes,
     // each parinfer update will cause the editor to flash while the syntax highlighting is recalculated.
     // The current integration includes a bunch of work-arounds that I'm not proud of, but it's still way better than not having parinfer.
-    // (The delay is 'necessary', for instance, because the rule relaxation around the cursor position doesn't seem to work ...always.)
+    // (The delay is currently 'necessary', for instance, because the rule relaxation around the cursor position doesn't seem to work ...always.)
+    // TODO: find a proper fix for this workaround.
 
     this.monacoEditor.createContextKey('parinferEnabled', true);
 
@@ -124,6 +123,7 @@ export class SchemEditor {
     }
   }
 
+  /** Evaluates some or all of the editor contents and shows the result right below that. */
   private evaluateEditorContents(interpreter: Schem, mode: 'wholeBuffer' | 'bracketsSurroundingCursor' | 'topLevelBracketsSurroundingCursor'): monaco.editor.ICommandHandler {
     return () => {
       this.monacoEditor.changeViewZones((changeAccessor: any) => {
@@ -162,6 +162,7 @@ export class SchemEditor {
     };
   }
 
+  /** Adds commands to that list you see when you press [F1] */
   private addCustomActionsToCommandPalette() {
     this.monacoEditor.addAction({
       id: 'saveScriptToVFS',
@@ -188,6 +189,7 @@ export class SchemEditor {
     });
   }
 
+  /** Shows the results of live evaluations. (Or error messages thereof.) */
   private addEvaluationViewZone(afterLineNumber: number, content: string, className: string): void {
     let domNode = document.createElement('div');
     domNode.className = 'monaco-lines';
@@ -237,14 +239,16 @@ export class SchemEditor {
     ]);
   }
 
+  /** Creates that little arrow when evaluation results are displayed. You know, where the line numbers would be if the arrow wasn't there...*/
   private createEvalMarginDomNode(): HTMLDivElement {
     let marginDomNode = document.createElement('div');
     marginDomNode.classList.add('line-numbers');
     marginDomNode.classList.add('evalMarginViewZone');
-    marginDomNode.textContent = '=>';
+    marginDomNode.textContent = '→';
     return marginDomNode;
   }
 
+  /** Parses the editor content. */
   private updateAst() {
     try {
       // wrap source with a 'do' form so every list gets read
@@ -287,6 +291,7 @@ export class SchemEditor {
     });
   }
 
+  /** Updates the editor layout, useful when the window size changes. */
   private updateEditorLayout = () => {
     if (this.options.expandContainer === true) {
       this.containerElement.style.height = `${window.innerHeight}px`;
@@ -295,6 +300,7 @@ export class SchemEditor {
     this.monacoEditor.layout();
   }
 
+  /** Opens a script from the virtual file system or from other, more special places. */
   public async loadLocalScript(qualifiedFileName: string): Promise<void> {
 
     // Handle magic filenames (these are not part of the virtual file system and may cause special behaviour)
@@ -305,7 +311,8 @@ export class SchemEditor {
         this.loadRunCommands();
         return;
       case 'examples.schem':
-        this.loadExampleFile();
+        const examples = require('!raw-loader!./schemScripts/example.schem');
+        this.monacoEditor.setValue(examples);
         return;
     }
 
@@ -347,17 +354,14 @@ export class SchemEditor {
     }
   }
 
-  public async loadExampleFile() {
-    const examples = require('!raw-loader!./schemScripts/example.schem');
-    this.monacoEditor.setValue(examples);
-  }
-
+  /** Enables schem interpretation and completion in the event page context. Needed for editing the .rc-file. */
   private async switchToEventPageInterpreter() {
     const bgp = await browser.runtime.getBackgroundPage();
-    this.interpreter = bgp.golem.interpreter!;
-    SetInterpreterForCompletion(window.golem.interpreter!);
+    this.interpreter = bgp.golem.priviledgedContext!.globalState.eventPageInterpreter;
+    SetInterpreterForCompletion(this.interpreter);
   }
 
+  /** Loads the .golemrc script from local storage. */
   public async loadRunCommands(): Promise<void> {
     window.location.hash = this.openFileName = '.golemrc';
     
@@ -367,6 +371,7 @@ export class SchemEditor {
     }
   }
 
+  /** Saves the .golemrc script to local storage. */
   public async saveAsRunCommands(): Promise<void> {
       const editorContents = this.monacoEditor.getValue();
       await Settings.saveSettings({runCommands: editorContents});

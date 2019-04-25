@@ -1,14 +1,17 @@
-import { SchemContextInstance, SchemContextDefinition } from './schem/types';
 import { browser, Tabs } from 'webextension-polyfill-ts';
 import { GolemContextMessage } from './contentScriptMessaging';
-import { objectPatternMatch } from './utils/utilities';
 import { pr_str } from './schem/printer';
+import { isSchemNil } from './schem/typeGuards';
+import { SchemContextDefinition, SchemContextInstance } from './schem/types';
+import { objectPatternMatch } from './utils/utilities';
 
 export type AvailableSchemContextFeatures = 'schem-interpreter' | 'lightweight-js-interop' | 'demo-functions' | 'dom-manipulation' | 'tiny-repl' | 'shlukerts';
 
+/** Responsible for the creating, initializing and keeping track of contexts and their features. */
 export class SchemContextManager {
   activeContextInstances = new Map<number, SchemContextInstance>();
 
+  /** Maps feature names to bundled content scripts which will be injected on demand. */
   private static featureNameToContentScriptPath = new Map<AvailableSchemContextFeatures, string>([
     ['schem-interpreter', 'scripts/localInterpreterCS.js'],
     ['demo-functions', 'scripts/demoContentScript.js'],
@@ -103,7 +106,7 @@ export class SchemContextManager {
     });
 
     const contextIds = await Promise.all(contexts.map(async context => {
-      this.setupContext(context);
+      await this.setupContext(context);
       return context.id;
     }));
     
@@ -119,9 +122,11 @@ export class SchemContextManager {
       }
     }
 
-    if (context.definition.init != null) {
-      this.arepInContexts([context.id], await pr_str(await context.definition.parentContext!.evalSchem(context.definition.init)));
+    if (context.definition.init != null && !isSchemNil(context.definition.init)) {
+      await this.arepInContexts([context.id], await pr_str(await context.definition.parentContext!.evalSchem(context.definition.init)));
     }
+
+    return true;
   }
 
   private async injectBaseContentScriptIfNecessary(context: SchemContextInstance) {

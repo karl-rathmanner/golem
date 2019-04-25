@@ -1,6 +1,6 @@
 import { browser } from 'webextension-polyfill-ts';
 
-type GolemSettings = {
+export type GolemSettings = {
   runCommands: string;
 };
 

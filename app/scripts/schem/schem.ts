@@ -19,7 +19,8 @@ export class Schem {
     logEnvironmentInfo : false,
     pauseEvaluation: false
   };
-  private hasAccessToFullBrowserAPI = false;
+
+  private priviledgedContextIsReady = false;
   private contextManager: SchemContextManager;
   
   constructor() {
@@ -50,19 +51,6 @@ export class Schem {
     });
     
     this.replEnv.set('list-symbols', () => new SchemList(...this.replEnv.getSymbols()));
-    
-    if (browser.extension != null) {
-      
-      if (browser.extension.getBackgroundPage != null && browser.extension.getBackgroundPage() != null) {
-        this.hasAccessToFullBrowserAPI = true;
-        const priviledgedContext = browser.extension.getBackgroundPage().golem.priviledgedContext;
-        if (typeof priviledgedContext === 'undefined') {
-          throw new Error(`priviledged context is not set up`);
-        }
-        
-        this.contextManager = priviledgedContext.globalState.contextManager;
-      }
-    }
     
   }
   
@@ -367,13 +355,37 @@ export class Schem {
               continue fromTheTop;
             }
           } else if (isSchemContextSymbol(first)) {
+            // try to initialize context manager
+            if (this.contextManager == null) {
+              if (browser.extension != null) {
+                if (browser.extension.getBackgroundPage != null && browser.extension.getBackgroundPage() != null) {
+                  this.priviledgedContextIsReady = true;
+
+                  if (browser.extension.getBackgroundPage() == null) {
+                    throw new Error(`Trying to access the priviledged context from an unpriviledged one.`);
+                  }
+                  const priviledgedContext = browser.extension.getBackgroundPage().golem.priviledgedContext;
+                  if (priviledgedContext == null) {
+                    throw new Error(`priviledged context is either not set up yet`);
+                  }
+
+                  this.contextManager = priviledgedContext.globalState.contextManager;
+                }
+              }
+            }
+            // still no context manager?
             if (this.contextManager != null) {
               const contextDef = env.getContextSymbol(first);
               const contextIds = await this.contextManager.prepareContexts(contextDef);
               
               /** (contextSymbol: (form))
               * execute (form) in any context matching the definition bound to contextSymbol:
+              * This is currently only supported if the interpreter instance exists in a privileged context
               */
+              if (!this.priviledgedContextIsReady) {
+                throw new Error(`Tried to use foreign context execution from an interpreter instance that has no access to privileged functions. (Or maybe they weren't initialized yet.)`);
+              }
+              
               let form = ast[1];
               if (isSchemList(form)) {
                 // if the whole form is quasiquoted, evaluate it in this context to resolve any unquoted parts, then evaluate that it in the foreign context
