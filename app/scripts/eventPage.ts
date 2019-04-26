@@ -12,30 +12,34 @@ window.golem = {
   features: []
 };
 
-async function initBackgroundPage() {
+async function initGolem() {
   const ggsInstance = await GlobalGolemState.getInstance();
-  const ggFunctions = new GlobalGolemFunctions(ggsInstance);
 
-  window.golem.priviledgedContext = {
-    globalState: ggsInstance,
-    globalFunctions: ggFunctions
-  };
+  // Prevent initialization from being run multiple times. (e.g. when the user opens new windows)
+  if (!ggsInstance.isReady) {
+    const ggFunctions = new GlobalGolemFunctions(ggsInstance);
 
-  window.golem.priviledgedContext!.globalFunctions = ggFunctions;
-
-  ggsInstance.eventPageInterpreter.replEnv.addMap(ggFunctions.eventPageInterpreterSchemFunctions);
-  ggFunctions.addEventPageListeners();
-  ggFunctions.executeRunCommands();
+    window.golem.priviledgedContext = {
+      globalState: ggsInstance,
+      globalFunctions: ggFunctions
+    };
+  
+    window.golem.priviledgedContext!.globalFunctions = ggFunctions;
+    ggsInstance.eventPageInterpreter.replEnv.addMap(ggFunctions.eventPageInterpreterSchemFunctions);
+    ggFunctions.addEventPageListeners();
+    ggFunctions.executeRunCommands();
+    console.log(`Initialization finished.`);
+    ggsInstance.isReady = true;
+  }
 }
 
-browser.runtime.onStartup.addListener(initBackgroundPage);
-browser.windows.onCreated.addListener(initBackgroundPage);
+browser.windows.onCreated.addListener(initGolem);
 
 browser.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') console.log('Installed golem.');
   else if (details.reason === 'update') console.log(`Updated golem from Version ${details.previousVersion}.`);
   else if (details.reason === 'browser_update') console.log(`Installed golem after browser update`);
-  initBackgroundPage();
+  initGolem();
 });
 
 /// Display some info about the extension's current state when the background page is opened in a tab.

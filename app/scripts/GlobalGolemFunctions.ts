@@ -10,7 +10,6 @@ import { addParensAsNecessary, escapeXml, objectPatternMatch } from "./utils/uti
 export class GlobalGolemFunctions {
   
   constructor(private globalState: GlobalGolemState) {
-    console.log('got global state');
   }
 
   public addEventPageListeners = () => {
@@ -143,10 +142,11 @@ export class GlobalGolemFunctions {
   public async executeRunCommands() {
     let settings = this.globalState.settings;
   
-    if (settings.runCommands != null && settings.runCommands.length > 0) {
+    if (settings == null) {
+      console.warn(`Wanted to execute run commands but globalState wasn't ready.`)
+    } else if (settings.runCommands != null && settings.runCommands.length > 0) {
       console.log('Executing run commands.');
       await this.globalState.eventPageInterpreter.arep(`(do ${settings.runCommands})`);
-      console.log('Run commands executed.');
     } else {
       console.log('No run commands found.');
     }

@@ -32,11 +32,9 @@ export class GlobalGolemState {
   private async init() {
     this.eventPageInterpreter = new Schem();
     await this.eventPageInterpreter.loadCore();
-
     this.contextManager = new SchemContextManager();
     this.settings = await Settings.loadSettings();
-  
-    this.isReady = true;
+    console.log(`Global state object created and initialized.`);
   }
 
   public async getAutoinstantiateContexts() {
