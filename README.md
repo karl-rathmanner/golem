@@ -127,9 +127,13 @@ You can safely ignore the message `Failed to load external module @babel/registe
 Runs the karma testrunner on a headless chrome (chromium) with tests using mocha/chai.
 Files are located in the `test/` folder, conventions is `<dir>/<file-to-test>.spec.ts`.
 
+### Building and packing for the Chrome Web Store
+
+    $ gulp pack --production
+
 ### Packing the extension for firefox
 
-    $ gulp pack --vendor=firefox
+    $ gulp pack --production --vendor=firefox
 
 ### Version
 
