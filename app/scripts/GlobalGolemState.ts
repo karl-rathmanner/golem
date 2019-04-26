@@ -11,11 +11,9 @@ export class GlobalGolemState {
   //private globalGolemFunctions: GlobalGolemFunctions;
   public contextManager: SchemContextManager;
   
-  // TODO: Move anything that has to be persistent to storage!
   public autoinstantiateContexts = new Array<SchemContextDefinition>();
   public eventPageInterpreter: Schem;
   public isReady = false;
-  public settings: GolemSettings;
   public omniboxHistory = new CommandHistory();
   
   private constructor() {
@@ -33,8 +31,12 @@ export class GlobalGolemState {
     this.eventPageInterpreter = new Schem();
     await this.eventPageInterpreter.loadCore();
     this.contextManager = new SchemContextManager();
-    this.settings = await Settings.loadSettings();
     console.log(`Global state object created and initialized.`);
+  }
+
+  public async getSettings() {
+    // TODO: think about replacing Settings with some general mechanism to store persistent state here.
+    return Settings.loadSettings();
   }
 
   public async getAutoinstantiateContexts() {

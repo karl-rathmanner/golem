@@ -140,7 +140,7 @@ export class GlobalGolemFunctions {
   }
 
   public async executeRunCommands() {
-    let settings = this.globalState.settings;
+    let settings = await this.globalState.getSettings();
   
     if (settings == null) {
       console.warn(`Wanted to execute run commands but globalState wasn't ready.`)
