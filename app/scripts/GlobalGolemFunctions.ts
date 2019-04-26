@@ -13,7 +13,6 @@ export class GlobalGolemFunctions {
   }
 
   public addEventPageListeners = () => {
-    browser.tabs.onUpdated.addListener(this.onTabUpdatedHandler);
     browser.runtime.onMessage.addListener(this.onMessageHandler);
     browser.omnibox.onInputChanged.addListener(this.omniboxInputChangedHandler);
     browser.omnibox.onInputEntered.addListener(this.omniboxInputEnteredHandler);
@@ -25,7 +24,10 @@ export class GlobalGolemFunctions {
       case 'forward-context-action': {
         if (message.contextIds != null && message.contextMessage != null) {
           // forward the message to the appropriate contexts
-          const tabIds = message.contextIds.map((contextId) => this.globalState.contextManager.getContextInstance(contextId)!.tabId);
+          const tabIds = await Promise.all(message.contextIds.map(async (contextId) => {
+            const contextInstance = await this.globalState.contextManager.getContextInstance(contextId);
+            return contextInstance.tabId;
+          }));
           const resultsAndReasons = await Promise.all(
             tabIds.map(async tabId => {
               return browser.tabs.sendMessage(tabId, {
@@ -91,16 +93,18 @@ export class GlobalGolemFunctions {
     }
   }
 
-  private onTabUpdatedHandler = async (tabId: number, changeInfo: Tabs.OnUpdatedChangeInfoType, tab: Tabs.Tab) => {
-    if (changeInfo.status === 'complete' && this.globalState != null) {
+  // private onTabUpdatedHandler = async (tabId: number, changeInfo: Tabs.OnUpdatedChangeInfoType, tab: Tabs.Tab) => {
+  //   if (changeInfo.status === 'loading') {
+  //     console.log(this.globalState.isReady ? 'tab is loading, golem was ready' : 'tab is loading, golem was caught off guard');
+  //   } else if (changeInfo.status === 'complete' && this.globalState != null) {
 
-      const cm = this.globalState.contextManager;
-      cm.restoreContextsAfterReload(tabId);
-      for (const context of await this.globalState.getAutoinstantiateContexts()) {
-        await cm.prepareContexts(context, tabId);
-      }
-    }
-  }
+  //     const cm = this.globalState.contextManager;
+  //     cm.restoreContextsAfterReload(tabId);
+  //     for (const context of await this.globalState.getAutoinstantiateContexts()) {
+  //       await cm.prepareContexts(context, tabId);
+  //     }
+  //   }
+  // }
 
   public eventPageInterpreterSchemFunctions = {
     'add-autoinstantiate-context': async (context: SchemContextDefinition) => {

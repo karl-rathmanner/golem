@@ -646,7 +646,7 @@ export class SchemContextDefinition implements TaggedType {
   }
 }
 
-/** These can't be passed around as messages. Contains... callbacks, information about what was already injected and stuff that's necessary for context persistence? I think only the event page will need to handle instances of contexts. */
+/** Refers to a concrete context. (Effectively the same as SchemContextDefinition but with ids.)*/
 export class SchemContextInstance implements TaggedType {
   public typeTag: SchemTypes.SchemContextInstance = SchemTypes.SchemContextInstance;
   baseContentScriptIsLoaded: boolean = false;
@@ -654,19 +654,6 @@ export class SchemContextInstance implements TaggedType {
 
   // TODO: add properties describing the context's capabilities - available procedures, atoms, hasInterpreter etc.
   constructor(public id: number, public tabId: number, public windowId: number, public definition: SchemContextDefinition, public frameId?: number) {
-  }
-
-  /** Called after context injection. */
-  public onLoad?: Function;
-  /** Called before Page unload. */
-  public onUnload?: Function;
-  /** Called when a context is explicitly destroyed. */
-  public onDestroy?: Function;
-
-  public destroy() {
-    if (this.onDestroy != null) {
-      this.onDestroy();
-    }
   }
 }
 

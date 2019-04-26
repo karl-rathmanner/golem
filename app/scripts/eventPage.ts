@@ -1,4 +1,4 @@
-import { browser } from 'webextension-polyfill-ts';
+import { browser, Tabs } from 'webextension-polyfill-ts';
 import { VirtualFileSystem } from './virtualFilesystem';
 import { GlobalGolemState } from './GlobalGolemState';
 import { GlobalGolemFunctions } from './GlobalGolemFunctions';
@@ -35,6 +35,29 @@ async function initGolem() {
 
 browser.windows.onCreated.addListener(initGolem);
 
+const onTabUpdatedHandler = async (tabId: number, changeInfo: Tabs.OnUpdatedChangeInfoType, tab: Tabs.Tab) => {
+  const ggsInstance = await GlobalGolemState.getInstance();
+  
+  if (changeInfo.status === 'loading') {
+    console.log(ggsInstance.isReady ? 'tab is loading, golem was ready' : 'tab is loading, golem was caught off guard');
+  }
+
+  if (!ggsInstance.isReady) {
+    initGolem();
+  }
+  
+  if (changeInfo.status === 'complete' && ggsInstance != null) {
+
+    const cm = ggsInstance.contextManager;
+    cm.restoreContextsAfterReload(tabId);
+    for (const context of await ggsInstance.getAutoinstantiateContexts()) {
+      await cm.prepareContexts(context, tabId);
+    }
+  }
+}
+
+browser.tabs.onUpdated.addListener(onTabUpdatedHandler);
+
 browser.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') console.log('Installed golem.');
   else if (details.reason === 'update') console.log(`Updated golem from Version ${details.previousVersion}.`);
@@ -50,14 +73,15 @@ async function updateBGPInfoPanel() {
   
   const panel = document.getElementById('bgp-info');
   const vfsInfo = await VirtualFileSystem.listFolderContents('/');
-  const bgp = browser.extension.getBackgroundPage();
-  const globalState = (bgp.golem.priviledgedContext == null) ? null : bgp.golem.priviledgedContext.globalState;
+  const globalState = await GlobalGolemState.getInstance();
+  const activeContextIds = await globalState!.contextManager.getAllActiveContextIds();
 
   if (panel != null) {
     panel.innerHTML = (globalState != null && globalState.isReady) 
-      ? `active contexts: ${globalState!.contextManager.activeContextInstances.size}<br>
-        registered autoinstantiate context definitions: ${globalState!.autoinstantiateContexts.length}<br>
+      ? `Number of active contexts: ${activeContextIds.length}<br>
+        Active context ids: ${JSON.stringify(activeContextIds)}<br>
+        Registered autoinstantiate context definitions: ${globalState!.autoinstantiateContexts.length}<br>
         Virtual File System root folder contents: <br>${JSON.stringify(vfsInfo)}`
-      : `golem is not yet initialized`;
+      : `Golem is not yet initialized. :(`;
   }
 }

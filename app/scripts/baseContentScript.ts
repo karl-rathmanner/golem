@@ -11,6 +11,9 @@ import { AvailableSchemContextFeatures } from './contextManager';
       case 'has-base-content-script': {
         return Promise.resolve(true);
       }
+      case 'has-context-with-id': {
+        return Promise.resolve(window.golem.contextId === message.args.id);
+      }
       case 'has-feature': {
         const feature: AvailableSchemContextFeatures = message.args;
         const hasFeature = window.golem.features != null && window.golem.features.indexOf(feature) !== -1;
