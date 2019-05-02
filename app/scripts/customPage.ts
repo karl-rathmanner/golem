@@ -37,7 +37,7 @@ window.onload = async () => {
       const editorContainer = document.querySelector('#schemEditorContainer') as HTMLElement;
       if (editorContainer != null) {
         const editor = new SchemEditor(editorContainer, {interpreter: interpreter, expandContainer: false});
-        editor.loadLocalScript(qualifiedFileName);
+        editor.loadLocalFile(qualifiedFileName);
         interpreter.replEnv.addMap(editor.editorManipulationSchemFunctions);
       }
 

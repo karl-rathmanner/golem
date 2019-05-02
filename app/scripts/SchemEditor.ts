@@ -18,7 +18,7 @@ export class SchemEditor {
   private ast: AnySchemType;
   private interpreter: Schem;
 
-  constructor (private containerElement: HTMLElement, private options: {interpreter?: Schem, expandContainer: boolean} = {expandContainer: true}) {
+  constructor (private containerElement: HTMLElement, private options: {mode?: 'Schem' | 'JSON' | 'Text', interpreter?: Schem, expandContainer: boolean} = {mode: 'Schem', expandContainer: true}) {
 
     if (options.interpreter == null) {
       this.interpreter = new Schem();
@@ -29,8 +29,27 @@ export class SchemEditor {
       this.interpreter = options.interpreter;
     }
 
-    if (window.golem == null) {}
+    this.addSchemSupport();
 
+    switch (options.mode) {
+      case 'Schem': 
+        this.enableSchemMode();
+        break;
+      case 'JSON': 
+        this.enableJsonMode();
+        break;
+      default:
+        this.enableTextMode;
+    }
+
+    this.addCustomActionsToCommandPalette();
+
+    window.addEventListener('resize', this.updateEditorLayout);
+    this.updateEditorLayout();
+    this.monacoEditor.focus();
+  }
+
+  private addSchemSupport() {
     window.golem = {
       contextId: 0,
       features: ['schem-interpreter'],
@@ -39,23 +58,39 @@ export class SchemEditor {
 
     AddSchemSupportToEditor(this.interpreter);
 
-    this.monacoEditor = monaco.editor.create(containerElement, {
+    this.monacoEditor = monaco.editor.create(this.containerElement, {
       language: 'schem',
       theme: 'vs-dark'
     });
 
-    window.addEventListener('resize', this.updateEditorLayout);
-    this.updateEditorLayout();
-    this.monacoEditor.focus();
-    this.addCustomActionsToCommandPalette();
     this.addFormEvaluationCommand(this.interpreter);
-
     this.addParinfer();
+  }
+
+  public enableSchemMode() {
+    monaco.editor.setModelLanguage(this.monacoEditor.getModel(), 'schem');
+    this.monacoEditor.createContextKey('evalEnabled', true);
+    this.monacoEditor.createContextKey('parinferEnabled', true);
+  }
+
+  private disableSchemMode() {
+    this.monacoEditor.createContextKey('evalEnabled', false);
+    this.monacoEditor.createContextKey('parinferEnabled', false);
+  }
+
+  public enableJsonMode() {
+    this.disableSchemMode();
+    monaco.editor.setModelLanguage(this.monacoEditor.getModel(), "json");
+  }
+
+  public enableTextMode() {
+    this.disableSchemMode();
+    monaco.editor.setModelLanguage(this.monacoEditor.getModel(), "");
   }
 
   public editorManipulationSchemFunctions = {
     'editor-load-script': async (qualifiedFileName: SchemString) => {
-      this.loadLocalScript(qualifiedFileName.valueOf());
+      this.loadLocalFile(qualifiedFileName.valueOf());
       return SchemBoolean.true;
     },
     'editor-save-script': async (qualifiedFileName: SchemString) => {
@@ -165,9 +200,9 @@ export class SchemEditor {
   /** Adds commands to that list you see when you press [F1] */
   private addCustomActionsToCommandPalette() {
     this.monacoEditor.addAction({
-      id: 'saveScriptToVFS',
+      id: 'saveFileToVFS',
       keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S],
-      label: 'Save script to virtual file system',
+      label: 'Save file to virtual file system',
       run: () => {
         const qualifiedFileName = prompt('Save at path/filename:', this.openFileName);
         if (qualifiedFileName != null && qualifiedFileName.length > 0) {
@@ -177,16 +212,49 @@ export class SchemEditor {
     });
 
     this.monacoEditor.addAction({
-      id: 'loadScriptFromVFS',
+      id: 'loadFileFromVFS',
       keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_O],
-      label: 'Load script from virtual file system',
+      label: 'Load file from virtual file system',
       run: () => {
         const qualifiedFileName = prompt('Load path/filename:', this.openFileName);
         if (qualifiedFileName != null && qualifiedFileName.length > 0) {
-          this.loadLocalScript(qualifiedFileName);
+          this.loadLocalFile(qualifiedFileName);
         }
       }
     });
+
+    this.monacoEditor.addAction({
+      id: 'disableSchemFeatures',
+      label: 'Disable Schem features',
+      run: () => {
+        this.disableSchemMode();
+      }
+    });
+
+    this.monacoEditor.addAction({
+      id: 'enableSchemFeatures',
+      label: 'Enable Schem features',
+      run: () => {
+        this.enableSchemMode();
+      }
+    });
+
+    this.monacoEditor.addAction({
+      id: 'disableParinfer',
+      label: 'Disable Parinfer',
+      run: () => {
+        this.monacoEditor.createContextKey('parinferEnabled', false);
+      }
+    });
+    
+    this.monacoEditor.addAction({
+      id: 'enableParinfer',
+      label: 'Enable Parinfer',
+      run: () => {
+        this.monacoEditor.createContextKey('parinferEnabled', true);
+      }
+    });
+  
   }
 
   /** Shows the results of live evaluations. (Or error messages thereof.) */
@@ -301,7 +369,7 @@ export class SchemEditor {
   }
 
   /** Opens a script from the virtual file system or from other, more special places. */
-  public async loadLocalScript(qualifiedFileName: string): Promise<void> {
+  public async loadLocalFile(qualifiedFileName: string): Promise<void> {
 
     // Handle magic filenames (these are not part of the virtual file system and may cause special behaviour)
     switch (qualifiedFileName) {
@@ -322,11 +390,21 @@ export class SchemEditor {
       window.alert('File not found.');
       return;
     }
+
     let candidate = await VirtualFileSystem.readObject(qualifiedFileName);
+
     if (typeof candidate === 'string') {
       this.openFileName = qualifiedFileName;
       window.location.hash = qualifiedFileName;
       this.monacoEditor.setValue(candidate);
+
+      if (/\.schem$/.test(qualifiedFileName)) {
+        this.enableSchemMode();
+      } else if (/\.json$/.test(qualifiedFileName)) {
+        this.enableJsonMode();
+      } else {
+        this.enableTextMode();
+      }
     } else {
       window.alert(`The editor currently can't open non-string objects.`);
       throw new Error(`Can only load strings into the editor, encountered something else saved under: ${qualifiedFileName}`);
@@ -380,6 +458,5 @@ export class SchemEditor {
         let msg: EventPageMessage = {action: 'execute-run-commands'}
         chrome.runtime.sendMessage(msg);
       };
-
   }
 }
