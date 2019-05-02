@@ -13,18 +13,19 @@ window.golem = {
 };
 
 async function initGolem() {
-  const ggsInstance = await GlobalGolemState.getInstance();
+  const ggsInstance = getGlobalState() || await GlobalGolemState.getInstance();
 
-  // Prevent initialization from being run multiple times. (e.g. when the user opens new windows)
+  // Only initialize golem if necessary. (e.g. the event page was unloaded or the browser was restarted)
   if (!ggsInstance.isReady) {
+    console.log(`Starting initialization.`);
+    addOnTabUpdatedListener();
     const ggFunctions = new GlobalGolemFunctions(ggsInstance);
 
-    window.golem.priviledgedContext = {
+    browser.extension.getBackgroundPage().golem.priviledgedContext = {
       globalState: ggsInstance,
       globalFunctions: ggFunctions
     };
-  
-    window.golem.priviledgedContext!.globalFunctions = ggFunctions;
+
     ggsInstance.eventPageInterpreter.replEnv.addMap(ggFunctions.eventPageInterpreterSchemFunctions);
     ggFunctions.addEventPageListeners();
     ggFunctions.executeRunCommands();
@@ -33,21 +34,28 @@ async function initGolem() {
   }
 }
 
-browser.windows.onCreated.addListener(initGolem);
+function getGlobalState() {
+  // Get the "actual" event page so we don't create more than one golem instance per browser profile. 
+  // (When background.html is opened in one or more tabs, they would each have their own window object. So, calling getBackgroundPage is necessary event though we already "are in" the background page.)
+  const backgroundPage = browser.extension.getBackgroundPage();
+  const ggsInstance = backgroundPage.golem.priviledgedContext == null 
+    ? null 
+    : backgroundPage.golem.priviledgedContext.globalState;
+  return ggsInstance;
+}
 
 const onTabUpdatedHandler = async (tabId: number, changeInfo: Tabs.OnUpdatedChangeInfoType, tab: Tabs.Tab) => {
-  const ggsInstance = await GlobalGolemState.getInstance();
+  const ggsInstance = getGlobalState();
   
   if (changeInfo.status === 'loading') {
-    console.log(ggsInstance.isReady ? 'tab is loading, golem was ready' : 'tab is loading, golem was caught off guard');
+    console.log(ggsInstance != null && ggsInstance.isReady ? 'tab is loading, golem was ready' : 'tab is loading, golem was caught off guard');
   }
 
-  if (!ggsInstance.isReady) {
+  if (ggsInstance == null || !ggsInstance.isReady) {
     initGolem();
   }
   
   if (changeInfo.status === 'complete' && ggsInstance != null) {
-
     const cm = ggsInstance.contextManager;
     cm.restoreContextsAfterReload(tabId);
     for (const context of await ggsInstance.getAutoinstantiateContexts()) {
@@ -56,8 +64,6 @@ const onTabUpdatedHandler = async (tabId: number, changeInfo: Tabs.OnUpdatedChan
   }
 }
 
-browser.tabs.onUpdated.addListener(onTabUpdatedHandler);
-
 browser.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') console.log('Installed golem.');
   else if (details.reason === 'update') console.log(`Updated golem from Version ${details.previousVersion}.`);
@@ -65,20 +71,24 @@ browser.runtime.onInstalled.addListener((details) => {
   initGolem();
 });
 
-/// Display some info about the extension's current state when the background page is opened in a tab.
 
+function addOnTabUpdatedListener() {
+  browser.tabs.onUpdated.addListener(onTabUpdatedHandler);
+}
+
+/// Display some info about the extension's current state when the background page is opened in a tab.
 document.addEventListener('DOMContentLoaded', updateBGPInfoPanel);
 
 async function updateBGPInfoPanel() {
   
   const panel = document.getElementById('bgp-info');
   const vfsInfo = await VirtualFileSystem.listFolderContents('/');
-  const globalState = await GlobalGolemState.getInstance();
-  const activeContextIds = await globalState!.contextManager.getAllActiveContextIds();
+  const globalState = getGlobalState();
+  const activeContextIds = globalState == null ? null : await globalState!.contextManager.getAllActiveContextIds();
 
   if (panel != null) {
     panel.innerHTML = (globalState != null && globalState.isReady) 
-      ? `Number of active contexts: ${activeContextIds.length}<br>
+      ? `Number of active contexts: ${activeContextIds!.length}<br>
         Active context ids: ${JSON.stringify(activeContextIds)}<br>
         Registered autoinstantiate context definitions: ${globalState!.autoinstantiateContexts.length}<br>
         Virtual File System root folder contents: <br>${JSON.stringify(vfsInfo)}`
