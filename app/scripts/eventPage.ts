@@ -13,12 +13,12 @@ window.golem = {
 };
 
 async function initGolem() {
+  console.log(`InitGolem called.`)
   const ggsInstance = getGlobalState() || await GlobalGolemState.getInstance();
 
   // Only initialize golem if necessary. (e.g. the event page was unloaded or the browser was restarted)
   if (!ggsInstance.isReady) {
     console.log(`Starting initialization.`);
-    addOnTabUpdatedListener();
     const ggFunctions = new GlobalGolemFunctions(ggsInstance);
 
     browser.extension.getBackgroundPage().golem.priviledgedContext = {
@@ -52,7 +52,7 @@ const onTabUpdatedHandler = async (tabId: number, changeInfo: Tabs.OnUpdatedChan
   }
 
   if (ggsInstance == null || !ggsInstance.isReady) {
-    initGolem();
+    await initGolem();
   }
   
   if (changeInfo.status === 'complete' && ggsInstance != null) {
@@ -68,13 +68,10 @@ browser.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') console.log('Installed golem.');
   else if (details.reason === 'update') console.log(`Updated golem from Version ${details.previousVersion}.`);
   else if (details.reason === 'browser_update') console.log(`Installed golem after browser update`);
-  initGolem();
 });
 
-
-function addOnTabUpdatedListener() {
-  browser.tabs.onUpdated.addListener(onTabUpdatedHandler);
-}
+// TODO: The onTabUpdatedHandler calls initGolem more often than necessary. Might want to change that.
+browser.tabs.onUpdated.addListener(onTabUpdatedHandler);
 
 /// Display some info about the extension's current state when the background page is opened in a tab.
 document.addEventListener('DOMContentLoaded', updateBGPInfoPanel);
