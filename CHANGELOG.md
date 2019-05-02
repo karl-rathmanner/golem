@@ -1,5 +1,9 @@
-## 0.7.1-3
-That mechanism I talked about in the 0.7.0 randomly stopped working when you weren't looking. It seems to do its job  reliably now. Usually.
+## 0.8.0
+Adds editor support for different filetypes/languages; Parinfer can be disabled via the F1-menu.
+(Currently: *.schem & *.json, everything else is treated as plain text.)
+
+## 0.7.1-4
+That mechanism I talked about in the 0.7.0 randomly stopped working when you weren't looking. It seems to do its job  reliably now. Mostly.
 
 ## 0.7.0
 Golem finally has a mechanism that makes "permanent" changes to websites possible. :)
