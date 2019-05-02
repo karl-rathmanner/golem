@@ -1,7 +1,7 @@
 {
   "name": "golem",
   "private": true,
-  "version": "0.7.4",
+  "version": "0.8.0",
   "description": "Carries out menial tasks; is driven by words.",
   "scripts": {
     "start": "npm run dev:chrome",
