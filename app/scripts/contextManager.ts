@@ -30,9 +30,9 @@ export class SchemContextManager {
     if (thawedContextInstances != null) {
       thawedContextInstances.forEach(element => this.contextInstanceCache.set(element.id, element));
       await this.removeUnloadedContextsFromCache();
-      console.log(`loaded ${thawedContextInstances.length} context instances, removed ${1 + this.contextInstanceCache.size - thawedContextInstances.length} of them`)
+      // console.log(`Thawed ${thawedContextInstances.length} context instances, removed ${thawedContextInstances.length - this.contextInstanceCache.size} that were superfluous.`)
     } else {
-      console.log(`loadad 0 context instances`)
+      // console.log(`No context instances to be thawed.`)
     }
   }
 
