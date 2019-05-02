@@ -5,6 +5,7 @@ import { prettyPrint, pr_str } from './printer';
 import { readStr } from './reader';
 import { isSchemKeyword, isSchemString, isSchemSymbol, isSequential, isValidKeyType, isSchemLazyVector, isSchemMap, isSchemNumber, isSchemList, isSchemVector, isSchemFunction, isSchemJSReference, isSchemType } from './typeGuards';
 import { SchemAtom, SchemBoolean, SchemFunction, SchemKeyword, SchemLazyVector, SchemList, SchemMap, SchemMapKey, SchemNil, SchemNumber, SchemRegExp, SchemString, SchemSymbol, AnySchemType, SchemVector, RegularSchemCollection, SchemJSReference } from './types';
+import { isArray } from 'util';
 
 export const coreFunctions: {[symbol: string]: any} = {
   'identity': (x: AnySchemType) => x,
@@ -93,6 +94,14 @@ export const coreFunctions: {[symbol: string]: any} = {
   },
   'vector': (...args: AnySchemType[]) => {
     return new SchemVector().concat(args);
+  },
+  'hash-map': async (...args: any) => {
+    throwErrorIfArityIsInvalid(args.length, 0, Infinity, true);
+    const newMap = new SchemMap();
+    for (let i = 0; i < args.length; i+=2) {
+      newMap.set(await args[i], await args[i + 1]);
+    }
+    return newMap;
   },
   'vec': (coll: RegularSchemCollection) => {
     if (isSchemList(coll)) {
@@ -450,8 +459,8 @@ export const coreFunctions: {[symbol: string]: any} = {
   'lazy-vector': (producer: SchemFunction, count?: SchemNumber) => {
     return new SchemLazyVector(producer, (count) ? count.valueOf() : Infinity);
   },
-  'subvec': async (source: SchemVector | SchemLazyVector, start?: SchemNumber, end?: SchemNumber) => {
-    if (source instanceof SchemVector) {
+  'subvec': async (source: SchemVector | Array<any> | SchemLazyVector, start?: SchemNumber, end?: SchemNumber) => {
+    if (isSchemVector(source) || isArray(source)) {
       return source.slice(
         (start) ? start.valueOf() : 0,
         (end) ? end.valueOf() : undefined
