@@ -44,7 +44,8 @@ export class GlobalGolemState {
   public static async loadObject<T>(key: string): Promise<T|null> {
     return await browser.storage.local.get('persistedState').then(results => {
       if (results.persistedState == null) {
-        console.warn(`No persistedState object found in local storage.`)
+        console.log(`LoadObject failed, because no persistedState object was found in local storage, creating a new one. This might have happened becouse local storage was corrupted.`)
+        GlobalGolemState.createEmptyPersistedStateObject();
         return null;
       }
       const obj = results.persistedState[key] as T;
@@ -59,12 +60,18 @@ export class GlobalGolemState {
   public static async saveObject<T>(key: string, obj: T) {
     browser.storage.local.get('persistedState').then(results => {
       if (results.persistedState == null) {
-        console.log('Creating new persistedState object');
+        console.log('Creating new persistedState object.');
         results = { persistedState: {} };
       }
       results.persistedState[key] = obj;
       browser.storage.local.set(results);
     });
+  }
+
+  private static createEmptyPersistedStateObject() {
+    browser.storage.local.set({ 
+      persistedState: {} 
+    })
   }
 
   public async getAutoinstantiateContexts() {
