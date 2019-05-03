@@ -2,6 +2,7 @@ import { browser, Tabs } from 'webextension-polyfill-ts';
 import { VirtualFileSystem } from './virtualFilesystem';
 import { GlobalGolemState } from './GlobalGolemState';
 import { GlobalGolemFunctions } from './GlobalGolemFunctions';
+import { GolemContextMessage } from './contentScriptMessaging';
 
 if (process.env.NODE_ENV === 'development') {
   require('chromereload/devonly');
@@ -56,12 +57,29 @@ const onTabUpdatedHandler = async (tabId: number, changeInfo: Tabs.OnUpdatedChan
   }
   
   if (changeInfo.status === 'complete' && ggsInstance != null) {
+
     const cm = ggsInstance.contextManager;
     cm.restoreContextsAfterReload(tabId);
-    for (const context of await ggsInstance.getAutoinstantiateContexts()) {
+
+    const cidInTab = await getContextIdInTab(tabId);
+    if (cidInTab != null) {
+      // A tab's onUpdated was called but there's still an injected context. Add it to CM?
+
+    } else for (const context of await ggsInstance.getAutoinstantiateContexts()) {
+      // A tab probably loaded a new page. Inject a new context if it matches an autoinstantiate definition.
       await cm.prepareContexts(context, tabId);
     }
   }
+}
+
+function getContextIdInTab(tabId: number) {
+  const msg: GolemContextMessage = {action: 'get-context-id'};
+    return browser.tabs.sendMessage(tabId, msg).then(result => {
+      return result as number | null;
+    }).catch(r => {
+      // Sending the message will fail if there is no active content script in the adressed tab.
+      return null;
+    });
 }
 
 browser.runtime.onInstalled.addListener((details) => {

@@ -610,7 +610,14 @@ export class SchemContextDefinition implements TaggedType {
   parentContext?: Schem;
   init?: AnySchemType;
 
-  constructor(public tabQuery: Tabs.QueryQueryInfoType, options: { features?: AvailableSchemContextFeatures[], 'life-time'?: SchemContextDefinition['lifetime'], 'run-at': SchemContextDefinition['runAt'], frameId: number, init?: AnySchemType }) { // public tabQuery: Tabs.QueryQueryInfoType, public lifetime: 'inject-once' | 'persist-navigation', features?: AvailableSchemContextFeatures[]) {
+  constructor(public tabQuery: Tabs.QueryQueryInfoType, 
+              options: { 
+                        features?: AvailableSchemContextFeatures[], 
+                        'life-time'?: SchemContextDefinition['lifetime'], 
+                        'run-at': SchemContextDefinition['runAt'], 
+                        frameId?: number, 
+                        init?: AnySchemType 
+                       }) { 
     // TODO: make DRY
     if (options.features != null) {
       this.features = options.features;
@@ -641,8 +648,19 @@ export class SchemContextDefinition implements TaggedType {
       return scd;
     }
 
-
     throw new Error(`missing value for :tabQuery`);
+  }
+
+  static fromDirtyParsedJSONObject(obj: SchemContextDefinition) {
+    // Ugh! TODO: Rethink serialization.
+    // This is mostly necessary to strip the Schem type tags.
+    return new SchemContextDefinition(obj.tabQuery, { 
+      features: obj.features, 
+      "life-time": obj.lifetime, 
+      "run-at": obj.runAt, 
+      frameId: obj.frameId, 
+      init: obj.init 
+    });
   }
 }
 
@@ -655,6 +673,14 @@ export class SchemContextInstance implements TaggedType {
   // TODO: add properties describing the context's capabilities - available procedures, atoms, hasInterpreter etc.
   constructor(public id: number, public tabId: number, public windowId: number, public definition: SchemContextDefinition, public frameId?: number) {
   }
+
+  
+  static fromStringified(serialized: string) {
+    const obj = JSON.parse(serialized) as SchemContextInstance;
+    return new SchemContextInstance(obj.id, obj.tabId, obj.windowId, SchemContextDefinition.fromDirtyParsedJSONObject(obj.definition), obj.frameId);
+  }
+
+
 }
 
 /// classes - other Schem types

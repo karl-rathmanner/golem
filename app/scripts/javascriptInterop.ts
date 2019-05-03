@@ -34,7 +34,7 @@ export const interopFunctions: {[symbol: string]: any} = {
     return jsref.get();
   },
   'new': async (jsObjectType: SchemSymbol, ...args: any[]) => {
-    if (isSchemSymbol(jsObjectType) && SchemSymbol.refersToJavascriptObject(jsObjectType)) {
+    if (isSchemSymbol(jsObjectType)) {
       let o = await getJsProperty(jsObjectType.valueOf());
       let jsArgs = args.map(atomicSchemObjectToJS);
       // credit: https://stackoverflow.com/a/8843181

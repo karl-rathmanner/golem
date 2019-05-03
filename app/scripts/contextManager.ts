@@ -4,7 +4,6 @@ import { pr_str } from './schem/printer';
 import { isSchemNil } from './schem/typeGuards';
 import { SchemContextDefinition, SchemContextInstance } from './schem/types';
 import { objectPatternMatch } from './utils/utilities';
-import { GlobalGolemState } from './GlobalGolemState';
 
 export type AvailableSchemContextFeatures = 'schem-interpreter' | 'lightweight-js-interop' | 'demo-functions' | 'dom-manipulation' | 'tiny-repl' | 'shlukerts';
 
@@ -25,25 +24,57 @@ export class SchemContextManager {
   constructor() {
   }
 
+  private getContextInstanceInTab(tabId: number) {
+    const msg: GolemContextMessage = {action: 'get-context-id'};
+      return browser.tabs.sendMessage(tabId, msg).then(result => {
+        if (result == null) {
+          return null;
+        } else {
+          const newContextInstance = SchemContextInstance.fromStringified(result);
+          return newContextInstance;
+        }
+      }).catch(r => {
+        // Sending the message will fail if there is no active content script in the adressed tab.
+        return null;
+      });
+  }
+
   async refreshContextInstanceCache() {
-    const thawedContextInstances = await GlobalGolemState.loadObject<Array<SchemContextInstance>>('previouslyActiveContextInstances');
-    if (thawedContextInstances != null) {
-      thawedContextInstances.forEach(element => this.contextInstanceCache.set(element.id, element));
-      await this.removeUnloadedContextsFromCache();
-      // console.log(`Thawed ${thawedContextInstances.length} context instances, removed ${thawedContextInstances.length - this.contextInstanceCache.size} that were superfluous.`)
-    } else {
-      // console.log(`No context instances to be thawed.`)
+    this.contextInstanceCache.clear();
+
+    const allEligibleTabs = await browser.tabs.query({url: "*://*/*"});
+
+    for (const eligibleTab of allEligibleTabs) {
+      if (eligibleTab.id == null) {
+        console.warn(`This shouldn't happen.`)
+      } else {
+        const ci = await this.getContextInstanceInTab(eligibleTab.id)
+        if (ci != null) {
+          console.log('response to get context:', ci);
+          this.contextInstanceCache.set(ci.id, ci);
+        }
+      }
     }
+
+    // const thawedContextInstances = await GlobalGolemState.loadObject<Array<SchemContextInstance>>('previouslyActiveContextInstances');
+    // if (thawedContextInstances != null) {
+    //   thawedContextInstances.forEach(element => this.contextInstanceCache.set(element.id, element));
+    //   await this.removeUnloadedContextsFromCache();
+    //   console.log(`Thawed ${thawedContextInstances.length} context instances, removed ${thawedContextInstances.length - this.contextInstanceCache.size} that were superfluous.`)
+    // } else {
+    //   console.log(`No context instances to be thawed.`)
+    // }
   }
 
   async persistContextInstanceCache() {
-    const instances = Array.from(this.contextInstanceCache.values());
-    await GlobalGolemState.saveObject<Array<SchemContextInstance>>('previouslyActiveContextInstances', instances);
-    console.log(`saved ${instances.length} context instances`)
+    // const instances = Array.from(this.contextInstanceCache.values());
+    // await GlobalGolemState.saveObject<Array<SchemContextInstance>>('previouslyActiveContextInstances', instances);
+    // console.log(`saved ${instances.length} context instances`)
   }
 
   /** Basic content script setup - creates the global golem object and enables listening for messages. */
   async injectBaseContentScript(contextOrContextId: number | SchemContextInstance): Promise<boolean> {
+
     let contextInstance = (typeof contextOrContextId === 'number') ? this.getContextInstanceFromCache(contextOrContextId) : contextOrContextId;
 
     if (contextInstance === null) {
@@ -53,7 +84,7 @@ export class SchemContextManager {
     // inject a global golem object that content scripts can share
     await browser.tabs.executeScript(contextInstance.tabId, {
       code: `
-        var golem = {contextId: ${contextInstance.id}, features:[]};
+        var golem = {contextId: ${contextInstance.id}, features:[], contextInstance: ${JSON.stringify(contextInstance)}};
         golem.injectedProcedures = new Map();
         `,
     }).catch(e => {
@@ -241,18 +272,17 @@ export class SchemContextManager {
       return false;
     });
   }
-
   
-    /** Returns true if the base content script was already injected into the tab. */
-    async isContextInjected(context: SchemContextInstance): Promise<boolean> {
-      const msg: GolemContextMessage = {action: 'has-context-with-id', args: {id: context.id}};
-      return browser.tabs.sendMessage(context.tabId, msg).then(result => {
-        return result;
-      }).catch(r => {
-        // Sending the message will fail if there is no active content script in the adressed tab.
-        return false;
-      });
-    }
+  /** Returns true if the base content script was already injected into the tab. */
+  async isContextInjected(context: SchemContextInstance): Promise<boolean> {
+    const msg: GolemContextMessage = {action: 'has-context-with-id', args: {id: context.id}};
+    return browser.tabs.sendMessage(context.tabId, msg).then(result => {
+      return result;
+    }).catch(r => {
+      // Sending the message will fail if there is no active content script in the adressed tab.
+      return false;
+    });
+  }
 
   /** Returns true if a given feature was already set-up for a given context. */
   async checkFeature(context: SchemContextInstance, feature: AvailableSchemContextFeatures): Promise<boolean> {
@@ -287,21 +317,21 @@ export class SchemContextManager {
 
   /** Restores all persistent contexts after their tabs were reloaded. Deletes unused conext instances. */
   async restoreContextsAfterReload(tabId: number) {
-    await this.refreshContextInstanceCache();
-    const contextsInTab = Array.from(this.contextInstanceCache.values()).filter(ci => {
-      return ci.tabId === tabId;
-    });
+    // await this.refreshContextInstanceCache();
+    // const contextsInTab = Array.from(this.contextInstanceCache.values()).filter(ci => {
+    //   return ci.tabId === tabId;
+    // });
 
-    for (const context of contextsInTab) {
-      if (context.definition.lifetime === 'persistent') {
-        this.setupContext(context);
-      } else {
-        // this context is not needed anymore
-        this.contextInstanceCache.delete(context.id);
-        console.log('deleted context')
-      }
-    }
-    await this.persistContextInstanceCache();
+    // for (const context of contextsInTab) {
+    //   if (context.definition.lifetime === 'persistent') {
+    //     this.setupContext(context);
+    //   } else {
+    //     // this context is not needed anymore
+    //     this.contextInstanceCache.delete(context.id);
+    //     console.log('deleted context')
+    //   }
+    // }
+    // await this.persistContextInstanceCache();
   }
 
   async removeUnloadedContextsFromCache() {

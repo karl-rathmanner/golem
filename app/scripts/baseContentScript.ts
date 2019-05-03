@@ -14,6 +14,15 @@ import { AvailableSchemContextFeatures } from './contextManager';
       case 'has-context-with-id': {
         return Promise.resolve(window.golem.contextId === message.args.id);
       }
+      case 'get-context-id': {
+
+        console.log('someone asked for info', JSON.stringify(window.golem.contextInstance));
+        if (window.golem != null) {
+          return Promise.resolve(JSON.stringify(window.golem.contextInstance));
+        } else {
+          return Promise.resolve(null);
+        }
+      }
       case 'has-feature': {
         const feature: AvailableSchemContextFeatures = message.args;
         const hasFeature = window.golem.features != null && window.golem.features.indexOf(feature) !== -1;
