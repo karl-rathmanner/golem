@@ -68,4 +68,14 @@
                `(
                    ~lastForm 
                    ~(apply -> (cons value (butlast forms)))))) 
-          value)))
+          value))
+
+    (defn iter 
+        "Iterates over a collection, calling f once with each element supplied as the argument. Returns nil, so you'll do probably this for the side effects of f."
+        [seq f]
+        (if (= 0 (count seq))
+            nil
+            (do
+                (f (first seq))
+                (iter (rest seq) f)))))
+
