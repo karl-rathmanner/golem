@@ -18,6 +18,9 @@ export class SchemEditor {
   private ast: AnySchemType;
   private interpreter: Schem;
 
+  private parinferEnabledContextKey: monaco.editor.IContextKey<boolean>;
+  private parinferFrequency = 1400;
+
   constructor (private containerElement: HTMLElement, private options: {mode?: 'Schem' | 'JSON' | 'Text', interpreter?: Schem, expandContainer: boolean} = {mode: 'Schem', expandContainer: true}) {
 
     if (options.interpreter == null) {
@@ -32,10 +35,10 @@ export class SchemEditor {
     this.addSchemSupport();
 
     switch (options.mode) {
-      case 'Schem': 
+      case 'Schem':
         this.enableSchemMode();
         break;
-      case 'JSON': 
+      case 'JSON':
         this.enableJsonMode();
         break;
       default:
@@ -80,12 +83,12 @@ export class SchemEditor {
 
   public enableJsonMode() {
     this.disableSchemMode();
-    monaco.editor.setModelLanguage(this.monacoEditor.getModel(), "json");
+    monaco.editor.setModelLanguage(this.monacoEditor.getModel(), 'json');
   }
 
   public enableTextMode() {
     this.disableSchemMode();
-    monaco.editor.setModelLanguage(this.monacoEditor.getModel(), "");
+    monaco.editor.setModelLanguage(this.monacoEditor.getModel(), '');
   }
 
   public editorManipulationSchemFunctions = {
@@ -120,15 +123,18 @@ export class SchemEditor {
     // (The delay is currently 'necessary', for instance, because the rule relaxation around the cursor position doesn't seem to work ...always.)
     // TODO: find a proper fix for this workaround.
 
-    this.monacoEditor.createContextKey('parinferEnabled', true);
+    this.parinferEnabledContextKey = this.monacoEditor.createContextKey('parinferEnabled', true);
 
     let timeoutID = 0;
     const startParinferCountdown = (callback: Function) => {
-      // Remove the old timeout and start a new one if changes occur within 700ms of each other
+      // Remove the old timeout and start a new one if changes occur within x ms of each other
       window.clearTimeout(timeoutID);
       timeoutID = window.setTimeout(() => {
-        callback.call(this);
-      }, 1400);
+        console.log(this.parinferEnabledContextKey.get());
+        if (this.parinferEnabledContextKey.get()) {
+          callback.call(this);
+        }
+      }, this.parinferFrequency);
     };
 
     this.monacoEditor.onDidChangeModelContent(() => {
@@ -184,7 +190,7 @@ export class SchemEditor {
 
         const viewZoneAfterLineNumber = evaluationRange.endLineNumber;
         this.addEvaluationViewZone(viewZoneAfterLineNumber, '...evaluating...', 'evalWaitingForResultViewZone');
-        
+
         // TODO: clean up
         this.interpreter.arep(schemCode).then((result) => {
           this.addEvaluationViewZone(viewZoneAfterLineNumber, schemUnescape(result), 'evalResultViewZone');
@@ -246,7 +252,7 @@ export class SchemEditor {
         this.monacoEditor.createContextKey('parinferEnabled', false);
       }
     });
-    
+
     this.monacoEditor.addAction({
       id: 'enableParinfer',
       label: 'Enable Parinfer',
@@ -254,7 +260,7 @@ export class SchemEditor {
         this.monacoEditor.createContextKey('parinferEnabled', true);
       }
     });
-  
+
   }
 
   /** Shows the results of live evaluations. (Or error messages thereof.) */
@@ -442,7 +448,7 @@ export class SchemEditor {
   /** Loads the .golemrc script from local storage. */
   public async loadRunCommands(): Promise<void> {
     window.location.hash = this.openFileName = '.golemrc';
-    
+
     let settings = await Settings.loadSettings();
     if (settings.runCommands.length > 0) {
       this.monacoEditor.setValue(settings.runCommands);
@@ -455,8 +461,8 @@ export class SchemEditor {
       await Settings.saveSettings({runCommands: editorContents});
 
       if (window.confirm('New run commands will be executed now. (Click "cancel" to save without running them.)')) {
-        let msg: EventPageMessage = {action: 'execute-run-commands'}
+        let msg: EventPageMessage = {action: 'execute-run-commands'};
         chrome.runtime.sendMessage(msg);
-      };
+      }
   }
 }
