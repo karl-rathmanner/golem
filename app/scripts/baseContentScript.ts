@@ -15,8 +15,6 @@ import { AvailableSchemContextFeatures } from './contextManager';
                 return Promise.resolve(window.golem.contextId === message.args.id);
             }
             case 'get-context-id': {
-
-                console.log('someone asked for info', JSON.stringify(window.golem.contextInstance));
                 if (window.golem != null) {
                     return Promise.resolve(JSON.stringify(window.golem.contextInstance));
                 } else {

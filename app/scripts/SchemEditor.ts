@@ -130,7 +130,6 @@ export class SchemEditor {
             // Remove the old timeout and start a new one if changes occur within x ms of each other
             window.clearTimeout(timeoutID);
             timeoutID = window.setTimeout(() => {
-                console.log(this.parinferEnabledContextKey.get());
                 if (this.parinferEnabledContextKey.get()) {
                     callback.call(this);
                 }
