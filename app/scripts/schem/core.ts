@@ -8,7 +8,11 @@ import { SchemAtom, SchemBoolean, SchemFunction, SchemKeyword, SchemLazyVector, 
 import { isArray } from 'util';
 
 export const coreFunctions: { [symbol: string]: any } = {
-    'identity': (x: AnySchemType) => x,
+    // 'identity': (x: AnySchemType) => x,
+    'indentity': {
+        f: (x: AnySchemType) => x,
+        docstring: `Returns the argument. Any argument. It just returns it. Like, it doesn't do anything to it. Doesn't have any side effects either. Very pure!`
+    },
     '+': (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue: SchemNumber, currentIndex: number) => {
         if (currentIndex === 0) return currentValue.valueOf();
         else return accumulator + currentValue.valueOf();

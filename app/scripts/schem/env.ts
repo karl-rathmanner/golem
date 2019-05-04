@@ -15,7 +15,7 @@ export abstract class EnvSetupMap {
     // I'm allowing the map to have undefined entries to defining EnvSetupMaps that contain a subset of a string literal type. e.g.:
     // const editorEnv: {[symbolName in EventPageActionName]?: SchemType} = {...}
     // If the above index signature wasn't nullable, only maps containing keys for *all* string literals would be accepted.
-    [symbol: string]: any | undefined
+    [symbol: string]: Function | {f: Function, docstring: string} | {value: any | undefined }
 }
 
 /**  Environments map symbols to values
@@ -157,7 +157,6 @@ export class Env {
             } else {
                 metadata.name = key;
             }
-
             this.symbolValueMap.set(Symbol.for(key), new SchemFunction(value, metadata));
         } else {
             this.symbolValueMap.set(Symbol.for(key), value);
@@ -173,9 +172,14 @@ export class Env {
             if (!overwrite && this.symbolValueMap.has(Symbol.for(symbol))) {
                 throw `Tried to modify existing symbol ${symbol} while overwrite flag is set to false.`;
             } else {
+                const schemSymbol = SchemSymbol.from(symbol);
                 const value = map[symbol];
-                if (typeof value !== 'undefined') {
-                    this.set(SchemSymbol.from(symbol), value);
+                if (typeof value === 'function') {
+                    this.set(schemSymbol, new SchemFunction(value, {name: symbol}));
+                } else if ('f' in value && 'docstring' in value) {
+                    this.set(schemSymbol, new SchemFunction(value.f, {name: symbol, docstring: value.docstring}));
+                } else if (typeof value !== 'undefined') {
+                    this.set(schemSymbol, value);
                 }
             }
         }
