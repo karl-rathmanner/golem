@@ -71,9 +71,12 @@ export class SchemEditor {
     }
 
     public enableSchemMode() {
-        monaco.editor.setModelLanguage(this.monacoEditor.getModel(), 'schem');
-        this.monacoEditor.createContextKey('evalEnabled', true);
-        this.monacoEditor.createContextKey('parinferEnabled', true);
+        const model = this.monacoEditor.getModel();
+        if (model != null) {
+            monaco.editor.setModelLanguage(model, 'schem');
+            this.monacoEditor.createContextKey('evalEnabled', true);
+            this.monacoEditor.createContextKey('parinferEnabled', true);
+        }
     }
 
     private disableSchemMode() {
@@ -83,12 +86,18 @@ export class SchemEditor {
 
     public enableJsonMode() {
         this.disableSchemMode();
-        monaco.editor.setModelLanguage(this.monacoEditor.getModel(), 'json');
+        const model = this.monacoEditor.getModel();
+        if (model != null) {
+            monaco.editor.setModelLanguage(model, 'json');
+        }
     }
 
     public enableTextMode() {
         this.disableSchemMode();
-        monaco.editor.setModelLanguage(this.monacoEditor.getModel(), '');
+        const model = this.monacoEditor.getModel();
+        if (model != null) {
+            monaco.editor.setModelLanguage(model, '');
+        }
     }
 
     public editorManipulationSchemFunctions = {
@@ -142,30 +151,37 @@ export class SchemEditor {
     }
 
     private runParinfer() {
-        const source = this.monacoEditor.getModel().getValue();
+        const model = this.monacoEditor.getModel();
         const cursorPosition = this.monacoEditor.getPosition();
+        if (model != null && cursorPosition != null) {
+            const source = model.getValue();
 
-        const parinferResult = parinfer.indentMode(source, { cursorLine: cursorPosition.lineNumber, cursorX: cursorPosition.column });
 
-        // Only update the editor if parinfer changed anything, to reduce flashing and cursor shenannigans.
-        if (parinferResult.text !== source) {
-            this.monacoEditor.setValue(parinferResult.text);
+            const parinferResult = parinfer.indentMode(source, { cursorLine: cursorPosition.lineNumber, cursorX: cursorPosition.column });
 
-            // Band-aid "fix" for the cursor occasionally jumping left of the last entered character.
-            // TODO: investigate root cause
-            if (cursorPosition.column > parinferResult.cursorX) parinferResult.cursorX = cursorPosition.column;
-            this.monacoEditor.setPosition({ lineNumber: parinferResult.cursorLine, column: parinferResult.cursorX });
-        } else if (parinferResult.error != null) {
-            // highlight the first offending character
-            this.addTemporaryDecoration(new monaco.Range(parinferResult.error.lineNo + 1, parinferResult.error.x + 1, parinferResult.error.lineNo + 1, parinferResult.error.x + 2), 'sourceErrorDecoration');
-            // display the error below the first offending line
-            this.addEvaluationViewZone(parinferResult.error.lineNo + 1, `Parinfer Error: ${parinferResult.error.message}`, 'evalErrorViewZone');
+            // Only update the editor if parinfer changed anything, to reduce flashing and cursor shenannigans.
+            if (parinferResult.text !== source) {
+                this.monacoEditor.setValue(parinferResult.text);
+
+                // Band-aid "fix" for the cursor occasionally jumping left of the last entered character.
+                // TODO: investigate root cause
+                if (cursorPosition.column > parinferResult.cursorX) parinferResult.cursorX = cursorPosition.column;
+                this.monacoEditor.setPosition({ lineNumber: parinferResult.cursorLine, column: parinferResult.cursorX });
+            } else if (parinferResult.error != null) {
+                // highlight the first offending character
+                this.addTemporaryDecoration(new monaco.Range(parinferResult.error.lineNo + 1, parinferResult.error.x + 1, parinferResult.error.lineNo + 1, parinferResult.error.x + 2), 'sourceErrorDecoration');
+                // display the error below the first offending line
+                this.addEvaluationViewZone(parinferResult.error.lineNo + 1, `Parinfer Error: ${parinferResult.error.message}`, 'evalErrorViewZone');
+            }
         }
     }
 
     /** Evaluates some or all of the editor contents and shows the result right below that. */
     private evaluateEditorContents(interpreter: Schem, mode: 'wholeBuffer' | 'bracketsSurroundingCursor' | 'topLevelBracketsSurroundingCursor'): monaco.editor.ICommandHandler {
         return () => {
+            if (this.monacoEditor.getModel() == null) {
+                throw new Error(`monacoEditor.getModel failed to find a text model. SAD.`);
+            }
             this.monacoEditor.changeViewZones((changeAccessor: any) => {
                 const evaluationRange = (() => {
                     switch (mode) {
@@ -178,11 +194,11 @@ export class SchemEditor {
                             const bracketRanges = this.getRangesOfBracketsSurroundingCursor();
                             return bracketRanges[bracketRanges.length - 1];
                         }
-                        default: return this.monacoEditor.getModel().getFullModelRange();
+                        default: return this.monacoEditor.getModel()!.getFullModelRange();
                     }
                 })();
 
-                let schemCode = this.monacoEditor.getModel().getValueInRange(evaluationRange);
+                let schemCode = this.monacoEditor.getModel()!.getValueInRange(evaluationRange);
 
                 // When evaluating the whole buffer, wrap it in a 'do' form
                 if (mode === 'wholeBuffer') schemCode = `(do ${schemCode})`;
@@ -298,18 +314,21 @@ export class SchemEditor {
     }
 
     private addTemporaryDecoration(decorationRange: monaco.IRange, className: 'evaluatedSourceDecoration' | 'sourceErrorDecoration') {
-        let tmpDecoration = Array<string>();
-        // remove evalViews and decorations when buffer changes
-        this.monacoEditor.getModel().onDidChangeContent((e) => {
-            tmpDecoration = this.monacoEditor.deltaDecorations(tmpDecoration, []);
-            this.monacoEditor.changeViewZones((changeAccessor) => {
-                changeAccessor.removeZone(this.evalZoneId);
+        const model = this.monacoEditor.getModel();
+        if (model != null) {
+            let tmpDecoration = Array<string>();
+            // remove evalViews and decorations when buffer changes
+            model.onDidChangeContent((e) => {
+                tmpDecoration = this.monacoEditor.deltaDecorations(tmpDecoration, []);
+                this.monacoEditor.changeViewZones((changeAccessor) => {
+                    changeAccessor.removeZone(this.evalZoneId);
+                });
             });
-        });
-        // highlight evaluated source range
-        tmpDecoration = this.monacoEditor.deltaDecorations(tmpDecoration, [
-            { range: decorationRange, options: { inlineClassName: className } }
-        ]);
+            // highlight evaluated source range
+            tmpDecoration = this.monacoEditor.deltaDecorations(tmpDecoration, [
+                { range: decorationRange, options: { inlineClassName: className } }
+            ]);
+        }
     }
 
     /** Creates that little arrow when evaluation results are displayed. You know, where the line numbers would be if the arrow wasn't there...*/
@@ -325,7 +344,10 @@ export class SchemEditor {
     private updateAst() {
         try {
             // wrap source with a 'do' form so every list gets read
-            this.ast = readStr('(do ' + this.monacoEditor.getModel().getValue() + ')', true);
+            const model = this.monacoEditor.getModel();
+            if (model != null) {
+                this.ast = readStr('(do ' + model.getValue() + ')', true);
+            }
         } catch (e) {
             console.log(e);
         }
@@ -338,30 +360,36 @@ export class SchemEditor {
      * */
     private getRangesOfBracketsSurroundingCursor(): monaco.Range[] {
         const textModel = this.monacoEditor.getModel();
+        const cursorPosition = this.monacoEditor.getPosition();
         this.updateAst();
         // offset cursorIndex by four to compensate for the 'do' form
-        const cursorIndex = textModel.getOffsetAt(this.monacoEditor.getPosition()) + 4;
 
-        // I'm sorry...
-        const collectionsAroundCursor = filterRecursively(this.ast, (element) => {
-            if (element != null && 'metadata' in element && element.metadata !== undefined &&
-                'sourceIndexStart' in element.metadata && typeof element.metadata.sourceIndexStart === 'number' &&
-                'sourceIndexEnd' in element.metadata && typeof element.metadata.sourceIndexEnd === 'number') {
-                return (element.metadata.sourceIndexStart < cursorIndex + 1 && element.metadata.sourceIndexEnd > cursorIndex - 1);
-            } else {
-                return false;
-            }
-        });
+        if (textModel != null && cursorPosition != null) {
+            const cursorIndex = textModel.getOffsetAt(cursorPosition) + 4;
 
-        return collectionsAroundCursor.map(element => {
-            let metadata = (element as SchemList).metadata!;
+            // I'm sorry...
+            const collectionsAroundCursor = filterRecursively(this.ast, (element) => {
+                if (element != null && 'metadata' in element && element.metadata !== undefined &&
+                    'sourceIndexStart' in element.metadata && typeof element.metadata.sourceIndexStart === 'number' &&
+                    'sourceIndexEnd' in element.metadata && typeof element.metadata.sourceIndexEnd === 'number') {
+                    return (element.metadata.sourceIndexStart < cursorIndex + 1 && element.metadata.sourceIndexEnd > cursorIndex - 1);
+                } else {
+                    return false;
+                }
+            });
 
-            // offset positions to compensate for the 'do' form (and make endPos include the last character)
-            let startPos = textModel.getPositionAt(metadata.sourceIndexStart! - 4);
-            let endPos = textModel.getPositionAt(metadata.sourceIndexEnd! - 3);
+            return collectionsAroundCursor.map(element => {
+                let metadata = (element as SchemList).metadata!;
 
-            return new monaco.Range(startPos.lineNumber, startPos.column, endPos.lineNumber, endPos.column);
-        });
+                // offset positions to compensate for the 'do' form (and make endPos include the last character)
+                let startPos = textModel.getPositionAt(metadata.sourceIndexStart! - 4);
+                let endPos = textModel.getPositionAt(metadata.sourceIndexEnd! - 3);
+
+                return new monaco.Range(startPos.lineNumber, startPos.column, endPos.lineNumber, endPos.column);
+            });
+        } else {
+            throw new Error(`No text model loaded or cursor position found. Yikes!`);
+        }
     }
 
     /** Updates the editor layout, useful when the window size changes. */
@@ -385,7 +413,7 @@ export class SchemEditor {
                 return;
             case 'examples.schem':
                 const examples = require('!raw-loader!./schemScripts/example.schem');
-                this.monacoEditor.setValue(examples);
+                this.monacoEditor.setValue(examples.default);
                 return;
         }
 

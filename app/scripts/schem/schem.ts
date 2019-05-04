@@ -568,7 +568,7 @@ export class Schem {
         if (!this.coreLoaded) {
             this.coreLoaded = true; // technically, this isn't quite true, as core.schem isn't actually loaded yet, but the flag has to be set so the call to arep below may return
             const core = require('!raw-loader!../schemScripts/core.schem');
-            await this.arep(core);
+            await this.arep(core.default);
         }
     }
 

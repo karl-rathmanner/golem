@@ -1,9 +1,9 @@
 import * as monaco from 'monaco-editor';
+import { getAllProperties, resolveJSPropertyChain } from '../javascriptInterop';
 import { Schem } from '../schem/schem';
-import { isSchemCollection, isSchemFunction, isSchemSymbol, isSchemType, isSchemList } from '../schem/typeGuards';
+import { isSchemCollection, isSchemFunction, isSchemList, isSchemSymbol, isSchemType } from '../schem/typeGuards';
 import { AnySchemType, SchemContextSymbol, SchemSymbol, SchemTypes } from '../schem/types';
 import ILanguage = monaco.languages.IMonarchLanguage;
-import { resolveJSPropertyChain, getAllProperties } from '../javascriptInterop';
 
 export function AddSchemSupportToEditor(interpreter: Schem) {
     registerLanguage();
@@ -114,21 +114,29 @@ function setMonarchTokensProvider() {
 function registerCompletionItemProvider() {
     monaco.languages.registerCompletionItemProvider('schem', {
         triggerCharacters: ['.'],
-        provideCompletionItems: async (textModel, position, token, context) => {
+        // provideCompletionItems: (textModel, position, context, token): monaco.languages.ProviderResult<Promise<monaco.languages.CompletionList>> => {
+        provideCompletionItems: (textModel, position, context, token) => {
+            const word = textModel.getWordUntilPosition(position);
+            const defaultRange: monaco.IRange = {
+                startLineNumber: position.lineNumber,
+                endLineNumber: position.lineNumber,
+                startColumn: word.startColumn,
+                endColumn: word.endColumn
+            };
 
             // Completion was triggered by the user typing a dot -> propose javascript completion items
             if (context.triggerCharacter === '.') {
-                return createJSCompletionItems(textModel, position);
+                return createJSCompletionItems(textModel, position, defaultRange);
             } else {
                 // propose schem completion items
-                return createSchemCompletionItems();
+                return createSchemCompletionItems(defaultRange);
             }
         }
     });
 }
 
 /** Creates a list of completion items of all symbols currently bound in the interpreter's root environment. */
-async function createSchemCompletionItems() {
+async function createSchemCompletionItems(range: monaco.IRange): Promise<monaco.languages.CompletionList> {
 
     /** Turns a single schem symbol into a completion item with runtime information */
     function schemSymbolToCompletionItem(sym: SchemSymbol): monaco.languages.CompletionItem {
@@ -158,9 +166,7 @@ async function createSchemCompletionItems() {
             }
             if (isSchemSymbol(symbol)) {
                 if (value.typeTag === SchemTypes.SchemFunction) {
-                    return {
-                        value: symbol.name + ' '
-                    };
+                    return symbol.name + ' ';
                 } else {
                     return symbol.name + ' ';
                 }
@@ -205,7 +211,8 @@ async function createSchemCompletionItems() {
             kind: pickKind(resolvedValue),
             insertText: pickInsertText(sym, resolvedValue),
             detail: pickDetail(resolvedValue),
-            documentation: pickDocumentation(resolvedValue)
+            documentation: pickDocumentation(resolvedValue),
+            range: range
         };
     }
 
@@ -217,7 +224,8 @@ async function createSchemCompletionItems() {
             label: kw,
             kind: monaco.languages.CompletionItemKind.Keyword,
             insertText: kw + ' ',
-            detail: 'special form or reserved word'
+            detail: 'special form or reserved word',
+            range: range
         });
     });
 
@@ -225,17 +233,17 @@ async function createSchemCompletionItems() {
     let symbols = await interpreterForCompletion.readEval(`(list-symbols)`);
     if (isSchemList(symbols)) {
         const completionItems: monaco.languages.CompletionItem[] = symbols.map(schemSymbolToCompletionItem);
-        return completionItems.concat(reservedKeywordCompletionItems);
+        return { suggestions: completionItems.concat(reservedKeywordCompletionItems) };
     } else {
         // Environment contains no symbols, which would be weird. Let's not make a scene about it...
-        return reservedKeywordCompletionItems;
+        return { suggestions: reservedKeywordCompletionItems };
     }
 }
 
 /** Handles completion for js-symbols by looking up object properties in the current editor environment at runtime.
  * TODO: Add special case for foreign execution context forms? (By looking up properties in foreign js contexts.)
 */
-function createJSCompletionItems(textModel: monaco.editor.ITextModel, position: monaco.Position) {
+function createJSCompletionItems(textModel: monaco.editor.ITextModel, position: monaco.Position, defaultRange: monaco.IRange): monaco.languages.CompletionList {
     let jsCompletionItems: monaco.languages.CompletionItem[] = [];
 
     // starting at the cursor position and going left:
@@ -286,10 +294,13 @@ function createJSCompletionItems(textModel: monaco.editor.ITextModel, position: 
                     kind: typeToKind(type),
                     insertText: propertyName,
                     detail: `Javascript ${type}`,
+                    range: defaultRange
                 });
+
+
             });
         }
     }
 
-    return jsCompletionItems;
+    return { suggestions: jsCompletionItems};
 }
