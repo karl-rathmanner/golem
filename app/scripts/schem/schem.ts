@@ -32,7 +32,7 @@ export class Schem {
         this.replEnv.set('window', window);
         this.replEnv.set('document', document);
         this.replEnv.set('browser', browser);
-        this.replEnv.set('chrome', chrome);
+        this.replEnv.set('chrome', browser);
         this.coreLoaded = false;
         // Schem functions that need to reference the repl Environment go here - addMap doesn't support that
         this.replEnv.set('eval', (rand: AnySchemType) => this.evalSchem(rand, this.replEnv));
