@@ -309,7 +309,7 @@
 ; Associative destructuring, on the other hand, looks up keys in maps:
 
 (let [bauz 
-        {:col "yellow", :sp "daug", :verb "wagging it's tail", :name "Beaiengeo"}
+        {:col "yellow", :sp "daug", :verb "wagging its tail", :name "Beaiengeo"}
       mauz 
         {:col "black", :sp "cat", :verb "purring"}
       describe 
