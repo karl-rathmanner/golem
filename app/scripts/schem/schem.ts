@@ -9,7 +9,7 @@ import { isCallableSchemType, isSchemBoolean, isSchemContextSymbol, isSchemFunct
 import { AnySchemType, SchemAtom, SchemBoolean, SchemContextDefinition, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemString, SchemSymbol, SchemVector, SchemJSReference } from './types';
 
 export class Schem {
-  
+
   private coreLoaded: boolean;
   public replEnv: Env = new Env();
   public debug = {
@@ -22,7 +22,7 @@ export class Schem {
 
   private priviledgedContextIsReady = false;
   private contextManager: SchemContextManager;
-  
+
   constructor() {
     this.replEnv.addMap(coreFunctions);
     this.replEnv.addMap(interopFunctions);
@@ -49,39 +49,39 @@ export class Schem {
         return SchemNil.instance;
       }
     });
-    
+
     this.replEnv.set('list-symbols', () => new SchemList(...this.replEnv.getSymbols()));
-    
+
   }
-  
+
   /** Evaluates an abstract syntax tree */
   async evalAST(ast: AnySchemType, env: Env): Promise<AnySchemType> {
     if (isSchemSymbol(ast)) {
       // Symbols evaluate to the value they're bound to in the current environment (or parent environments)
-      
+
       if (SchemSymbol.refersToJavascriptObject(ast)) {
         // js interop: evaluate to object value
         return getJsProperty(ast.name);
       }
-      
+
       if (typeof env.find(ast) === 'undefined') {
         throw `Symbol ${ast.name} is undefined`;
       } else {
         return env.get(ast);
       }
-      
+
     } else if (isSchemContextSymbol(ast)) {
       // ContextSymbols evaluate to a ContextDefinition object
       return env.getContextSymbol(ast);
-      
+
     } else if (isSchemList(ast) || isSchemVector(ast)) {
       // For Lists and Vectors, each element is evaluated
-      
+
       const evaluatedAST = (isSchemList(ast)) ? new SchemList() : new SchemVector();
       for (let i = 0; i < ast.length; i++) {
         evaluatedAST[i] = await this.evalSchem(ast[i], env);
       }
-      
+
       return evaluatedAST;
     } else if (isSchemLazyVector(ast)) {
       // LazyVectors turn into regular Vectors during evaluation
@@ -89,31 +89,31 @@ export class Schem {
       for (let i = 0; i < ast.count(); i++) {
         evaluatedAST[i] = await this.evalSchem((await ast.nth(i) as AnySchemType), env);
       }
-      
+
       return evaluatedAST;
     } else if (isSchemMap(ast)) {
       // Only the values of Maps are evaluated
       let m = new SchemMap();
-      
+
       let flatAst = ast.flatten();
-      
+
       for (let i = 0; i < flatAst.length; i += 2) {
         if (isValidKeyType(flatAst[i])) {
           m.set(flatAst[i] as SchemMapKey, await this.evalSchem(flatAst[i + 1], env));
         }
       }
-      
+
       return m;
     } else {
       // Anything else will be returned as is - e.g. Keywords evaluate to themselves
       return ast;
     }
   }
-  
+
   /** Evaluates a Schem expression */
   async evalSchem(ast: AnySchemType, env: Env = this.replEnv): Promise<AnySchemType> {
     let tcoCounter = 0;
-    
+
     // This label is used for tail call optimization
     fromTheTop: while (true) {
       if (this.debug.logEvalSchemCalls) {
@@ -129,24 +129,24 @@ export class Schem {
         console.log(env);
         console.groupEnd();
       }
-      
+
       await this.nextStep();
       if (!(isSchemList(ast))) {
         return await this.evalAST(ast, env);
       }
-      
+
       ast = await this.macroExpand(ast, env);
-      
+
       if (!(isSchemList(ast))) {
         return this.evalAST(ast, env);
       }
-      
+
       if (isSchemList(ast)) {
         if (ast.length === 0) {
           return ast;
         } else {
           const first: AnySchemType = ast[0];
-          
+
           // SchemSymbols can indicate special forms
           if (isSchemSymbol(first)) {
             switch (first.name) {
@@ -159,7 +159,7 @@ export class Schem {
               } else {
                 throw `first argument of 'def' must be a symbol`;
               }
-              
+
               /** (defmacro name fn)
               * Binds a function to a symbol and sets its isMacro flag.
               */
@@ -171,21 +171,21 @@ export class Schem {
               if (!isSchemList(body)) {
                 throw new Error(`Second argument of defmacro must be a list!`);
               }
-              
+
               const macroFunction = this.fn(env, body);
               macroFunction.isMacro = true;
               return env.set(sym, macroFunction);
-              
+
               /** (defcontext example: {:tabQuery {:url "*example.com*"})
               * Binds a context definition to a context symbol
               */
               case 'defcontext': {
                 const [, contextSymbol, contextDefinitionMap] = ast;
-                
+
                 if (isSchemContextSymbol(contextSymbol) && isSchemMap(contextDefinitionMap)) {
                   env.set(contextSymbol, SchemContextDefinition.fromSchemMap(contextDefinitionMap, this));
                 }
-                
+
                 return SchemBoolean.true;
               }
               /** (let (symbol1 value1 symbol2 value2 ...) & expressions) or (let [symbol1 value1 symbol2 value2 ...] & expressions)
@@ -194,30 +194,30 @@ export class Schem {
               */
               case 'let':
               const bindings = ast[1];
-              
+
               if (!(isSequential(bindings))) {
                 throw new Error(`first argument of let has to be a list`);
               }
               else if (bindings.length % 2 > 0) {
                 throw new Error(`binding list contains uneven number of elements`);
               }
-              
+
               // separate the alternating name and value elements of bindings
               let names = [], values = [];
               for (let i = 0; i < bindings.length; i += 2) {
                 names.push(bindings[i]);
                 values.push(bindings[i + 1]);
               }
-              
+
               const childEnv = new Env(env);
               await childEnv.bind(new SchemVector(...names), new SchemVector(...values), this);
-              
+
               // TCO: switch to the new environment
               env = childEnv;
               // TCO: evaluate the expressions
-              ast = new SchemList(SchemSymbol.from('do'), ...ast.slice(2))
+              ast = new SchemList(SchemSymbol.from('do'), ...ast.slice(2));
               continue fromTheTop;
-              
+
               /** (do x y & more)
               * Evaluates all elements in sequence, but only returns the last one.
               */
@@ -232,10 +232,10 @@ export class Schem {
               for (let i = 1; i < ast.length - 1; i++) {
                 evaluatedAST.push(await this.evalSchem(ast[i], env));
               }
-              
+
               ast = ast[ast.length - 1];
               continue fromTheTop;
-              
+
               /** (if condition x y)
               * returns x if condition is true; otherwise returns y
               */
@@ -251,33 +251,33 @@ export class Schem {
                 ast = ast[2];
                 continue fromTheTop;
               }
-              
+
               /** (fn name? docstring? [parameters] & expressions)
               *  Defines a new function in the current environment. When it's called, the function body gets executed in a new child environmet.
               *  In this child environmet, the symbols provided in params are bound to the values provided as arguments by the caller.
               */
               case 'fn':
               return this.fn(env, ast);
-              
+
               /** (quote list)
               * Returns list without evaluating it
               */
               case 'quote':
               return ast[1];
-              
+
               /** (quasiquote list)
               * Acts like quote, unless a nested list starts with the symbols unquote or splice unquote.
               */
               case 'quasiquote':
               ast = this.evalQuasiquote(ast[1]);
               continue fromTheTop;
-              
+
               /** (macroexpand (m))
               * explicitly expand one level of a macro function
               */
               case 'macroexpand':
               return await this.macroExpand(ast[1], env);
-              
+
               /** (macroexpandAll (m))
               * explicitly expand all macro functions (even nested ones)
               */
@@ -288,13 +288,13 @@ export class Schem {
               } else {
                 throw new Error(`Something went wrong during macro expansion!`);
               }
-              
+
               /** (set-interpreter-options map) changes interpreter settings
               *  e.g.: (set-interpreter-options {"logArepInput" true "pauseEvaluation" false}) */
               case 'set-interpreter-options':
               const options = await this.evalAST(ast[1], env);
               if (!( isSchemMap(options))) throw `(set-interpreter-options options) options must be a map`;
-              
+
               options.forEach((key, value) => {
                 if ( isSchemString(key) &&  isSchemBoolean(value) && key.valueOf() in this.debug) {
                   (this.debug as any)[key.valueOf()] = value.valueOf();  // typecost is necessary, because the debug options literal lacks a string indexer – but we allready checked if the object has that key, so it's all good
@@ -302,7 +302,7 @@ export class Schem {
                 return void 0;
               });
               return SchemNil.instance;
-              
+
             }
             /** (.property jsobject & args)
             * property accessor / invocation syntax
@@ -314,34 +314,34 @@ export class Schem {
                 if (typeof propertyValue === 'function') {
                   return propertyValue.call(parentObject, ...args.map(coerceToJs));
                 } else {
-                  if (args.length > 0) console.warn(`You accessed a non-function-property of an js object and supplied arguments. They were ignored.`)
+                  if (args.length > 0) console.warn(`You accessed a non-function-property of an js object and supplied arguments. They were ignored.`);
                   return propertyValue;
                 }
               } else {
-                throw new Error(`Expected a js object as argument to the property accessor special form.`)
+                throw new Error(`Expected a js object as argument to the property accessor special form.`);
               }
               /** (!property jsobject value)
               * Property setter syntax
               */
             } else if (first.name[0] === '!' && first.name.length > 1) {
               const rest = ast.rest();
-              if (rest.length != 2) {
-                throw new Error(`The js-property-setter special form must be followed by exactly two values. e.g. (!propertyName jsObject newValue)`)
+              if (rest.length !== 2) {
+                throw new Error(`The js-property-setter special form must be followed by exactly two values. e.g. (!propertyName jsObject newValue)`);
               }
               let [jsobject, newValue] = await this.evalAST(rest, env) as SchemList;
-              
+
               if (!isSchemType(jsobject)) {
                 const propertyChain = first.name.slice(1).split('.'); // Throw out the "!" and split into property names
                 const lastPropertyName = propertyChain[propertyChain.length - 1];
-                
+
                 if (propertyChain.length > 1) { // Make sure jsobject is the actual parent of our property, not some ancestor
                   const butLastProperties = propertyChain.slice(0, -1);
                   jsobject = resolveJSPropertyChain(jsobject, ...butLastProperties);
                 }
-                
+
                 return (jsobject as any)[lastPropertyName] = coerceToJs(newValue);
               } else {
-                throw new Error(`Expected a js object the first argument of the property setter special form.`)
+                throw new Error(`Expected a js object the first argument of the property setter special form.`);
               }
             }
             /** (window.example a b &c)
@@ -377,7 +377,7 @@ export class Schem {
             if (this.contextManager != null) {
               const contextDef = env.getContextSymbol(first);
               const contextIds = await this.contextManager.prepareContexts(contextDef);
-              
+
               /** (contextSymbol: (form))
               * execute (form) in any context matching the definition bound to contextSymbol:
               * This is currently only supported if the interpreter instance exists in a privileged context
@@ -385,7 +385,7 @@ export class Schem {
               if (!this.priviledgedContextIsReady) {
                 throw new Error(`Tried to use foreign context execution from an interpreter instance that has no access to privileged functions. (Or maybe they weren't initialized yet.)`);
               }
-              
+
               let form = ast[1];
               if (isSchemList(form)) {
                 // if the whole form is quasiquoted, evaluate it in this context to resolve any unquoted parts, then evaluate that it in the foreign context
@@ -403,7 +403,7 @@ export class Schem {
                   }
                 }));
                 // or do tco? -> "continue fromTheTop;"
-                
+
                 /** (contextSymbol:js.symbol args)
                 * invoke a js function in its contexts
                 */
@@ -423,15 +423,15 @@ export class Schem {
               } else {
                 throw new Error(`Syntax error. A context symbol must be followed by either a list or a qualified javacript name.`);
               }
-              
+
             } else {
               throw new Error(`defcontext can only be called by an interpreter instance that is running in a privileged javascript context (such as the event page)`);
             }
           }
-          
+
           // If first didn't match any of the above, treat it as a function: evaluate all list elements and call the first element using the others as arguments
           const [f, ...args] = await this.evalAST(ast, env) as Array<any>;
-          
+
           if (isCallableSchemType(f)) {
             if (isSchemFunction(f)) {
               if (this.debug.logSchemFunctionInvocation) {
@@ -442,18 +442,18 @@ export class Schem {
                 console.log(args);
               }
               if (f.fnContext) {
-                
+
                 if (this.debug.logSchemFunctionInvocation) {
                   console.log('Function was defined in Schem and has a context object:');
                   console.log(f.fnContext);
                 }
-                
+
                 ast = f.fnContext.ast;
                 env = new Env(f.fnContext.env);
                 env.bind(f.fnContext.params, new SchemList(...args));
                 console.groupEnd();
                 continue fromTheTop;
-                
+
               } else {
                 if (this.debug.logSchemFunctionInvocation) {
                   console.log('Function has no context.');
@@ -481,14 +481,14 @@ export class Schem {
           }
         }
       }
-      
+
       return SchemNil.instance;
     }
   }
-  
+
   private fn(env: Env, ast: SchemList) {
     let name, docstring, params, fnBody;
-    
+
     // Both the name and docstring parameters are optional
     if (isSchemSymbol(ast[1])) {
       if (isSchemString(ast[2])) {
@@ -508,45 +508,45 @@ export class Schem {
       // case: (fn [params] (expr1) (expr2) ...)
       [, params, ...fnBody] = ast;
     }
-    
+
     if (!(isSchemList(params) || isSchemVector(params))) {
       throw `expected a list or vector of parameters`;
     }
-    
+
     try {
       let metadata: SchemMetadata = {};
       if (name) metadata.name = name;
       if (docstring) metadata.docstring = docstring;
-      
+
       if (fnBody.length > 0) {
         fnBody = (new SchemList(SchemSymbol.from('do'), ...fnBody)); // wrap implicit 'do' form around multi-expression function bodies
       }
-      
+
       if (!isSchemType(fnBody)) {
-        throw new Error(`Function Body must be a Schem expression.`)
+        throw new Error(`Function Body must be a Schem expression.`);
       }
       return SchemFunction.fromSchemWithContext(this, env, params, fnBody, metadata);
-      
+
     } catch (error) {
       throw `binds list for new environments must only contain symbols`;
     }
   }
-  
+
   evalQuasiquote(ast: AnySchemType): AnySchemType {
     if (isSequential(ast)) {
       if (ast.length === 0) {
         // ast is an empty list -> quote it
         return new SchemList(SchemSymbol.from('quote'), ast);
       }
-      
+
       const nonEmptyList = ast;
       if (isSchemSymbol(nonEmptyList[0]) && (nonEmptyList[0] as SchemSymbol).name === 'unquote') {
         // ast looks like: (unquote x) -> return just x, so it's going to be evaluated
         return nonEmptyList[1];
       }
-      
+
       const [, ...secondTroughLastElements] = nonEmptyList;
-      
+
       if (isSequential(nonEmptyList[0])) {
         const innerList = (nonEmptyList[0] as SchemList);
         if (isSchemSymbol(innerList[0]) && (innerList[0] as SchemSymbol).name === 'splice-unquote') {
@@ -554,16 +554,16 @@ export class Schem {
           return new SchemList(SchemSymbol.from('concat'), innerList[1], this.evalQuasiquote(new SchemList(...secondTroughLastElements)));
         }
       }
-      
+
       // recursively call evalQuasiquote with the first element of the list and with the rest of the list, construct a new list with the results
       return new SchemList(SchemSymbol.from('cons'), this.evalQuasiquote(nonEmptyList[0]), this.evalQuasiquote(new SchemList(...secondTroughLastElements)));
-      
+
     } else {
       // ast is not a list -> quote it
       return new SchemList(SchemSymbol.from('quote'), ast);
     }
   }
-  
+
   async loadCore() {
     if (!this.coreLoaded) {
       this.coreLoaded = true; // technically, this isn't quite true, as core.schem isn't actually loaded yet, but the flag has to be set so the call to arep below may return
@@ -571,7 +571,7 @@ export class Schem {
       await this.arep(core);
     }
   }
-  
+
   async arep(expression: string, overwrites?: EnvSetupMap): Promise<string> {
     if (typeof expression === 'undefined' || expression.length === 0) {
       expression = 'nil';
@@ -580,22 +580,22 @@ export class Schem {
     if (overwrites) {
       this.replEnv.addMap(overwrites, true);
     }
-    
+
     if (this.debug.logArepInput) console.log('evaluating: ' + expression);
     return await pr_str(await this.evalSchem(readStr(expression), this.replEnv));
   }
-  
+
   async readEval(expression: string): Promise<AnySchemType> {
     if (typeof expression === 'undefined' || expression.length === 0) {
       return SchemNil.instance;
     }
     return await this.evalSchem(readStr(expression), this.replEnv);
   }
-  
+
   delay(milliSeconds: number) {
     return new Promise(resolve => setTimeout(resolve, milliSeconds));
   }
-  
+
   /**
   * Returns the isMacro flag of the ast's first element
   * @param ast Abstract Syntax Tree
@@ -615,7 +615,7 @@ export class Schem {
       return false;
     }
   }
-  
+
   /** Expands the macro at the beginning of a list (repeatedly) */
   async macroExpand(ast: AnySchemType, env: Env) {
     while (this.isMacroCall(ast, env)) {
@@ -626,7 +626,7 @@ export class Schem {
     }
     return ast;
   }
-  
+
   /** Recursively expands macro all functions in an abstract syntax tree */
   async macroExpandAll(ast: AnySchemType, env: Env): Promise<AnySchemType> {
     if (isSchemList(ast)) {
@@ -640,7 +640,7 @@ export class Schem {
       }
       return ast;
     }
-    
+
     async nextStep(): Promise<void> {
       if (this.debug.pauseEvaluation) {
         return new Promise<void>(resolve => {
@@ -652,16 +652,16 @@ export class Schem {
           });
         });
       }
-      
+
       /* turbo mode
       await this.delay(100);
       */
-      
+
       await true;
     }
-    
+
   }
-  
+
   /** Returns all elements in an indexed & possibly nested SchemCollection as a flat array. Searches depth first. */
   // TODO: use isCollection, first and next instead of for loop
   export function filterRecursively(ast: AnySchemType, predicate: (element: AnySchemType) => boolean): AnySchemType[] {
@@ -670,16 +670,16 @@ export class Schem {
     function notUndefinedOrString(o: any) {
       return (typeof o !== 'undefined' && typeof o !== 'string');
     }
-    
+
     // test the collection itself (if it even is one)
     if (predicate(ast)) {
       results.push(ast);
     }
-    
+
     // iterate over ast as long as it's an indexable collection
     for (let i = 0; notUndefinedOrString((ast as any)[i]); i++) {
       currentElement = (ast as any)[i];
-      
+
       // if an element is itself an indexable collection, filter its contents and add them to results
       // if (notUndefinedOrString((currentElement as any)[i])) {
       if (notUndefinedOrString((currentElement as any)[0])) {
@@ -688,6 +688,6 @@ export class Schem {
         results.push(currentElement);
       }
     }
-    
+
     return results;
   }
