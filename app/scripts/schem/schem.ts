@@ -160,19 +160,19 @@ export class Schem {
                 throw `first argument of 'def' must be a symbol`;
               }
 
-              /** (defmacro name fn)
+              /** (defmacro name docstring? [parameters] & expressions)
               * Binds a function to a symbol and sets its isMacro flag.
               */
               case 'defmacro':
-              const [, sym, body] = ast;
+              const [, sym, ...fnAst] = ast;
               if (!isSchemSymbol(sym)) {
                 throw new Error(`First argument of defmacro must be a symbol!`);
               }
-              if (!isSchemList(body)) {
-                throw new Error(`Second argument of defmacro must be a list!`);
-              }
+              // if (!isSchemList(body) || !isSchemVector) {
+              //   throw new Error(`Second argument of defmacro must be a list or vector!`);
+              // }
 
-              const macroFunction = this.fn(env, body);
+              const macroFunction = this.fn(env, new SchemList(sym, ...fnAst));
               macroFunction.isMacro = true;
               return env.set(sym, macroFunction);
 

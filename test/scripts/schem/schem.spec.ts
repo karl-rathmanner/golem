@@ -159,11 +159,11 @@ describe('blackbox tests', function() {
 
   // Macros
   // from: https://github.com/kanaka/mal/blob/master/tests/step8_macros.mal
-  expectSchem(['(defmacro unless (fn (pred a b) `(if ~pred ~b ~a)))', '(unless true 1 2)'], '2');
-  expectSchem(['(defmacro unless (fn (pred a b) `(if ~pred ~b ~a)))', '(macroexpand (unless true 1 2))'], '(if true 2 1)');
-  expectSchem(['(defmacro identity (fn (x) x))', '(let (a 123) (identity a))'], '123');
+  expectSchem(['(defmacro unless [pred a b] `(if ~pred ~b ~a)))', '(unless true 1 2)'], '2');
+  expectSchem(['(defmacro unless [pred a b] `(if ~pred ~b ~a)))', '(macroexpand (unless true 1 2))'], '(if true 2 1)');
+  expectSchem(['(defmacro identity [x] x)', '(let (a 123) (identity a))'], '123');
 
-  const testMacro = `(defmacro executePostfix (fn (l) (cons (last l) (butlast l))))`;
+  const testMacro = `(defmacro executePostfix [l] (cons (last l) (butlast l))))`;
 
   expectSchem([testMacro, '(executePostfix [1 2 +])'], '3');
   expectSchem([testMacro, '(executePostfix (1 2 +))'], '3');
