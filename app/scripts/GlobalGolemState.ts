@@ -1,15 +1,15 @@
-import { SchemContextManager } from "./contextManager";
-import { Schem } from "./schem/schem";
-import { SchemContextDefinition, SchemContextInstance } from "./schem/types";
-import { Settings } from "./Settings";
-import { CommandHistory } from "./utils/commandHistory";
-import { browser } from "webextension-polyfill-ts";
+import { SchemContextManager } from './contextManager';
+import { Schem } from './schem/schem';
+import { SchemContextDefinition, SchemContextInstance } from './schem/types';
+import { Settings } from './Settings';
+import { CommandHistory } from './utils/commandHistory';
+import { browser } from 'webextension-polyfill-ts';
 
 /** Holds global state and initializes core functionality. (Parts of that state are persistent in varying degrees.) */
 export class GlobalGolemState {
     private static instance: GlobalGolemState;
 
-    //private globalGolemFunctions: GlobalGolemFunctions;
+    // private globalGolemFunctions: GlobalGolemFunctions;
     public contextManager: SchemContextManager;
 
     public activeContextInstances = new Array<SchemContextInstance>();
@@ -24,7 +24,7 @@ export class GlobalGolemState {
     public static async getInstance() {
         if (this.instance == null) {
             this.instance = new GlobalGolemState();
-            await this.instance.init()
+            await this.instance.init();
         }
         return this.instance;
     }
@@ -44,7 +44,7 @@ export class GlobalGolemState {
     public static async loadObject<T>(key: string): Promise<T | null> {
         return await browser.storage.local.get('persistedState').then(results => {
             if (results.persistedState == null) {
-                console.log(`LoadObject failed, because no persistedState object was found in local storage, creating a new one. This might have happened becouse local storage was corrupted.`)
+                console.log(`LoadObject failed, because no persistedState object was found in local storage, creating a new one. This might have happened becouse local storage was corrupted.`);
                 GlobalGolemState.createEmptyPersistedStateObject();
                 return null;
             }
@@ -71,7 +71,7 @@ export class GlobalGolemState {
     private static createEmptyPersistedStateObject() {
         browser.storage.local.set({
             persistedState: {}
-        })
+        });
     }
 
     public async getAutoinstantiateContexts() {

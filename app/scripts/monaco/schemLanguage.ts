@@ -13,7 +13,7 @@ export function AddSchemSupportToEditor(interpreter: Schem) {
     SetInterpreterForCompletion(interpreter);
 }
 
-let interpreterForCompletion: Schem
+let interpreterForCompletion: Schem;
 
 export function SetInterpreterForCompletion(interpreter: Schem) {
     interpreterForCompletion = interpreter;
@@ -117,7 +117,7 @@ function registerCompletionItemProvider() {
         provideCompletionItems: async (textModel, position, token, context) => {
 
             // Completion was triggered by the user typing a dot -> propose javascript completion items
-            if (context.triggerCharacter == '.') {
+            if (context.triggerCharacter === '.') {
                 return createJSCompletionItems(textModel, position);
             } else {
                 // propose schem completion items
@@ -173,7 +173,7 @@ async function createSchemCompletionItems() {
             if (!isSchemType(value)) {
                 if (value === null) return `null`;
                 if (value === undefined) return `undefined`;
-                if (typeof value === 'object') return `${typeof value}: ${("toString" in value) ? value.toString() : value}`;
+                if (typeof value === 'object') return `${typeof value}: ${('toString' in value) ? value.toString() : value}`;
                 return `${typeof value}: ${value}`;
             }
             if (isSchemFunction(value)) {
@@ -198,7 +198,7 @@ async function createSchemCompletionItems() {
             }
 
             return 'No documentation';
-        }
+        };
 
         return {
             label: sym.name,
@@ -207,7 +207,7 @@ async function createSchemCompletionItems() {
             detail: pickDetail(resolvedValue),
             documentation: pickDocumentation(resolvedValue)
         };
-    };
+    }
 
     // Create completion items for built-in keywords
     let reservedKeywordCompletionItems: monaco.languages.CompletionItem[] = [];
@@ -232,7 +232,7 @@ async function createSchemCompletionItems() {
     }
 }
 
-/** Handles completion for js-symbols by looking up object properties in the current editor environment at runtime. 
+/** Handles completion for js-symbols by looking up object properties in the current editor environment at runtime.
  * TODO: Add special case for foreign execution context forms? (By looking up properties in foreign js contexts.)
 */
 function createJSCompletionItems(textModel: monaco.editor.ITextModel, position: monaco.Position) {
@@ -268,7 +268,7 @@ function createJSCompletionItems(textModel: monaco.editor.ITextModel, position: 
     if (partBeforeLastDot != null) {
         let obj: any = resolveJSPropertyChain(window, partBeforeLastDot);
         if (obj != null) {
-            const properties = getAllProperties(obj)
+            const properties = getAllProperties(obj);
             const typeToKind = (type: 'string' | 'number' | 'boolean' | 'symbol' | 'undefined' | 'object' | 'function' | 'bigint') => {
                 // these are picked based for the icon monaco displays, not for semantic reasons
                 switch (type) {
@@ -276,7 +276,7 @@ function createJSCompletionItems(textModel: monaco.editor.ITextModel, position: 
                     case 'function': return monaco.languages.CompletionItemKind.Function;
                     default: return monaco.languages.CompletionItemKind.Variable;
                 }
-            }
+            };
             if (properties != null) properties.forEach(propertyName => {
                 const type = typeof obj[propertyName];
 
@@ -287,7 +287,7 @@ function createJSCompletionItems(textModel: monaco.editor.ITextModel, position: 
                     insertText: propertyName,
                     detail: `Javascript ${type}`,
                 });
-            })
+            });
         }
     }
 

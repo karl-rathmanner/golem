@@ -656,8 +656,8 @@ export class SchemContextDefinition implements TaggedType {
         // This is mostly necessary to strip the Schem type tags.
         return new SchemContextDefinition(obj.tabQuery, {
             features: obj.features,
-            "life-time": obj.lifetime,
-            "run-at": obj.runAt,
+            'life-time': obj.lifetime,
+            'run-at': obj.runAt,
             frameId: obj.frameId,
             init: obj.init
         });

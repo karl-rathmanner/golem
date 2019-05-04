@@ -168,7 +168,7 @@ export function coerceToSchem(obj: AnySchemType) {
     } else {
         return obj;
     }
-    //return jsObjectToSchemType(obj, {arraysToVectors: true, depth: 1, keySerialization: 'toLispCase'});
+    // return jsObjectToSchemType(obj, {arraysToVectors: true, depth: 1, keySerialization: 'toLispCase'});
 }
 
 
@@ -198,7 +198,7 @@ export function jsObjectToSchemType(o: any, options: { arraysToVectors?: boolean
             const schemMap = new SchemMap();
             for (let property in o) {
                 if (options.keySerialization === 'toLispCase') {
-                    //bah! wrong direction
+                    // bah! wrong direction
                     property = property.replace(/[a-z][A-Z]/g, function (match) {
                         return match[0] + '-' + match[1].toLowerCase();
                     }).toLowerCase();
@@ -234,7 +234,7 @@ export function primitiveValueToSchemType(value: any, defaultValue?: AnySchemTyp
     }
 }
 
-//** Can contain references to objects or property names. TODO: Add a second list for read only stuff. (Like innerHTML?) */
+// ** Can contain references to objects or property names. TODO: Add a second list for read only stuff. (Like innerHTML?) */
 const jsBlackList = [eval, 'innerHTML', browser.storage, browser.runtime];
 
 
@@ -269,7 +269,7 @@ export async function invokeJsProcedure(qualifiedProcedureName: string, procedur
         return Promise.reject('Tried to invoke a blacklisted JS function.');
     } else {
         try {
-            //return Promise.resolve(obj[procedureName](...procedureArgs));
+            // return Promise.resolve(obj[procedureName](...procedureArgs));
             // Convert Schem alues to JS objects
             return Promise.resolve(obj[procedureName](...procedureArgs.map(coerceToJs)));
         } catch (e) {

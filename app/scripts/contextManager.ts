@@ -42,13 +42,13 @@ export class SchemContextManager {
     async refreshContextInstanceCache() {
         this.contextInstanceCache.clear();
 
-        const allEligibleTabs = await browser.tabs.query({ url: "*://*/*" });
+        const allEligibleTabs = await browser.tabs.query({ url: '*://*/*' });
 
         for (const eligibleTab of allEligibleTabs) {
             if (eligibleTab.id == null) {
-                console.warn(`This shouldn't happen.`)
+                console.warn(`This shouldn't happen.`);
             } else {
-                const ci = await this.getContextInstanceInTab(eligibleTab.id)
+                const ci = await this.getContextInstanceInTab(eligibleTab.id);
                 if (ci != null) {
                     console.log('response to get context:', ci);
                     this.contextInstanceCache.set(ci.id, ci);

@@ -1,10 +1,10 @@
-import { browser, Omnibox, Runtime, Tabs } from "webextension-polyfill-ts";
-import { EventPageMessage } from "./eventPageMessaging";
-import { GlobalGolemState } from "./GlobalGolemState";
-import { schemToJs } from "./javascriptInterop";
-import { isSchemList, isSchemSymbol } from "./schem/typeGuards";
-import { SchemBoolean, SchemContextDefinition, SchemList, SchemString } from "./schem/types";
-import { addParensAsNecessary, escapeXml, objectPatternMatch } from "./utils/utilities";
+import { browser, Omnibox, Runtime, Tabs } from 'webextension-polyfill-ts';
+import { EventPageMessage } from './eventPageMessaging';
+import { GlobalGolemState } from './GlobalGolemState';
+import { schemToJs } from './javascriptInterop';
+import { isSchemList, isSchemSymbol } from './schem/typeGuards';
+import { SchemBoolean, SchemContextDefinition, SchemList, SchemString } from './schem/types';
+import { addParensAsNecessary, escapeXml, objectPatternMatch } from './utils/utilities';
 
 /** Responsible for subscribing to global browser events. Also exposes a mixed bag of functions that should be available in privileged contexts. */
 export class GlobalGolemFunctions {
@@ -121,7 +121,7 @@ export class GlobalGolemFunctions {
             }
         },
         'clear-autoinstantiate-context': async () => {
-            //const bgp = await browser.runtime.getBackgroundPage();
+            // const bgp = await browser.runtime.getBackgroundPage();
             this.globalState.clearAutoinstantiateContexts();
             return SchemBoolean.true;
         },
@@ -147,7 +147,7 @@ export class GlobalGolemFunctions {
         let settings = await this.globalState.getSettings();
 
         if (settings == null) {
-            console.warn(`Wanted to execute run commands but globalState wasn't ready.`)
+            console.warn(`Wanted to execute run commands but globalState wasn't ready.`);
         } else if (settings.runCommands != null && settings.runCommands.length > 0) {
             console.log('Executing run commands.');
             await this.globalState.eventPageInterpreter.arep(`(do ${settings.runCommands})`);

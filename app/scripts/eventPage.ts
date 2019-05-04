@@ -14,7 +14,7 @@ window.golem = {
 };
 
 async function initGolem() {
-    console.log(`InitGolem called.`)
+    console.log(`InitGolem called.`);
     const ggsInstance = getGlobalState() || await GlobalGolemState.getInstance();
 
     // Only initialize golem if necessary. (e.g. the event page was unloaded or the browser was restarted)
@@ -36,7 +36,7 @@ async function initGolem() {
 }
 
 function getGlobalState() {
-    // Get the "actual" event page so we don't create more than one golem instance per browser profile. 
+    // Get the "actual" event page so we don't create more than one golem instance per browser profile.
     // (When background.html is opened in one or more tabs, they would each have their own window object. So, calling getBackgroundPage is necessary event though we already "are in" the background page.)
     const backgroundPage = browser.extension.getBackgroundPage();
     const ggsInstance = backgroundPage.golem.priviledgedContext == null
@@ -70,7 +70,7 @@ const onTabUpdatedHandler = async (tabId: number, changeInfo: Tabs.OnUpdatedChan
             await cm.prepareContexts(context, tabId);
         }
     }
-}
+};
 
 function getContextIdInTab(tabId: number) {
     const msg: GolemContextMessage = { action: 'get-context-id' };

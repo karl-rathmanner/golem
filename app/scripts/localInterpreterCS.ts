@@ -12,7 +12,7 @@ export interface ContextArepResponse {
     // for *some* reason, the interpreter gets injected twice when preparing a context that explicitly requested the 'schem-interpreter' feature
     // TODO: investigate
     if (window.golem == null) {
-        console.warn('trying to inject interpreter before the base content script')
+        console.warn('trying to inject interpreter before the base content script');
     } else {
         console.log('injecting interpreter');
     }
