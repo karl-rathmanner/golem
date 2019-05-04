@@ -3,7 +3,7 @@
     "*.schem": "clojure"
   },
   "editor.detectIndentation": false,
-  "editor.tabSize": 2,
+  "editor.tabSize": 4,
   "editor.autoIndent": true,
   "tslint.exclude": "**/node_modules/**/*.ts",
 }
