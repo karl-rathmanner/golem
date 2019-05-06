@@ -121,15 +121,17 @@ export const coreFunctions: { [symbol: string]: any } = {
     'vector?': (arg: AnySchemType) => {
         return SchemBoolean.fromBoolean(arg instanceof SchemVector);
     },
-    'count': (arg: AnySchemType) => {
+    'count': (arg: any) => {
         if ('count' in arg) {
             return new SchemNumber(arg.count());
         } else if (isSchemString(arg)) {
             return new SchemNumber(arg.length);
         } else if (arg === SchemNil.instance) {
             return new SchemNumber(0);
+        } else if ('length' in arg) {
+            return new SchemNumber(arg.length);
         } else {
-            throw `tried to count soemthing other than a collection, string or nil`;
+            throw new Error(`tried to count soemthing other than a collection, string or nil. It also doesn't have a length.`);
         }
     },
     'first': (sequential: SchemList | SchemVector | Array<any>) => {
