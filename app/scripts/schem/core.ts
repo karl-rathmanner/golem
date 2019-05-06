@@ -274,9 +274,6 @@ export const coreFunctions: { [symbol: string]: any } = {
     'atom': (value: AnySchemType) => {
         return new SchemAtom(value);
     },
-    'atom?': (value: AnySchemType) => {
-        return value.constructor === SchemAtom;
-    },
     'deref': (atom: SchemAtom) => {
         return atom.getValue();
     },
