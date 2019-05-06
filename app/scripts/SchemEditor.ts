@@ -74,6 +74,7 @@ export class SchemEditor {
         const model = this.monacoEditor.getModel();
         if (model != null) {
             monaco.editor.setModelLanguage(model, 'schem');
+            model.updateOptions({ tabSize: 4 });
             this.monacoEditor.createContextKey('evalEnabled', true);
             this.monacoEditor.createContextKey('parinferEnabled', true);
         }
@@ -125,48 +126,42 @@ export class SchemEditor {
 
     /** Parinfer is a library that automatically creates all those pesky parens for you. */
     private addParinfer() {
-        // Gist: When a (probably) user generated change to the model is detected, wait 700ms before running parinfer.
-        // Parinfer returns the whole buffer and unless I integrate its smart mode or find a way to only edit the parts of the model that include changes,
-        // each parinfer update will cause the editor to flash while the syntax highlighting is recalculated.
-        // The current integration includes a bunch of work-arounds that I'm not proud of, but it's still way better than not having parinfer.
-        // (The delay is currently 'necessary', for instance, because the rule relaxation around the cursor position doesn't seem to work ...always.)
-        // TODO: find a proper fix for this workaround.
+        // The Parinfer integration still uses some workarounds, but it could be worse.
 
         this.parinferEnabledContextKey = this.monacoEditor.createContextKey('parinferEnabled', true);
 
-        let timeoutID = 0;
-        const startParinferCountdown = (callback: Function) => {
-            // Remove the old timeout and start a new one if changes occur within x ms of each other
-            window.clearTimeout(timeoutID);
-            timeoutID = window.setTimeout(() => {
-                if (this.parinferEnabledContextKey.get()) {
-                    callback.call(this);
-                }
-            }, this.parinferFrequency);
-        };
-
-        this.monacoEditor.onDidChangeModelContent(() => {
-            startParinferCountdown(this.runParinfer);
+        this.monacoEditor.onDidChangeModelContent((e) => {
+            if (this.parinferEnabledContextKey.get()) {
+                this.runParinfer(e.changes);
+            }
         });
     }
 
-    private runParinfer() {
+    private runParinfer(changes: monaco.editor.IModelContentChange[]) {
+
         const model = this.monacoEditor.getModel();
-        const cursorPosition = this.monacoEditor.getPosition();
+        let cursorPosition = this.monacoEditor.getPosition();
+
         if (model != null && cursorPosition != null) {
             const source = model.getValue();
+            const parinferResult = parinfer.indentMode(source, { cursorLine: cursorPosition.lineNumber, cursorX: cursorPosition.column});
 
+            // Only update the editor if parinfer changed anything and only if that change wasn't just a single whitespace.
+            // This should reduce flashing and cursor shenannigans. (I can't get parinfer's rule relaxation around the cursor to work correctly, but this is way better than the previous hack.)
+            if (parinferResult.text !== source && changes[0].text !== ' ') {
+                const lastPosition = model.getPositionAt(model.getValueLength());
+                this.monacoEditor.executeEdits(
+                    'Parinfer',
+                    [
+                        {
+                            range: new monaco.Range(0, 0, lastPosition.lineNumber, lastPosition.column),
+                            text: parinferResult.text,
+                        }
+                    ],
+                    [
+                        new monaco.Selection(parinferResult.cursorLine, parinferResult.cursorX, parinferResult.cursorLine, parinferResult.cursorX)
+                    ]);
 
-            const parinferResult = parinfer.indentMode(source, { cursorLine: cursorPosition.lineNumber, cursorX: cursorPosition.column });
-
-            // Only update the editor if parinfer changed anything, to reduce flashing and cursor shenannigans.
-            if (parinferResult.text !== source) {
-                this.monacoEditor.setValue(parinferResult.text);
-
-                // Band-aid "fix" for the cursor occasionally jumping left of the last entered character.
-                // TODO: investigate root cause
-                if (cursorPosition.column > parinferResult.cursorX) parinferResult.cursorX = cursorPosition.column;
-                this.monacoEditor.setPosition({ lineNumber: parinferResult.cursorLine, column: parinferResult.cursorX });
             } else if (parinferResult.error != null) {
                 // highlight the first offending character
                 this.addTemporaryDecoration(new monaco.Range(parinferResult.error.lineNo + 1, parinferResult.error.x + 1, parinferResult.error.lineNo + 1, parinferResult.error.x + 2), 'sourceErrorDecoration');
@@ -245,16 +240,24 @@ export class SchemEditor {
         });
 
         this.monacoEditor.addAction({
-            id: 'disableSchemFeatures',
-            label: 'Disable Schem features',
+            id: 'enableTextEditMode',
+            label: 'Switch to text edit mode',
             run: () => {
-                this.disableSchemMode();
+                this.enableTextMode();
+            }
+        });
+
+        this.monacoEditor.addAction({
+            id: 'enableJSONEditMode',
+            label: 'Switch to JSON edit mode',
+            run: () => {
+                this.enableJsonMode();
             }
         });
 
         this.monacoEditor.addAction({
             id: 'enableSchemFeatures',
-            label: 'Enable Schem features',
+            label: 'Switch to Schem editing mode (including Parinfer)',
             run: () => {
                 this.enableSchemMode();
             }
