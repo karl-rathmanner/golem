@@ -1,11 +1,11 @@
+import { isArray } from 'util';
 import { browser } from 'webextension-polyfill-ts';
-import { jsObjectToSchemType, schemToJs, setJsProperty, resolveJSPropertyChain, atomicSchemObjectToJS } from '../javascriptInterop';
+import { atomicSchemObjectToJS, jsObjectToSchemType, resolveJSPropertyChain, schemToJs, setJsProperty } from '../javascriptInterop';
 import { VirtualFileSystem } from '../virtualFilesystem';
 import { prettyPrint, pr_str } from './printer';
 import { readStr } from './reader';
-import { isSchemKeyword, isSchemString, isSchemSymbol, isSequential, isValidKeyType, isSchemLazyVector, isSchemMap, isSchemNumber, isSchemList, isSchemVector, isSchemFunction, isSchemJSReference, isSchemType } from './typeGuards';
-import { SchemAtom, SchemBoolean, SchemFunction, SchemKeyword, SchemLazyVector, SchemList, SchemMap, SchemMapKey, SchemNil, SchemNumber, SchemRegExp, SchemString, SchemSymbol, AnySchemType, SchemVector, RegularSchemCollection, SchemJSReference } from './types';
-import { isArray } from 'util';
+import { isSchemAtom, isSchemFunction, isSchemJSReference, isSchemKeyword, isSchemLazyVector, isSchemList, isSchemMap, isSchemNumber, isSchemString, isSchemSymbol, isSchemType, isSchemVector, isSequential, isValidKeyType } from './typeGuards';
+import { AnySchemType, RegularSchemCollection, SchemAtom, SchemBoolean, SchemFunction, SchemJSReference, SchemKeyword, SchemLazyVector, SchemList, SchemMap, SchemMapKey, SchemNil, SchemNumber, SchemRegExp, SchemString, SchemSymbol, SchemVector } from './types';
 
 export const coreFunctions: { [symbol: string]: any } = {
     // 'identity': (x: AnySchemType) => x,
@@ -86,15 +86,9 @@ export const coreFunctions: { [symbol: string]: any } = {
     '<=': (...args: SchemNumber[]) => {
         return doNumericComparisonForEachConsecutivePairInArray((a, b) => { return a <= b; }, args);
     },
-    'empty?': (arg: AnySchemType) => {
-        return SchemBoolean.fromBoolean('length' in arg && arg.length === 0);
-    },
     // returns arguments as a list
     'list': (...args: AnySchemType[]) => {
         return new SchemList().concat(args);
-    },
-    'list?': (arg: AnySchemType): SchemBoolean => {
-        return SchemBoolean.fromBoolean(arg instanceof SchemList);
     },
     'vector': (...args: AnySchemType[]) => {
         return new SchemVector().concat(args);
@@ -118,8 +112,45 @@ export const coreFunctions: { [symbol: string]: any } = {
             return new SchemVector();
         }
     },
-    'vector?': (arg: AnySchemType) => {
-        return SchemBoolean.fromBoolean(arg instanceof SchemVector);
+    // type checks
+    'empty?': (arg: AnySchemType) => {
+        return SchemBoolean.fromBoolean('length' in arg && arg.length === 0);
+    },
+    'number?': (arg: AnySchemType) => {
+        return SchemBoolean.fromBoolean(isSchemNumber(arg) || typeof arg === 'number');
+    },
+    'string?': (arg: AnySchemType) => {
+        return SchemBoolean.fromBoolean(isSchemString(arg) || typeof arg === 'string');
+    },
+    'symbol?': (arg: AnySchemType) => {
+        return SchemBoolean.fromBoolean(isSchemSymbol(arg));
+    },
+    'keyword?': (arg: AnySchemType) => {
+        return SchemBoolean.fromBoolean(isSchemKeyword(arg));
+    },
+    'schem-function?': (arg: AnySchemType) => {
+        return SchemBoolean.fromBoolean(isSchemFunction(arg));
+    },
+    'js-function?': (arg: AnySchemType) => {
+        return SchemBoolean.fromBoolean(typeof arg === 'function');
+    },
+    'atom?': (arg: AnySchemType) => {
+        return SchemBoolean.fromBoolean(isSchemAtom(arg));
+    },
+    'list?': (arg: AnySchemType): SchemBoolean => {
+        return SchemBoolean.fromBoolean(isSchemList(arg));
+    },
+    'vecor?': (arg: AnySchemType): SchemBoolean => {
+        return SchemBoolean.fromBoolean(isSchemVector(arg));
+    },
+    'map?': (arg: AnySchemType): SchemBoolean => {
+        return SchemBoolean.fromBoolean(isSchemMap(arg));
+    },
+    'array?': (arg: AnySchemType): SchemBoolean => {
+        return SchemBoolean.fromBoolean(isArray(arg));
+    },
+    'schem-type?': (arg: AnySchemType) => {
+        return SchemBoolean.fromBoolean(isSchemType(arg));
     },
     'count': (arg: any) => {
         if ('count' in arg) {
