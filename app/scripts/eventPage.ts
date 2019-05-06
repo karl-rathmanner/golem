@@ -1,10 +1,7 @@
 import { browser, Tabs } from 'webextension-polyfill-ts';
-import { VirtualFileSystem } from './virtualFilesystem';
-import { GlobalGolemState } from './GlobalGolemState';
 import { GlobalGolemFunctions } from './GlobalGolemFunctions';
-import { GolemContextMessage } from './contentScriptMessaging';
-import { SchemContextInstance } from './schem/types';
-import { Glob } from 'glob';
+import { GlobalGolemState } from './GlobalGolemState';
+import { VirtualFileSystem } from './virtualFilesystem';
 
 if (process.env.NODE_ENV === 'development') {
     require('chromereload/devonly');
@@ -37,15 +34,6 @@ async function initGolem() {
     }
 }
 
-// function getGlobalState() {
-//     // Get the "actual" event page so we don't create more than one golem instance per browser profile.
-//     // (When background.html is opened in one or more tabs, they would each have their own window object. So, calling getBackgroundPage is necessary event though we already "are in" the background page.)
-//     const backgroundPage = browser.extension.getBackgroundPage();
-//     const ggsInstance = backgroundPage.golem.priviledgedContext == null
-//         ? null
-//         : backgroundPage.golem.priviledgedContext.globalState;
-//     return ggsInstance;
-// }
 
 const onTabUpdatedHandler = async (tabId: number, changeInfo: Tabs.OnUpdatedChangeInfoType, tab: Tabs.Tab) => {
     const ggsInstance = await GlobalGolemState.getInstance();

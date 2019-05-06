@@ -115,19 +115,6 @@ export class GlobalGolemFunctions {
         }
     }
 
-    // private onTabUpdatedHandler = async (tabId: number, changeInfo: Tabs.OnUpdatedChangeInfoType, tab: Tabs.Tab) => {
-    //   if (changeInfo.status === 'loading') {
-    //     console.log(this.globalState.isReady ? 'tab is loading, golem was ready' : 'tab is loading, golem was caught off guard');
-    //   } else if (changeInfo.status === 'complete' && this.globalState != null) {
-
-    //     const cm = this.globalState.contextManager;
-    //     cm.restoreContextsAfterReload(tabId);
-    //     for (const context of await this.globalState.getAutoinstantiateContexts()) {
-    //       await cm.prepareContexts(context, tabId);
-    //     }
-    //   }
-    // }
-
     public eventPageInterpreterSchemFunctions = {
         'add-autoinstantiate-context': async (context: SchemContextDefinition) => {
             const contextDefinition = context;
