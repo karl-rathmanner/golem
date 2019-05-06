@@ -27,15 +27,14 @@
               true
               (apply or (rest args)))))
 
-
     (defn find-first
         "Returns the first element of a collection that matches the predicate function. Returns nil if predicate did not return true for any element."
-        [pred & things]      
-        (if (> (count things) 0)
-            (let [e (first things)]
+        [pred collection]      
+        (if (> (count collection) 0)
+            (let [e (first collection)]
                 (if (= (pred e) true) 
                     e
-                    (apply find-first (cons pred (rest things)))))
+                    (find-first pred (rest collection))))
             nil))
 
         ; adapted from: https://github.com/kanaka/mal/blob/master/process/guide.md
