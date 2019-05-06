@@ -1,66 +1,67 @@
 {
-  "name": "__MSG_appName__",
-  "short_name": "__MSG_appShortName__",
-  "description": "__MSG_appDescription__",
-  "version": "0.8.0",
-  "manifest_version": 2,
-  "default_locale": "en",
-  "icons": {
-    "48": "images/icon-48.png",
-    "128": "images/icon-128.png"
-  },
-  "background": {
-    "page": "pages/background.html",
-    "__chrome__persistent": false
-  }, 
-  "browser_action": { 
-    "default_icon": {
-      "48": "images/icon-48.png",
-      "128": "images/icon-128.png"
+    "name": "__MSG_appName__",
+    "short_name": "__MSG_appShortName__",
+    "description": "__MSG_appDescription__",
+    "version": "0.8.0",
+    "manifest_version": 2,
+    "default_locale": "en",
+    "icons": {
+        "48": "images/icon-48.png",
+        "128": "images/icon-128.png"
     },
-    "default_title": "__MSG_browserActionTitle__",
-    "default_popup": "pages/popup.html"
-  },
-  "options_ui": {
-    "page": "pages/options.html",
-    "__chrome__chrome_style": true,
-    "__firefox__browser_style": true
-  },
-  "minimum_chrome_version": "10.0",
-  "__chrome__devtools_page": "pages/devtools.html",
-  "omnibox": {
-    "keyword": "("
-  },
-  "commands": {
-    "open-editor": {
-      "suggested_key": {
-        "default":"Alt+A"
-      },
-      "description": "Opens a Monaco instance in a new tab"
+    "background": {
+        "page": "pages/background.html",
+        "__chrome__persistent": true
+    }, 
+    "browser_action": { 
+        "default_icon": {
+            "48": "images/icon-48.png",
+            "128": "images/icon-128.png"
+        },
+        "default_title": "__MSG_browserActionTitle__",
+        "default_popup": "pages/popup.html"
     },
-    "open-schem-playground": {
-      "suggested_key": {
-        "default":"Alt+S"
-      },
-      "description": "Opens the Schem Playground"
+    "options_ui": {
+        "page": "pages/options.html",
+        "__chrome__chrome_style": true,
+        "__firefox__browser_style": true
     },
-    "go-go-golem" : {
-      "suggested_key": {
-        "default":"Alt+G"
-      },
-      "description": "Go-Go-Golem! (Does nothing, intended to be re-introduced later.)"
+    "minimum_chrome_version": "10.0",
+    "__chrome__devtools_page": "pages/devtools.html",
+    "omnibox": {
+        "keyword": "("
     },
-    "advanceSchemInterpreter" : {
-      "suggested_key": {
-        "default":"Alt+R"
-      },
-      "description": "Go-On-Golem! (Proceed with one evaluation step, if interpreter is paused.)"
-    }
-  },
-  "permissions": [
-    "notifications",
-    "tabs",
-    "storage",
-    "<all_urls>"
-  ]
+    "commands": {
+        "open-editor": {
+            "suggested_key": {
+                "default":"Alt+A"
+            },
+            "description": "Opens a Monaco instance in a new tab"
+        },
+        "open-schem-playground": {
+            "suggested_key": {
+                "default":"Alt+S"
+            },
+            "description": "Opens the Schem Playground"
+        },
+        "go-go-golem" : {
+            "suggested_key": {
+                "default":"Alt+G"
+            },
+            "description": "Go-Go-Golem! (Does nothing, intended to be re-introduced later.)"
+        },
+        "advanceSchemInterpreter" : {
+            "suggested_key": {
+                "default":"Alt+R"
+            },
+            "description": "Go-On-Golem! (Proceed with one evaluation step, if interpreter is paused.)"
+        }
+    },
+    "permissions": [
+        "notifications",
+        "tabs",
+        "storage",
+        "<all_urls>",
+        "webRequest"
+    ]
 }
