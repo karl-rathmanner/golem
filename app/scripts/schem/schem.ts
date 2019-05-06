@@ -314,10 +314,11 @@ export class Schem {
                                 if (typeof propertyValue === 'function') {
                                     return propertyValue.call(parentObject, ...args.map(coerceToJs));
                                 } else {
-                                    if (args.length > 0) console.warn(`You accessed a non-function-property of an js object and supplied arguments. They were ignored.`);
+                                    if (args.length > 0) console.warn(`You accessed a non-function-property of an js object and supplied arguments. They were ignored.`, 'parent: ', parentObject, 'property:', propertyValue);
                                     return propertyValue;
                                 }
                             } else {
+                                console.error('Expected a js object as argument to the property accessor special form., got this instead: ', jsobject);
                                 throw new Error(`Expected a js object as argument to the property accessor special form.`);
                             }
                             /** (!property jsobject value)

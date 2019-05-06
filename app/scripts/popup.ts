@@ -9,7 +9,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const infoElement = document.getElementById('info');
     if (infoElement != null) {
-        const ggsInstance = await GlobalGolemState.getInstance();
+        const backgroundPage = browser.extension.getBackgroundPage();
+        const ggsInstance = backgroundPage.golem.priviledgedContext!.globalState;
 
         const currentWindow = await browser.windows.getCurrent();
         const activeTabsInWindow = await browser.tabs.query({ active: true, windowId: currentWindow.id });

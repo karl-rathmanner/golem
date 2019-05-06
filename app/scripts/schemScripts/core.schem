@@ -48,10 +48,10 @@
                (throw "odd number of forms supplied to cond")) 
               (cons 'cond (rest (rest xs))))))
 
-        ;;; Quality of life stuff
+    ;;; Quality of life stuff
     (def load-file 
-     (fn (file) 
-         (eval (read-string (str "(do " (slurp file) " )")))))
+        (fn (file) 
+            (eval (read-string (str "(do " (slurp file) " )")))))
 
         ;;; Last but not least: thread first
     (defmacro -> 

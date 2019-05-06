@@ -33,7 +33,7 @@ export interface ContextArepResponse {
                 await interpreter!.arep(code).then(result => {
                     resultOrError.result = escape ? unescape(result) : result;
                 }).catch(reason => {
-                    console.error(reason);
+                    console.error(code, reason);
                     resultOrError.error = typeof reason === 'string' ? reason : JSON.stringify(reason);
                 });
 

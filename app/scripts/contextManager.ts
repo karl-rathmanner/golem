@@ -25,7 +25,7 @@ export class SchemContextManager {
     }
 
     private getContextInstanceInTab(tabId: number) {
-        const msg: GolemContextMessage = { action: 'get-context-id' };
+        const msg: GolemContextMessage = { action: 'get-context-instance' };
         return browser.tabs.sendMessage(tabId, msg).then(result => {
             if (result == null) {
                 return null;
@@ -55,21 +55,6 @@ export class SchemContextManager {
                 }
             }
         }
-
-        // const thawedContextInstances = await GlobalGolemState.loadObject<Array<SchemContextInstance>>('previouslyActiveContextInstances');
-        // if (thawedContextInstances != null) {
-        //   thawedContextInstances.forEach(element => this.contextInstanceCache.set(element.id, element));
-        //   await this.removeUnloadedContextsFromCache();
-        //   console.log(`Thawed ${thawedContextInstances.length} context instances, removed ${thawedContextInstances.length - this.contextInstanceCache.size} that were superfluous.`)
-        // } else {
-        //   console.log(`No context instances to be thawed.`)
-        // }
-    }
-
-    async persistContextInstanceCache() {
-        // const instances = Array.from(this.contextInstanceCache.values());
-        // await GlobalGolemState.saveObject<Array<SchemContextInstance>>('previouslyActiveContextInstances', instances);
-        // console.log(`saved ${instances.length} context instances`)
     }
 
     /** Basic content script setup - creates the global golem object and enables listening for messages. */
@@ -150,7 +135,6 @@ export class SchemContextManager {
                 }
                 const newContext = new SchemContextInstance(this.getNewContextId(), tabId, windowId, contextDef);
                 this.contextInstanceCache.set(newContext.id, newContext);
-                this.persistContextInstanceCache();
 
                 return newContext;
             } else {
@@ -317,21 +301,19 @@ export class SchemContextManager {
 
     /** Restores all persistent contexts after their tabs were reloaded. Deletes unused conext instances. */
     async restoreContextsAfterReload(tabId: number) {
-        // await this.refreshContextInstanceCache();
-        // const contextsInTab = Array.from(this.contextInstanceCache.values()).filter(ci => {
-        //   return ci.tabId === tabId;
-        // });
+        await this.refreshContextInstanceCache();
+        const contextsInTab = Array.from(this.contextInstanceCache.values()).filter(ci => {
+            return ci.tabId === tabId;
+        });
 
-        // for (const context of contextsInTab) {
-        //   if (context.definition.lifetime === 'persistent') {
-        //     this.setupContext(context);
-        //   } else {
-        //     // this context is not needed anymore
-        //     this.contextInstanceCache.delete(context.id);
-        //     console.log('deleted context')
-        //   }
-        // }
-        // await this.persistContextInstanceCache();
+        for (const context of contextsInTab) {
+            if (context.definition.lifetime === 'persistent') {
+            this.setupContext(context);
+            } else {
+            // this context is not 'needed' anymore but it's still injected (tabs.onUpdated can be called for other reasons than a page reload, which is how you'd end up here)
+            // TODO: maybe tell the content script to self-destruct?
+            }
+        }
     }
 
     async removeUnloadedContextsFromCache() {
@@ -339,12 +321,10 @@ export class SchemContextManager {
         let cacheChanged = false;
         for (const context of originalCache) {
             if (await this.isContextInjected(context) === false) {
+                console.log(`deleted context id: ${context.id}`);
                 this.contextInstanceCache.delete(context.id);
                 cacheChanged = true;
             }
-        }
-        if (cacheChanged) {
-            await this.persistContextInstanceCache();
         }
     }
 

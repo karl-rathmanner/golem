@@ -3,6 +3,7 @@ import { VirtualFileSystem } from './virtualFilesystem';
 import { GlobalGolemState } from './GlobalGolemState';
 import { GlobalGolemFunctions } from './GlobalGolemFunctions';
 import { GolemContextMessage } from './contentScriptMessaging';
+import { SchemContextInstance } from './schem/types';
 
 if (process.env.NODE_ENV === 'development') {
     require('chromereload/devonly');
@@ -46,7 +47,8 @@ function getGlobalState() {
 }
 
 const onTabUpdatedHandler = async (tabId: number, changeInfo: Tabs.OnUpdatedChangeInfoType, tab: Tabs.Tab) => {
-    const ggsInstance = getGlobalState();
+    const backgroundPage = browser.extension.getBackgroundPage();
+    const ggsInstance = (backgroundPage.golem.priviledgedContext == null) ? null : backgroundPage.golem.priviledgedContext.globalState;
 
     if (changeInfo.status === 'loading') {
         console.log(ggsInstance != null && ggsInstance.isReady ? 'tab is loading, golem was ready' : 'tab is loading, golem was caught off guard');
@@ -59,23 +61,24 @@ const onTabUpdatedHandler = async (tabId: number, changeInfo: Tabs.OnUpdatedChan
     if (changeInfo.status === 'complete' && ggsInstance != null) {
 
         const cm = ggsInstance.contextManager;
-        cm.restoreContextsAfterReload(tabId);
+        await cm.restoreContextsAfterReload(tabId);
 
-        const cidInTab = await getContextIdInTab(tabId);
+        const cidInTab = await getContextInstanceInTab(tabId);
         if (cidInTab != null) {
             // A tab's onUpdated was called but there's still an injected context. Add it to CM?
-
-        } else for (const context of await ggsInstance.getAutoinstantiateContexts()) {
+            await cm.arepInContexts([cidInTab.id], `(if (not= nil (resolve 'on-tab-updated)) (on-tab-updated))`);
+        } else for (const contextDefinition of await ggsInstance.getAutoinstantiateContexts()) {
             // A tab probably loaded a new page. Inject a new context if it matches an autoinstantiate definition.
-            await cm.prepareContexts(context, tabId);
+            const id = await cm.prepareContexts(contextDefinition, tabId);
         }
     }
 };
 
-function getContextIdInTab(tabId: number) {
-    const msg: GolemContextMessage = { action: 'get-context-id' };
+function getContextInstanceInTab(tabId: number) {
+    const msg: GolemContextMessage = { action: 'get-context-instance' };
     return browser.tabs.sendMessage(tabId, msg).then(result => {
-        return result as number | null;
+        if (result == null) return null;
+        return SchemContextInstance.fromStringified(result);
     }).catch(r => {
         // Sending the message will fail if there is no active content script in the adressed tab.
         return null;
