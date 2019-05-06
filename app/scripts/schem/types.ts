@@ -257,9 +257,6 @@ export class SchemMap implements Callable, Reducible, Countable, Metadatable, Ta
         return keyString;
     }
 
-
-    // private getOriginalKeyObject
-
     set(key: SchemMapKey, value: AnySchemType): void {
         this.nativeMap.set(this.turnIntoKeyString(key), value);
     }
@@ -301,7 +298,7 @@ export class SchemMap implements Callable, Reducible, Countable, Metadatable, Ta
     }
 
     count(): number {
-        return this.nativeMap.keys.length;
+        return this.nativeMap.size;
     }
 
     /* TODO: implement amap?
