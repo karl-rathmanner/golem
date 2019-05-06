@@ -3,8 +3,9 @@ import { EventPageMessage } from './eventPageMessaging';
 import { GlobalGolemState } from './GlobalGolemState';
 import { schemToJs } from './javascriptInterop';
 import { isSchemList, isSchemSymbol } from './schem/typeGuards';
-import { SchemBoolean, SchemContextDefinition, SchemList, SchemString } from './schem/types';
+import { SchemBoolean, SchemContextDefinition, SchemList, SchemString, SchemContextInstance } from './schem/types';
 import { addParensAsNecessary, escapeXml, objectPatternMatch } from './utils/utilities';
+import { GolemContextMessage } from './contentScriptMessaging';
 
 /** Responsible for subscribing to global browser events. Also exposes a mixed bag of functions that should be available in privileged contexts. */
 export class GlobalGolemFunctions {
@@ -64,7 +65,7 @@ export class GlobalGolemFunctions {
         }
     }
 
-    private onCommandHandler = (command: string) => {
+    private onCommandHandler = async (command: string) => {
         switch (command) {
             case 'go-go-golem': {
                 browser.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
@@ -90,6 +91,27 @@ export class GlobalGolemFunctions {
 
             case 'advanceSchemInterpreter':
                 browser.runtime.sendMessage({ action: 'advanceSchemInterpreter' });
+        }
+
+        if (command.startsWith('bindableCommand')) {
+            // These have a numbered suffix between 1 and 5. e.g. "bindableCommand1"
+            const commandNr = command[command.length - 1];
+            const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+
+            const activeTabId = (tabs == null) ? null : tabs[0].id;
+            if (activeTabId != null) {
+                const backgroundPage = browser.extension.getBackgroundPage();
+                const ggsInstance = (backgroundPage.golem.priviledgedContext == null) ? null : backgroundPage.golem.priviledgedContext.globalState;
+
+                if (ggsInstance != null) {
+                    const cidInTab = await GlobalGolemFunctions.getContextInstanceInTab(activeTabId);
+                    const ggs = await GlobalGolemState.getInstance();
+                    if (cidInTab != null && ggs != null) {
+                        ggs.contextManager.arepInContexts([cidInTab.id], `(if (not= nil (resolve 'on-command-${commandNr})) (on-command-${commandNr}))`);
+                    }
+                }
+            }
+
         }
     }
 
@@ -155,6 +177,18 @@ export class GlobalGolemFunctions {
             console.log('No run commands found.');
         }
     }
+
+    public static getContextInstanceInTab(tabId: number) {
+        const msg: GolemContextMessage = { action: 'get-context-instance' };
+        return browser.tabs.sendMessage(tabId, msg).then(result => {
+            if (result == null) return null;
+            return SchemContextInstance.fromStringified(result);
+        }).catch(r => {
+            // Sending the message will fail if there is no active content script in the adressed tab.
+            return null;
+        });
+    }
+
 
     /// Omnibox support
 

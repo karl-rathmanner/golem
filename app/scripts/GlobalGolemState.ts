@@ -21,12 +21,22 @@ export class GlobalGolemState {
     private constructor() {
     }
 
-    public static async getInstance() {
+    public static async createInstance() {
         if (this.instance == null) {
             this.instance = new GlobalGolemState();
             await this.instance.init();
         }
         return this.instance;
+    }
+
+    public static async getInstance() {
+        // Get the "actual" event page so we don't create more than one golem instance per browser profile.
+        // (When background.html is opened in one or more tabs, they would each have their own window object. So, calling getBackgroundPage is necessary event though we already "are in" the background page.)
+        const backgroundPage = browser.extension.getBackgroundPage();
+        const ggsInstance = backgroundPage.golem.priviledgedContext == null
+            ? null
+            : backgroundPage.golem.priviledgedContext.globalState;
+        return ggsInstance;
     }
 
     private async init() {

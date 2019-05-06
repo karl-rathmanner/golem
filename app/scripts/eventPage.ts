@@ -4,6 +4,7 @@ import { GlobalGolemState } from './GlobalGolemState';
 import { GlobalGolemFunctions } from './GlobalGolemFunctions';
 import { GolemContextMessage } from './contentScriptMessaging';
 import { SchemContextInstance } from './schem/types';
+import { Glob } from 'glob';
 
 if (process.env.NODE_ENV === 'development') {
     require('chromereload/devonly');
@@ -16,7 +17,7 @@ window.golem = {
 
 async function initGolem() {
     console.log(`InitGolem called.`);
-    const ggsInstance = getGlobalState() || await GlobalGolemState.getInstance();
+    const ggsInstance = await GlobalGolemState.getInstance() || await GlobalGolemState.createInstance();
 
     // Only initialize golem if necessary. (e.g. the event page was unloaded or the browser was restarted)
     if (!ggsInstance.isReady) {
@@ -36,19 +37,18 @@ async function initGolem() {
     }
 }
 
-function getGlobalState() {
-    // Get the "actual" event page so we don't create more than one golem instance per browser profile.
-    // (When background.html is opened in one or more tabs, they would each have their own window object. So, calling getBackgroundPage is necessary event though we already "are in" the background page.)
-    const backgroundPage = browser.extension.getBackgroundPage();
-    const ggsInstance = backgroundPage.golem.priviledgedContext == null
-        ? null
-        : backgroundPage.golem.priviledgedContext.globalState;
-    return ggsInstance;
-}
+// function getGlobalState() {
+//     // Get the "actual" event page so we don't create more than one golem instance per browser profile.
+//     // (When background.html is opened in one or more tabs, they would each have their own window object. So, calling getBackgroundPage is necessary event though we already "are in" the background page.)
+//     const backgroundPage = browser.extension.getBackgroundPage();
+//     const ggsInstance = backgroundPage.golem.priviledgedContext == null
+//         ? null
+//         : backgroundPage.golem.priviledgedContext.globalState;
+//     return ggsInstance;
+// }
 
 const onTabUpdatedHandler = async (tabId: number, changeInfo: Tabs.OnUpdatedChangeInfoType, tab: Tabs.Tab) => {
-    const backgroundPage = browser.extension.getBackgroundPage();
-    const ggsInstance = (backgroundPage.golem.priviledgedContext == null) ? null : backgroundPage.golem.priviledgedContext.globalState;
+    const ggsInstance = await GlobalGolemState.getInstance();
 
     if (changeInfo.status === 'loading') {
         console.log(ggsInstance != null && ggsInstance.isReady ? 'tab is loading, golem was ready' : 'tab is loading, golem was caught off guard');
@@ -63,7 +63,7 @@ const onTabUpdatedHandler = async (tabId: number, changeInfo: Tabs.OnUpdatedChan
         const cm = ggsInstance.contextManager;
         await cm.restoreContextsAfterReload(tabId);
 
-        const cidInTab = await getContextInstanceInTab(tabId);
+        const cidInTab = await GlobalGolemFunctions.getContextInstanceInTab(tabId);
         if (cidInTab != null) {
             // A tab's onUpdated was called but there's still an injected context. Add it to CM?
             await cm.arepInContexts([cidInTab.id], `(if (not= nil (resolve 'on-tab-updated)) (on-tab-updated))`);
@@ -73,17 +73,6 @@ const onTabUpdatedHandler = async (tabId: number, changeInfo: Tabs.OnUpdatedChan
         }
     }
 };
-
-function getContextInstanceInTab(tabId: number) {
-    const msg: GolemContextMessage = { action: 'get-context-instance' };
-    return browser.tabs.sendMessage(tabId, msg).then(result => {
-        if (result == null) return null;
-        return SchemContextInstance.fromStringified(result);
-    }).catch(r => {
-        // Sending the message will fail if there is no active content script in the adressed tab.
-        return null;
-    });
-}
 
 browser.runtime.onInstalled.addListener((details) => {
     if (details.reason === 'install') console.log('Installed golem.');
@@ -101,7 +90,7 @@ async function updateBGPInfoPanel() {
 
     const panel = document.getElementById('bgp-info');
     const vfsInfo = await VirtualFileSystem.listFolderContents('/');
-    const globalState = getGlobalState();
+    const globalState = await GlobalGolemState.getInstance();
     const activeContextIds = globalState == null ? null : await globalState!.contextManager.getAllActiveContextIds();
 
     if (panel != null) {

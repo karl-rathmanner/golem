@@ -55,6 +55,21 @@
                 "default":"Alt+R"
             },
             "description": "Go-On-Golem! (Proceed with one evaluation step, if interpreter is paused.)"
+        },
+        "bindableCommand1" : {
+            "description": "Calls 'on-command-1' in the active tab."
+        },
+        "bindableCommand2" : {
+            "description": "Calls 'on-command-2' in the active tab."
+        },
+        "bindableCommand3" : {
+            "description": "Calls 'on-command-3' in the active tab."
+        },
+        "bindableCommand4" : {
+            "description": "Calls 'on-command-4' in the active tab."
+        },
+        "bindableCommand5" : {
+            "description": "Calls 'on-command-5' in the active tab."
         }
     },
     "permissions": [
