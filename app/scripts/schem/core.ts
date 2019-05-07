@@ -8,561 +8,720 @@ import { isSchemAtom, isSchemFunction, isSchemJSReference, isSchemKeyword, isSch
 import { AnySchemType, RegularSchemCollection, SchemAtom, SchemBoolean, SchemFunction, SchemJSReference, SchemKeyword, SchemLazyVector, SchemList, SchemMap, SchemMapKey, SchemNil, SchemNumber, SchemRegExp, SchemString, SchemSymbol, SchemVector } from './types';
 
 export const coreFunctions: { [symbol: string]: any } = {
-    // 'identity': (x: AnySchemType) => x,
     'indentity': {
+        paramstring: 'x',
+        docstring: `Returns the argument. Any argument. It just returns it. Like, it doesn't do anything to it. Doesn't have any side effects either. Very pure!`,
         f: (x: AnySchemType) => x,
-        docstring: `Returns the argument. Any argument. It just returns it. Like, it doesn't do anything to it. Doesn't have any side effects either. Very pure!`
     },
-    '+': (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue: SchemNumber, currentIndex: number) => {
-        if (currentIndex === 0) return currentValue.valueOf();
-        else return accumulator + currentValue.valueOf();
-    }, 0)),
-    '-': (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue: SchemNumber, currentIndex: number) => {
-        if (args.length === 1) return -currentValue.valueOf();
-        if (currentIndex === 0) return currentValue.valueOf();
-        else return accumulator - currentValue.valueOf();
-    }, 0)),
-    '*': (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue: SchemNumber, currentIndex: number) => {
-        return accumulator * currentValue.valueOf();
-    }, 1)),
-    '/': (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue: SchemNumber, currentIndex: number) => {
-        if (args.length === 1) return 1 / currentValue.valueOf();
-        if (currentIndex === 0) return currentValue.valueOf();
-        else return accumulator / currentValue.valueOf();
-    }, 0)),
-    'rem': (dividend: SchemNumber, divisor: SchemNumber) => {
-        return new SchemNumber(dividend.valueOf() % divisor.valueOf());
+    '+': {
+        paramstring: 'number & numbers',
+        docstring: 'Adds up all arguments.',
+        f: (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue: SchemNumber, currentIndex: number) => {
+            if (currentIndex === 0) return currentValue.valueOf();
+            else return accumulator + currentValue.valueOf();
+        }, 0)),
     },
-    'quot': (dividend: SchemNumber, divisor: SchemNumber) => {
-        const quotient = dividend.valueOf() / divisor.valueOf();
-        // round towards zero
-        return new SchemNumber((quotient > 0) ? Math.floor(quotient) : Math.ceil(quotient));
+    '-': {
+        paramstring: 'number & numbers',
+        docstring: 'Subtracts all numbers, left to right.',
+        f: (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue: SchemNumber, currentIndex: number) => {
+            if (args.length === 1) return -currentValue.valueOf();
+            if (currentIndex === 0) return currentValue.valueOf();
+            else return accumulator - currentValue.valueOf();
+        }, 0)),
     },
-    'sqr': (d: SchemNumber) => new SchemNumber(d.valueOf() * d.valueOf()),
-    '=': (...args: any[]) => {
-        throwErrorIfArityIsInvalid(args.length, 1);
-        // If passed a single value (= x) the result is always true.
-        if (args.length === 1) return SchemBoolean.true;
+    '*': {
+        paramstring: 'number & numbers',
+        docstring: 'Multiplies all numbers.',
+        f: (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue: SchemNumber, currentIndex: number) => {
+            return accumulator * currentValue.valueOf();
+        }, 1)),
+    },
+    '/': {
+        paramstring: 'number & numbers',
+        docstring: 'Divides all numbers, left to right. Meaning (/ 1 2 3) is ((1 / 2) / 3) in standard notation.',
+        f: (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue: SchemNumber, currentIndex: number) => {
+            if (args.length === 1) return 1 / currentValue.valueOf();
+            if (currentIndex === 0) return currentValue.valueOf();
+            else return accumulator / currentValue.valueOf();
+        }, 0)),
+    },
+    'rem': {
+        paramstring: 'dividend divisor',
+        docstring: `Returns the remainder of dividend divided by divisor. (Hint: It's modulo.)`,
+        f: (dividend: SchemNumber, divisor: SchemNumber) => {
+            return new SchemNumber(dividend.valueOf() % divisor.valueOf());
+        },
+    },
+    'quot': {
+        f: (dividend: SchemNumber, divisor: SchemNumber) => {
+            const quotient = dividend.valueOf() / divisor.valueOf();
+            // round towards zero
+            return new SchemNumber((quotient > 0) ? Math.floor(quotient) : Math.ceil(quotient));
+        },
+    },
+    'sqr': {
+        f: (d: SchemNumber) => new SchemNumber(d.valueOf() * d.valueOf()),
+    },
+    '=': {
+        f: (...args: any[]) => {
+            throwErrorIfArityIsInvalid(args.length, 1);
+            // If passed a single value (= x) the result is always true.
+            if (args.length === 1) return SchemBoolean.true;
 
-        const lessStrictEquality = (a: any, b: any) => {
-            if (!isSchemType(a) || !isSchemType(b)) {
-                // at least one of these is a js value. if one of them is a schem primitive, convert it to its js equivalent
-                const valA = (isSchemType(a) ? atomicSchemObjectToJS(a) : a);
-                const valB = (isSchemType(b) ? atomicSchemObjectToJS(b) : b);
-                return (valA === valB);
-            } else {
-                return hasSameSchemTypeAndValue(a, b);
-            }
-        };
-        // Compare every consecutive pair of arguments
-        for (let i = 0; i < args.length - 1; i++) {
-            let a = args[i], b = args[i + 1];
+            const lessStrictEquality = (a: any, b: any) => {
+                if (!isSchemType(a) || !isSchemType(b)) {
+                    // at least one of these is a js value. if one of them is a schem primitive, convert it to its js equivalent
+                    const valA = (isSchemType(a) ? atomicSchemObjectToJS(a) : a);
+                    const valB = (isSchemType(b) ? atomicSchemObjectToJS(b) : b);
+                    return (valA === valB);
+                } else {
+                    return hasSameSchemTypeAndValue(a, b);
+                }
+            };
+            // Compare every consecutive pair of arguments
+            for (let i = 0; i < args.length - 1; i++) {
+                let a = args[i], b = args[i + 1];
 
-            // Collections are considered to be equal if their contents are the same - regardless of their type.
-            if ((isSchemList(a) || isSchemVector(a)) &&
+                // Collections are considered to be equal if their contents are the same - regardless of their type.
+                if ((isSchemList(a) || isSchemVector(a)) &&
                 (isSchemList(b) || isSchemVector(b)) &&
                 (a.length === b.length)) {
 
-                // Compare contents
-                for (let j = 0; j < a.length; j++) {
-                    if (!lessStrictEquality(a[j], b[j])) return SchemBoolean.false;
-                }
+                    // Compare contents
+                    for (let j = 0; j < a.length; j++) {
+                        if (!lessStrictEquality(a[j], b[j])) return SchemBoolean.false;
+                    }
 
-            } else { // a & b are non-collection types
-                if (!lessStrictEquality(a, b)) return SchemBoolean.false;
+                } else { // a & b are non-collection types
+                    if (!lessStrictEquality(a, b)) return SchemBoolean.false;
+                }
             }
-        }
-        return SchemBoolean.true; // none of the checks above failed, so all arguments must be equal
+            return SchemBoolean.true; // none of the checks above failed, so all arguments must be equal
+        },
     },
-    '>': (...args: SchemNumber[]) => {
-        return doNumericComparisonForEachConsecutivePairInArray((a, b) => { return a > b; }, args);
+    '>': {
+        f: (...args: SchemNumber[]) => {
+            return doNumericComparisonForEachConsecutivePairInArray((a, b) => { return a > b; }, args);
+        },
     },
-    '<': (...args: SchemNumber[]) => {
-        return doNumericComparisonForEachConsecutivePairInArray((a, b) => { return a < b; }, args);
+    '<': {
+        f: (...args: SchemNumber[]) => {
+            return doNumericComparisonForEachConsecutivePairInArray((a, b) => { return a < b; }, args);
+        },
     },
-    '>=': (...args: SchemNumber[]) => {
-        return doNumericComparisonForEachConsecutivePairInArray((a, b) => { return a >= b; }, args);
+    '>=': {
+        f: (...args: SchemNumber[]) => {
+            return doNumericComparisonForEachConsecutivePairInArray((a, b) => { return a >= b; }, args);
+        },
     },
-    '<=': (...args: SchemNumber[]) => {
-        return doNumericComparisonForEachConsecutivePairInArray((a, b) => { return a <= b; }, args);
+    '<=': {
+        f: (...args: SchemNumber[]) => {
+            return doNumericComparisonForEachConsecutivePairInArray((a, b) => { return a <= b; }, args);
+        },
     },
     // returns arguments as a list
-    'list': (...args: AnySchemType[]) => {
-        return new SchemList().concat(args);
+    'list': {
+        f: (...args: AnySchemType[]) => {
+            return new SchemList().concat(args);
+        },
     },
-    'vector': (...args: AnySchemType[]) => {
-        return new SchemVector().concat(args);
+    'vector': {
+        f: (...args: AnySchemType[]) => {
+            return new SchemVector().concat(args);
+        },
     },
-    'hash-map': async (...args: any) => {
-        throwErrorIfArityIsInvalid(args.length, 0, Infinity, true);
-        const newMap = new SchemMap();
-        for (let i = 0; i < args.length; i += 2) {
-            newMap.set(await args[i], await args[i + 1]);
-        }
-        return newMap;
+    'hash-map': {
+        f: async (...args: any) => {
+            throwErrorIfArityIsInvalid(args.length, 0, Infinity, true);
+            const newMap = new SchemMap();
+            for (let i = 0; i < args.length; i += 2) {
+                newMap.set(await args[i], await args[i + 1]);
+            }
+            return newMap;
+        },
     },
-    'vec': (coll: RegularSchemCollection) => {
-        if (isSchemList(coll)) {
-            return new SchemVector(...coll);
-        } else if (isSchemMap(coll)) {
-            return new SchemVector(...coll.flatten());
-        } else if (isSchemVector(coll)) {
-            return coll;
-        } else {
-            return new SchemVector();
-        }
+    'vec': {
+        f: (coll: RegularSchemCollection) => {
+            if (isSchemList(coll)) {
+                return new SchemVector(...coll);
+            } else if (isSchemMap(coll)) {
+                return new SchemVector(...coll.flatten());
+            } else if (isSchemVector(coll)) {
+                return coll;
+            } else {
+                return new SchemVector();
+            }
+        },
     },
     // type checks
-    'empty?': (arg: AnySchemType) => {
-        return SchemBoolean.fromBoolean('length' in arg && arg.length === 0);
+    'empty?': {
+        f: (arg: AnySchemType) => {
+            return SchemBoolean.fromBoolean('length' in arg && arg.length === 0);
+        },
     },
-    'number?': (arg: AnySchemType) => {
-        return SchemBoolean.fromBoolean(isSchemNumber(arg) || typeof arg === 'number');
+    'number?': {
+        f: (arg: AnySchemType) => {
+            return SchemBoolean.fromBoolean(isSchemNumber(arg) || typeof arg === 'number');
+        },
     },
-    'string?': (arg: AnySchemType) => {
-        return SchemBoolean.fromBoolean(isSchemString(arg) || typeof arg === 'string');
+    'string?': {
+        f: (arg: AnySchemType) => {
+            return SchemBoolean.fromBoolean(isSchemString(arg) || typeof arg === 'string');
+        },
     },
-    'symbol?': (arg: AnySchemType) => {
-        return SchemBoolean.fromBoolean(isSchemSymbol(arg));
+    'symbol?': {
+        f: (arg: AnySchemType) => {
+            return SchemBoolean.fromBoolean(isSchemSymbol(arg));
+        },
     },
-    'keyword?': (arg: AnySchemType) => {
-        return SchemBoolean.fromBoolean(isSchemKeyword(arg));
+    'keyword?': {
+        f: (arg: AnySchemType) => {
+            return SchemBoolean.fromBoolean(isSchemKeyword(arg));
+        },
     },
-    'schem-function?': (arg: AnySchemType) => {
-        return SchemBoolean.fromBoolean(isSchemFunction(arg));
+    'schem-function?': {
+        f: (arg: AnySchemType) => {
+            return SchemBoolean.fromBoolean(isSchemFunction(arg));
+        },
     },
-    'js-function?': (arg: AnySchemType) => {
-        return SchemBoolean.fromBoolean(typeof arg === 'function');
+    'js-function?': {
+        f: (arg: AnySchemType) => {
+            return SchemBoolean.fromBoolean(typeof arg === 'function');
+        },
     },
-    'atom?': (arg: AnySchemType) => {
-        return SchemBoolean.fromBoolean(isSchemAtom(arg));
+    'atom?': {
+        f: (arg: AnySchemType) => {
+            return SchemBoolean.fromBoolean(isSchemAtom(arg));
+        },
     },
-    'list?': (arg: AnySchemType): SchemBoolean => {
-        return SchemBoolean.fromBoolean(isSchemList(arg));
+    'list?': {
+        f: (arg: AnySchemType): SchemBoolean => {
+            return SchemBoolean.fromBoolean(isSchemList(arg));
+        },
     },
-    'vecor?': (arg: AnySchemType): SchemBoolean => {
-        return SchemBoolean.fromBoolean(isSchemVector(arg));
+    'vecor?': {
+        f: (arg: AnySchemType): SchemBoolean => {
+            return SchemBoolean.fromBoolean(isSchemVector(arg));
+        },
     },
-    'map?': (arg: AnySchemType): SchemBoolean => {
-        return SchemBoolean.fromBoolean(isSchemMap(arg));
+    'map?': {
+        f: (arg: AnySchemType): SchemBoolean => {
+            return SchemBoolean.fromBoolean(isSchemMap(arg));
+        },
     },
-    'array?': (arg: AnySchemType): SchemBoolean => {
-        return SchemBoolean.fromBoolean(isArray(arg));
+    'array?': {
+        f: (arg: AnySchemType): SchemBoolean => {
+            return SchemBoolean.fromBoolean(isArray(arg));
+        },
     },
-    'schem-type?': (arg: AnySchemType) => {
-        return SchemBoolean.fromBoolean(isSchemType(arg));
+    'schem-type?': {
+        f: (arg: AnySchemType) => {
+            return SchemBoolean.fromBoolean(isSchemType(arg));
+        },
     },
-    'count': (arg: any) => {
-        if ('count' in arg) {
-            return new SchemNumber(arg.count());
-        } else if (isSchemString(arg)) {
-            return new SchemNumber(arg.length);
-        } else if (arg === SchemNil.instance) {
-            return new SchemNumber(0);
-        } else if ('length' in arg) {
-            return new SchemNumber(arg.length);
-        } else {
-            throw new Error(`tried to count soemthing other than a collection, string or nil. It also doesn't have a length.`);
-        }
+    'count': {
+        f: (arg: any) => {
+            if ('count' in arg) {
+                return new SchemNumber(arg.count());
+            } else if (isSchemString(arg)) {
+                return new SchemNumber(arg.length);
+            } else if (arg === SchemNil.instance) {
+                return new SchemNumber(0);
+            } else if ('length' in arg) {
+                return new SchemNumber(arg.length);
+            } else {
+                throw new Error(`tried to count soemthing other than a collection, string or nil. It also doesn't have a length.`);
+            }
+        },
     },
-    'first': (sequential: SchemList | SchemVector | Array<any>) => {
-        throwErrorForNonSequentialArguments(sequential);
-        if (sequential.length === 0) return SchemNil.instance;
-        return sequential[0];
+    'first': {
+        f: (sequential: SchemList | SchemVector | Array<any>) => {
+            throwErrorForNonSequentialArguments(sequential);
+            if (sequential.length === 0) return SchemNil.instance;
+            return sequential[0];
+        },
     },
-    'rest': (sequential: SchemList | SchemVector | Array<any>) => {
-        throwErrorForNonSequentialArguments(sequential);
-        if (sequential.length === 0) return SchemNil.instance;
-        return new SchemList(...sequential.slice(1));
+    'rest': {
+        f: (sequential: SchemList | SchemVector | Array<any>) => {
+            throwErrorForNonSequentialArguments(sequential);
+            if (sequential.length === 0) return SchemNil.instance;
+            return new SchemList(...sequential.slice(1));
+        },
     },
-    'last': (sequential: SchemList | SchemVector | Array<any>) => {
-        throwErrorForNonSequentialArguments(sequential);
-        if (sequential.length === 0) return SchemNil.instance;
-        return sequential[sequential.length - 1];
+    'last': {
+        f: (sequential: SchemList | SchemVector | Array<any>) => {
+            throwErrorForNonSequentialArguments(sequential);
+            if (sequential.length === 0) return SchemNil.instance;
+            return sequential[sequential.length - 1];
+        },
     },
-    'butlast': (sequential: SchemList | SchemVector | Array<any>) => {
-        throwErrorForNonSequentialArguments(sequential);
-        if (sequential.length === 0) return SchemNil.instance;
-        return new SchemList(...sequential.slice(0, sequential.length - 1));
+    'butlast': {
+        f: (sequential: SchemList | SchemVector | Array<any>) => {
+            throwErrorForNonSequentialArguments(sequential);
+            if (sequential.length === 0) return SchemNil.instance;
+            return new SchemList(...sequential.slice(0, sequential.length - 1));
+        },
     },
-    'nth': (sequential: SchemList | SchemVector | Array<any>, index: SchemNumber) => {
-        throwErrorForNonSequentialArguments(sequential);
-        const i = index.valueOf();
-        if (i < 0) throw `index value must be positive`;
-        if (!(isSchemLazyVector(sequential)) && i >= sequential.length) {
-            throw `index out of bounds: ${i} >= ${sequential.length}`;
-        }
-        if (isSchemVector(sequential) || isSchemList(sequential)) {
-            return sequential.nth(index.valueOf());
-        } else {
-            return sequential[index.valueOf()];
-        }
+    'nth': {
+        f: (sequential: SchemList | SchemVector | Array<any>, index: SchemNumber) => {
+            throwErrorForNonSequentialArguments(sequential);
+            const i = index.valueOf();
+            if (i < 0) throw `index value must be positive`;
+            if (!(isSchemLazyVector(sequential)) && i >= sequential.length) {
+                throw `index out of bounds: ${i} >= ${sequential.length}`;
+            }
+            if (isSchemVector(sequential) || isSchemList(sequential)) {
+                return sequential.nth(index.valueOf());
+            } else {
+                return sequential[index.valueOf()];
+            }
+        },
     },
     /** calls pr_str (escaped) on each argument, joins the results, seperated by ' ' */
-    'pr-str': async (...args: AnySchemType[]) => {
-        return new SchemString(
-            (await asyncStringifyAll(args, true)).join(' ')
-        );
+    'pr-str': {
+        f: async (...args: AnySchemType[]) => {
+            return new SchemString((await asyncStringifyAll(args, true)).join(' '));
+        },
     },
     /** calls pr_str (unescaped) on each argument, concatenates the results */
-    'str': async (...args: AnySchemType[]) => {
-        return new SchemString(
-            (await asyncStringifyAll(args, false)).join('')
-        );
+    'str': {
+        f: async (...args: AnySchemType[]) => {
+            return new SchemString((await asyncStringifyAll(args, false)).join(''));
+        },
     },
-    'prn': async (...args: AnySchemType[]) => {
-        const stringified = await asyncStringifyAll(args);
-        console.log(stringified.join(' '));
-        return SchemNil.instance;
+    'prn': {
+        f: async (...args: AnySchemType[]) => {
+            const stringified = await asyncStringifyAll(args);
+            console.log(stringified.join(' '));
+            return SchemNil.instance;
+        },
     },
-    'println': async (...args: AnySchemType[]) => {
-        console.log(await asyncStringifyAll(args, false));
-        return SchemNil.instance;
+    'println': {
+        f: async (...args: AnySchemType[]) => {
+            console.log(await asyncStringifyAll(args, false));
+            return SchemNil.instance;
+        },
     },
-    'read-string': (str: SchemString) => {
-        return readStr(str.valueOf());
+    'read-string': {
+        f: (str: SchemString) => {
+            return readStr(str.valueOf());
+        },
     },
-    'xhr-get': async (url: SchemString) => {
-        return xhrPromise('GET', url.valueOf());
+    'xhr-get': {
+        f: async (url: SchemString) => {
+            return xhrPromise('GET', url.valueOf());
+        },
     },
-    'xhr-post': async (url: SchemString, body: AnySchemType) => {
-        return xhrPromise('POST', url.valueOf(), schemToJs(body));
+    'xhr-post': {
+        f: async (url: SchemString, body: AnySchemType) => {
+            return xhrPromise('POST', url.valueOf(), schemToJs(body));
+        },
     },
-    'xhr-put': async (url: SchemString, body: AnySchemType) => {
-        return xhrPromise('PUT', url.valueOf(), schemToJs(body));
+    'xhr-put': {
+        f: async (url: SchemString, body: AnySchemType) => {
+            return xhrPromise('PUT', url.valueOf(), schemToJs(body));
+        },
     },
-    'xhr-delete': async (url: SchemString) => {
-        return xhrPromise('DELETE', url.valueOf());
+    'xhr-delete': {
+        f: async (url: SchemString) => {
+            return xhrPromise('DELETE', url.valueOf());
+        },
     },
 
-    'slurp': async (pathOrUrl: SchemString | string, opts?: SchemMap) => {
-        pathOrUrl = pathOrUrl.valueOf();
-        // get full URL for files packaged with the browser extension, when url begins with a slash
-        if (pathOrUrl[0] === '/') {
-            return new SchemString(await xhrPromise('GET', browser.extension.getURL(pathOrUrl)));
-        }
-
-        let url: URL;
-        try {
-            url = new URL(pathOrUrl);
-        } catch {
-            return new SchemString(await VirtualFileSystem.readObject(pathOrUrl));
-        }
-        return new SchemString(await xhrPromise('GET', url.href));
-    },
-    'xml->map': (xml: XMLDocument | string | SchemString, options?: SchemMap) => {
-        let xmlDoc: XMLDocument;
-        if (typeof xml === 'string') {
-            xmlDoc = new DOMParser().parseFromString(xml, 'text/xml');
-        } else if (isSchemString(xml)) {
-            xmlDoc = new DOMParser().parseFromString(xml.valueOf(), 'text/xml');
-        } else {
-            xmlDoc = xml;
-        }
-        return createSchemMapFromXMLDocument(xmlDoc, schemToJs(options));
-    },
-    'get': (map: SchemMap, key: SchemMapKey, defaultValue?: AnySchemType) => {
-        if (isSchemMap(map)) {
-            if (isValidKeyType(key)) {
-                return (map.has(key)) ? map.get(key) : defaultValue ? defaultValue : SchemNil.instance;
-            } else {
-                throw `map lookup only works with valid key types`;
+    'slurp': {
+        f: async (pathOrUrl: SchemString | string, opts?: SchemMap) => {
+            pathOrUrl = pathOrUrl.valueOf();
+            // get full URL for files packaged with the browser extension, when url begins with a slash
+            if (pathOrUrl[0] === '/') {
+                return new SchemString(await xhrPromise('GET', browser.extension.getURL(pathOrUrl)));
             }
-        }
-        return SchemNil.instance;
+
+            let url: URL;
+            try {
+                url = new URL(pathOrUrl);
+            } catch {
+                return new SchemString(await VirtualFileSystem.readObject(pathOrUrl));
+            }
+            return new SchemString(await xhrPromise('GET', url.href));
+        },
     },
-    'atom': (value: AnySchemType) => {
-        return new SchemAtom(value);
+    'xml->map': {
+        f: (xml: XMLDocument | string | SchemString, options?: SchemMap) => {
+            let xmlDoc: XMLDocument;
+            if (typeof xml === 'string') {
+                xmlDoc = new DOMParser().parseFromString(xml, 'text/xml');
+            } else if (isSchemString(xml)) {
+                xmlDoc = new DOMParser().parseFromString(xml.valueOf(), 'text/xml');
+            } else {
+                xmlDoc = xml;
+            }
+            return createSchemMapFromXMLDocument(xmlDoc, schemToJs(options));
+        },
     },
-    'deref': (atom: SchemAtom) => {
-        return atom.getValue();
-    },
-    'reset!': (atom: SchemAtom, value: AnySchemType) => {
-        return atom.setValue(value);
-    },
-    'cons': (item: AnySchemType, list: SchemList) => {
-        return new SchemList(item, ...list);
-    },
-    'conj': (targetCollection: SchemList | SchemVector | SchemMap, ...elements: AnySchemType[]) => {
-        if (isSchemList(targetCollection)) {
-            return new SchemList(...elements, ...targetCollection);
-        } else if (isSchemVector(targetCollection)) {
-            return new SchemVector(...targetCollection, ...elements);
-        } else if (isSchemMap(targetCollection)) {
-            elements.forEach(sourceCollection => {
-                if (isSchemMap(sourceCollection)) {
-                    sourceCollection.forEach((k, v) => {
-                        targetCollection.set(k, v);
-                    });
-                } else if (isSchemVector(sourceCollection)) {
-                    for (let i = 0; i < sourceCollection.count(); i += 2) {
-                        if (isValidKeyType(sourceCollection[i])) {
-                            if (sourceCollection[i + 1] == null) {
-                                throw new Error(`When 'conj'ing a vector into a map, the vector must have an even number of elements.`);
-                            }
-                            targetCollection.set(sourceCollection[i] as SchemMapKey, sourceCollection[i + 1]);
-                        }
-                    }
+    'get': {
+        f: (map: SchemMap, key: SchemMapKey, defaultValue?: AnySchemType) => {
+            if (isSchemMap(map)) {
+                if (isValidKeyType(key)) {
+                    return (map.has(key)) ? map.get(key) : defaultValue ? defaultValue : SchemNil.instance;
                 } else {
-                    throw new Error(`'conj' can only combine maps or vectors with maps.`);
+                    throw `map lookup only works with valid key types`;
+                }
+            }
+            return SchemNil.instance;
+        },
+    },
+    'atom': {
+        f: (value: AnySchemType) => {
+            return new SchemAtom(value);
+        },
+    },
+    'deref': {
+        f: (atom: SchemAtom) => {
+            return atom.getValue();
+        },
+    },
+    'reset!': {
+        f: (atom: SchemAtom, value: AnySchemType) => {
+            return atom.setValue(value);
+        },
+    },
+    'cons': {
+        f: (item: AnySchemType, list: SchemList) => {
+            return new SchemList(item, ...list);
+        },
+    },
+    'conj': {
+        f: (targetCollection: SchemList | SchemVector | SchemMap, ...elements: AnySchemType[]) => {
+            if (isSchemList(targetCollection)) {
+                return new SchemList(...elements, ...targetCollection);
+            } else if (isSchemVector(targetCollection)) {
+                return new SchemVector(...targetCollection, ...elements);
+            } else if (isSchemMap(targetCollection)) {
+                elements.forEach(sourceCollection => {
+                    if (isSchemMap(sourceCollection)) {
+                        sourceCollection.forEach((k, v) => {
+                            targetCollection.set(k, v);
+                        });
+                    } else if (isSchemVector(sourceCollection)) {
+                        for (let i = 0; i < sourceCollection.count(); i += 2) {
+                            if (isValidKeyType(sourceCollection[i])) {
+                                if (sourceCollection[i + 1] == null) {
+                                    throw new Error(`When 'conj'ing a vector into a map, the vector must have an even number of elements.`);
+                                }
+                                targetCollection.set(sourceCollection[i] as SchemMapKey, sourceCollection[i + 1]);
+                            }
+                        }
+                    } else {
+                        throw new Error(`'conj' can only combine maps or vectors with maps.`);
+                    }
+                });
+                return targetCollection;
+            } else {
+                throw new Error(`The target collection for 'conj' must be a List, Vector or Map`);
+            }
+        },
+    },
+    'concat': {
+        f: (...seqs: (SchemList | SchemVector | SchemMap)[]) => {
+            throwErrorIfArityIsInvalid(seqs.length, 1);
+
+            let newList = new SchemList();
+            seqs.forEach(seq => {
+                if (isSequential(seq)) {
+                    newList.push(...seq);
+                } else if (isSchemMap(seq)) {
+                    seq.forEach((k, v) => {
+                        newList.push(new SchemVector(k, v));
+                    });
+                } else {
+                    throw new Error(`Concat only accepts Lists, Vectors and Maps.`);
                 }
             });
-            return targetCollection;
-        } else {
-            throw new Error(`The target collection for 'conj' must be a List, Vector or Map`);
-        }
-    },
-    'concat': (...seqs: (SchemList | SchemVector | SchemMap)[]) => {
-        throwErrorIfArityIsInvalid(seqs.length, 1);
+            return newList;
 
-        let newList = new SchemList();
-        seqs.forEach(seq => {
-            if (isSequential(seq)) {
-                newList.push(...seq);
-            } else if (isSchemMap(seq)) {
-                seq.forEach((k, v) => {
-                    newList.push(new SchemVector(k, v));
-                });
+        },
+    },
+    'map': {
+        f: async (fn: SchemFunction, ...sequentials: (SchemList | SchemVector | Array<any>)[]) => {
+            throwErrorForNonSequentialArguments(...sequentials);
+
+            if (sequentials.length === 1) {
+                const newValues = await Promise.all(sequentials[0].map((value) => {
+                    return fn.f(value);
+                }));
+                return new SchemList(...newValues);
             } else {
-                throw new Error(`Concat only accepts Lists, Vectors and Maps.`);
+
+                const shortestSequential = sequentials.reduce((shortestSeq: SchemList | SchemVector, currentSeq) => {
+                    return (currentSeq.length < shortestSeq.length) ? currentSeq : shortestSeq;
+                }, sequentials[0]);
+
+                const newValues = await Promise.all(shortestSequential.map((v, index) => {
+                    const args = sequentials.map((seq) => {
+                        return seq[index];
+                    });
+                    return fn.f(...args);
+                }));
+                return new SchemList(...newValues);
+
             }
-        });
-        return newList;
-
+        },
     },
-    'map': async (fn: SchemFunction, ...sequentials: (SchemList | SchemVector | Array<any>)[]) => {
-        throwErrorForNonSequentialArguments(...sequentials);
-
-        if (sequentials.length === 1) {
-            const newValues = await Promise.all(sequentials[0].map((value) => {
-                return fn.f(value);
+    'filter': {
+        f: async (pred: SchemFunction, seq: SchemVector | SchemList) => {
+            const elementValidity = await Promise.all(seq.map((value) => {
+                return pred.f(value).then((result: any) => (result === SchemBoolean.true));
             }));
-            return new SchemList(...newValues);
-        } else {
 
-            const shortestSequential = sequentials.reduce((shortestSeq: SchemList | SchemVector, currentSeq) => {
-                return (currentSeq.length < shortestSeq.length) ? currentSeq : shortestSeq;
-            }, sequentials[0]);
-
-            const newValues = await Promise.all(shortestSequential.map((v, index) => {
-                const args = sequentials.map((seq) => {
-                    return seq[index];
-                });
-                return fn.f(...args);
-            }));
-            return new SchemList(...newValues);
-
-        }
-    },
-    'filter': async (pred: SchemFunction, seq: SchemVector | SchemList) => {
-        const elementValidity = await Promise.all(seq.map((value) => {
-            return pred.f(value).then((result: any) => (result === SchemBoolean.true));
-        }));
-
-        const newList = new SchemList();
-        seq.forEach((value, index) => {
-            if (elementValidity[index]) {
-                newList.push(value);
-            }
-        });
-        return newList;
+            const newList = new SchemList();
+            seq.forEach((value, index) => {
+                if (elementValidity[index]) {
+                    newList.push(value);
+                }
+            });
+            return newList;
+        },
     },
     /** behaves like clojure's reduce, at least for lists and vectors */
-    'reduce': async (func: SchemFunction, ...restArgs: AnySchemType[]) => {
-        // TODO: switch calls to nth for first/rest, also implement those for maps
-        // Sooo many awaits!
+    'reduce': {
+        f: async (func: SchemFunction, ...restArgs: AnySchemType[]) => {
+            // TODO: switch calls to nth for first/rest, also implement those for maps
+            // Sooo many awaits!
 
-        if (restArgs.length === 1 && isSequential(restArgs[0])) {
-            const coll: SchemVector | SchemList = restArgs[0] as any;
+            if (restArgs.length === 1 && isSequential(restArgs[0])) {
+                const coll: SchemVector | SchemList = restArgs[0] as any;
 
-            if (coll.count() === 0) {
-                return func.f();
-            }
+                if (coll.count() === 0) {
+                    return func.f();
+                }
 
-            if (coll.count() === 1) {
-                return coll.nth(0);
-            }
+                if (coll.count() === 1) {
+                    return coll.nth(0);
+                }
 
-            let result: AnySchemType = await func.f(await coll.nth(0), await coll.nth(1));
-            for (let i = 2; i < coll.count(); i++) {
-                result = await func.f(result, await coll.nth(i));
-            }
+                let result: AnySchemType = await func.f(await coll.nth(0), await coll.nth(1));
+                for (let i = 2; i < coll.count(); i++) {
+                    result = await func.f(result, await coll.nth(i));
+                }
 
-            return result;
+                return result;
 
-        } else if (restArgs.length === 2 && isSequential(restArgs[1])) {
-            // reduce called with initial value
-            const initialVal = restArgs[0];
-            const coll: SchemVector | SchemList = restArgs[1] as any;
+            } else if (restArgs.length === 2 && isSequential(restArgs[1])) {
+                // reduce called with initial value
+                const initialVal = restArgs[0];
+                const coll: SchemVector | SchemList = restArgs[1] as any;
 
-            if (coll.count() === 0) {
-                return func.f(await initialVal);
-            }
+                if (coll.count() === 0) {
+                    return func.f(await initialVal);
+                }
 
-            if (coll.count() === 1) {
-                return func.f(await initialVal, await coll.nth(0));
-            }
+                if (coll.count() === 1) {
+                    return func.f(await initialVal, await coll.nth(0));
+                }
 
-            let result: AnySchemType = await func.f(await initialVal, await coll.nth(0));
-            for (let i = 1; i < coll.count(); i++) {
-                result = await func.f(result, await coll.nth(i));
-            }
+                let result: AnySchemType = await func.f(await initialVal, await coll.nth(0));
+                for (let i = 1; i < coll.count(); i++) {
+                    result = await func.f(result, await coll.nth(i));
+                }
 
-            return result;
+                return result;
 
-        } else {
-            throw new Error(`Reduce takes arguments of like (function, sequential) or (function, initial-value, sequential). Nothing else.`);
-        }
-    },
-    'score-string-similarity': (needle: SchemString, haystack: SchemString) => {
-        return new SchemNumber(computeSimpleStringSimilarityScore(needle.toString(), haystack.toString()));
-    },
-    'sort-and-filter-by-string-similarity': (needle: SchemString, haystack: SchemList | SchemVector, scoreThreshold: SchemNumber = new SchemNumber(1)) => {
-
-        const rankedHaystack: Array<[number, SchemString | SchemSymbol | SchemKeyword]> = haystack.map((hay) => {
-            // create an aray of tuples [score, haystackElement]
-            if (isSchemString(hay)) {
-                return <[number, SchemString]>[computeSimpleStringSimilarityScore(needle.valueOf(), hay.valueOf()), hay];
-            } else if (isSchemSymbol(hay) || isSchemKeyword(hay)) {
-                return <[number, SchemSymbol | SchemKeyword]>[computeSimpleStringSimilarityScore(needle.valueOf(), hay.name), hay];
             } else {
-                throw `${needle} and ${hay} can't be compared`;
+                throw new Error(`Reduce takes arguments of like (function, sequential) or (function, initial-value, sequential). Nothing else.`);
             }
-        }).filter((element, i) => {
-            // remove all elements below the with a score threshold
-            return (element[0] >= scoreThreshold.valueOf());
-        }).sort((a, b) => {
-            // sort the remaining entries by score, then alphabetically
-            if (a[0] === b[0]) {
-                return a[1].getStringRepresentation().localeCompare(b[1].getStringRepresentation());
-            } else {
-                return b[0] - a[0];
+        },
+    },
+    'score-string-similarity': {
+        f: (needle: SchemString, haystack: SchemString) => {
+            return new SchemNumber(computeSimpleStringSimilarityScore(needle.toString(), haystack.toString()));
+        },
+    },
+    'sort-and-filter-by-string-similarity': {
+        f: (needle: SchemString, haystack: SchemList | SchemVector, scoreThreshold: SchemNumber = new SchemNumber(1)) => {
+
+            const rankedHaystack: Array<[number, SchemString | SchemSymbol | SchemKeyword]> = haystack.map((hay) => {
+                // create an aray of tuples [score, haystackElement]
+                if (isSchemString(hay)) {
+                    return <[number, SchemString]>[computeSimpleStringSimilarityScore(needle.valueOf(), hay.valueOf()), hay];
+                } else if (isSchemSymbol(hay) || isSchemKeyword(hay)) {
+                    return <[number, SchemSymbol | SchemKeyword]>[computeSimpleStringSimilarityScore(needle.valueOf(), hay.name), hay];
+                } else {
+                    throw `${needle} and ${hay} can't be compared`;
+                }
+            }).filter((element, i) => {
+                // remove all elements below the with a score threshold
+                return (element[0] >= scoreThreshold.valueOf());
+            }).sort((a, b) => {
+                // sort the remaining entries by score, then alphabetically
+                if (a[0] === b[0]) {
+                    return a[1].getStringRepresentation().localeCompare(b[1].getStringRepresentation());
+                } else {
+                    return b[0] - a[0];
+                }
+            });
+
+            // remove score
+            const schemTypes = rankedHaystack.map((element) => {
+                return element[1];
+            });
+
+            return new SchemList(...schemTypes);
+        },
+    },
+    'pretty-print': {
+        f: async (m: SchemMap, indent: SchemNumber = new SchemNumber(2)) => {
+            return new SchemString(await prettyPrint(m, true, { indentSize: indent.valueOf() }));
+        },
+    },
+    'prompt': {
+        f: (message: SchemString = new SchemString(''), defaultValue: SchemString = new SchemString('')) => {
+            let input = window.prompt(message.toString(), defaultValue.getStringRepresentation());
+            return new SchemString(input);
+
+        },
+    },
+    'apply': {
+        f: async (fn: SchemFunction | Function, argList: SchemList | SchemVector) => {
+            throwErrorForNonSequentialArguments(argList);
+            if (isSchemFunction(fn)) {
+                return await fn.invoke(...argList);
+            } else if (isSchemJSReference(fn) && fn.typeof() === 'function') {
+                fn.invoke(...argList);
             }
-        });
-
-        // remove score
-        const schemTypes = rankedHaystack.map((element) => {
-            return element[1];
-        });
-
-        return new SchemList(...schemTypes);
-    },
-    'pretty-print': async (m: SchemMap, indent: SchemNumber = new SchemNumber(2)) => {
-        return new SchemString(await prettyPrint(m, true, { indentSize: indent.valueOf() }));
-    },
-    'prompt': (message: SchemString = new SchemString(''), defaultValue: SchemString = new SchemString('')) => {
-        let input = window.prompt(message.toString(), defaultValue.getStringRepresentation());
-        return new SchemString(input);
-
-    },
-    'apply': async (fn: SchemFunction | Function, argList: SchemList | SchemVector) => {
-        throwErrorForNonSequentialArguments(argList);
-        if (isSchemFunction(fn)) {
-            return await fn.invoke(...argList);
-        } else if (isSchemJSReference(fn) && fn.typeof() === 'function') {
-            fn.invoke(...argList);
-        }
+        },
     },
     /** invokes a js function without passing arguments */
-    'call': async (obj: SchemJSReference | Function) => {
-        if (isSchemJSReference(obj) && obj.typeof() === 'function') {
-            return await obj.invoke();
-        } else if (typeof obj === 'function') {
-            return await obj();
-        }
+    'call': {
+        f: async (obj: SchemJSReference | Function) => {
+            if (isSchemJSReference(obj) && obj.typeof() === 'function') {
+                return await obj.invoke();
+            } else if (typeof obj === 'function') {
+                return await obj();
+            }
+        },
     },
-    're-pattern': async (pattern: SchemString) => {
-        const matches = /(?:\(\?(.*)?\))?(.+)/.exec(pattern.getStringRepresentation());
-        if (matches === null) {
-            throw `invalid regular expression: ${pattern.getStringRepresentation()}`;
-        }
-        const [, flags, rest] = matches;
-        if (typeof flags !== 'undefined') {
-            return new SchemRegExp(rest, flags);
-        }
-        return new SchemRegExp(rest);
+    're-pattern': {
+        f: async (pattern: SchemString) => {
+            const matches = /(?:\(\?(.*)?\))?(.+)/.exec(pattern.getStringRepresentation());
+            if (matches === null) {
+                throw `invalid regular expression: ${pattern.getStringRepresentation()}`;
+            }
+            const [, flags, rest] = matches;
+            if (typeof flags !== 'undefined') {
+                return new SchemRegExp(rest, flags);
+            }
+            return new SchemRegExp(rest);
+        },
     },
-    're-find': async (rex: SchemRegExp, str: SchemString) => {
-        const matches = rex.exec(str.getStringRepresentation());
-        if (matches !== null) {
-            return new SchemVector(...matches.map(m => new SchemString(m)));
-        } else {
+    're-find': {
+        f: async (rex: SchemRegExp, str: SchemString) => {
+            const matches = rex.exec(str.getStringRepresentation());
+            if (matches !== null) {
+                return new SchemVector(...matches.map(m => new SchemString(m)));
+            } else {
+                return SchemNil.instance;
+            }
+        },
+    },
+    'lazy-vector': {
+        f: (producer: SchemFunction, count?: SchemNumber) => {
+            return new SchemLazyVector(producer, (count) ? count.valueOf() : Infinity);
+        },
+    },
+    'subvec': {
+        f: async (source: SchemVector | Array<any> | SchemLazyVector, start?: SchemNumber, end?: SchemNumber) => {
+            if (isSchemVector(source) || isArray(source)) {
+                return source.slice((start) ? start.valueOf() : 0, (end) ? end.valueOf() : undefined);
+            } else {
+                if (typeof end === 'undefined' && source.count() === Infinity) {
+                    throw `You must provide an end index for lazy vectors of infinite size.`;
+                }
+                return source.realizeSubvec((start) ? start.valueOf() : 0, (end) ? end.valueOf() : undefined);
+            }
+        },
+    },
+    'console-log': {
+        f: (...args: []) => {
+            console.log(...args);
             return SchemNil.instance;
-        }
+        },
     },
-    'lazy-vector': (producer: SchemFunction, count?: SchemNumber) => {
-        return new SchemLazyVector(producer, (count) ? count.valueOf() : Infinity);
-    },
-    'subvec': async (source: SchemVector | Array<any> | SchemLazyVector, start?: SchemNumber, end?: SchemNumber) => {
-        if (isSchemVector(source) || isArray(source)) {
-            return source.slice(
-                (start) ? start.valueOf() : 0,
-                (end) ? end.valueOf() : undefined
-            );
-        } else {
-            if (typeof end === 'undefined' && source.count() === Infinity) {
-                throw `You must provide an end index for lazy vectors of infinite size.`;
+    'set!': {
+        f: (sym: SchemSymbol | SchemJSReference, value: AnySchemType) => {
+            if (isSchemSymbol(sym)) {
+                if (!SchemSymbol.refersToJavascriptObject(sym)) {
+                    throw new Error(`You're not allowed to set Schem bindings to new values. Use atoms for mutable state.`);
+                }
+                setJsProperty(sym.name, schemToJs(value));
+            } else if (isSchemJSReference(sym)) {
+                sym.set(schemToJs(value));
             }
-            return source.realizeSubvec(
-                (start) ? start.valueOf() : 0,
-                (end) ? end.valueOf() : undefined);
-        }
+        },
     },
-    'console-log': (...args: []) => {
-        console.log(...args);
-        return SchemNil.instance;
+    'add-watch': {
+        f: (atom: SchemAtom, name: SchemKeyword, f: SchemFunction): void => {
+            atom.addWatch(name, f);
+        },
     },
-    'set!': (sym: SchemSymbol | SchemJSReference, value: AnySchemType) => {
-        if (isSchemSymbol(sym)) {
-            if (!SchemSymbol.refersToJavascriptObject(sym)) {
-                throw new Error(`You're not allowed to set Schem bindings to new values. Use atoms for mutable state.`);
+    'remove-watch': {
+        f: (atom: SchemAtom, name: SchemKeyword): void => {
+            atom.removeWatch(name);
+        },
+    },
+    'storage-create': {
+        f: async (qualifiedObjectName: SchemString, value: AnySchemType) => {
+            return await VirtualFileSystem.writeObject(qualifiedObjectName.valueOf(), schemToJs(value));
+        },
+    },
+    'storage-create-or-update': {
+        f: async (qualifiedObjectName: SchemString, value: AnySchemType) => {
+            return await VirtualFileSystem.writeObject(qualifiedObjectName.valueOf(), schemToJs(value), true);
+        },
+    },
+    'storage-read': {
+        f: async (qualifiedObjectName: SchemString) => {
+            return await VirtualFileSystem.readObject(qualifiedObjectName.valueOf());
+        },
+    },
+    'storage-update': {
+        f: async (qualifiedObjectName: SchemString, value: AnySchemType) => {
+            await VirtualFileSystem.updateObject(qualifiedObjectName.valueOf(), schemToJs(value));
+            return value;
+        },
+    },
+    'storage-delete': {
+        f: async (qualifiedObjectName: SchemString) => {
+            await VirtualFileSystem.removeObject(qualifiedObjectName.valueOf());
+            return SchemNil.instance;
+        },
+    },
+    'storage-exists': {
+        f: async (qualifiedObjectName: SchemString) => {
+            let exists = await VirtualFileSystem.existsOject(qualifiedObjectName.valueOf());
+            return SchemBoolean.fromBoolean(exists);
+        },
+    },
+    'storage-clear-all': {
+        f: async () => {
+            if (window.confirm('Do you really want to clear the local storage? This would deletes all objects.')) {
+                VirtualFileSystem.clearStorage();
+                return new SchemString('Local storage was cleared.');
             }
-            setJsProperty(sym.name, schemToJs(value));
-        } else if (isSchemJSReference(sym)) {
-            sym.set(schemToJs(value));
-        }
+            return new SchemString('Clearing the storage was canceled.');
+        },
     },
-    'add-watch': (atom: SchemAtom, name: SchemKeyword, f: SchemFunction): void => {
-        atom.addWatch(name, f);
+    'storage-ls': {
+        f: async (path: SchemString) => {
+            const folderInfo = await VirtualFileSystem.listFolderContents(path.valueOf());
+            return jsObjectToSchemType(folderInfo, { depth: 9001 });
+        },
     },
-    'remove-watch': (atom: SchemAtom, name: SchemKeyword): void => {
-        atom.removeWatch(name);
-    },
-    'storage-create': async (qualifiedObjectName: SchemString, value: AnySchemType) => {
-        return await VirtualFileSystem.writeObject(qualifiedObjectName.valueOf(), schemToJs(value));
-    },
-    'storage-create-or-update': async (qualifiedObjectName: SchemString, value: AnySchemType) => {
-        return await VirtualFileSystem.writeObject(qualifiedObjectName.valueOf(), schemToJs(value), true);
-    },
-    'storage-read': async (qualifiedObjectName: SchemString) => {
-        return await VirtualFileSystem.readObject(qualifiedObjectName.valueOf());
-    },
-    'storage-update': async (qualifiedObjectName: SchemString, value: AnySchemType) => {
-        await VirtualFileSystem.updateObject(qualifiedObjectName.valueOf(), schemToJs(value));
-        return value;
-    },
-    'storage-delete': async (qualifiedObjectName: SchemString) => {
-        await VirtualFileSystem.removeObject(qualifiedObjectName.valueOf());
-        return SchemNil.instance;
-    },
-    'storage-exists': async (qualifiedObjectName: SchemString) => {
-        let exists = await VirtualFileSystem.existsOject(qualifiedObjectName.valueOf());
-        return SchemBoolean.fromBoolean(exists);
-    },
-    'storage-clear-all': async () => {
-        if (window.confirm('Do you really want to clear the local storage? This would deletes all objects.')) {
-            VirtualFileSystem.clearStorage();
-            return new SchemString('Local storage was cleared.');
-        }
-        return new SchemString('Clearing the storage was canceled.');
-    },
-    'storage-ls': async (path: SchemString) => {
-        const folderInfo = await VirtualFileSystem.listFolderContents(path.valueOf());
-        return jsObjectToSchemType(folderInfo, { depth: 9001 });
-    },
-    'resolve-js-property-chain': (jsObject: any, ...propertyNames: Array<SchemString | SchemKeyword>) => {
-        const pNames: string[] = propertyNames.map(e => isSchemKeyword(e) ? e.name : e.valueOf());
-        return resolveJSPropertyChain(jsObject, ...pNames);
+    'resolve-js-property-chain': {
+        f: (jsObject: any, ...propertyNames: Array<SchemString | SchemKeyword>) => {
+            const pNames: string[] = propertyNames.map(e => isSchemKeyword(e) ? e.name : e.valueOf());
+            return resolveJSPropertyChain(jsObject, ...pNames);
+        },
     },
     'sleep': async (ms: SchemNumber) => {
         await new Promise(resolve => setTimeout(resolve, ms.valueOf()));

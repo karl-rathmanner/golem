@@ -199,7 +199,7 @@ async function createSchemCompletionItems(range: monaco.IRange): Promise<monaco.
         const pickDocumentation = (value: any) => {
             if (isSchemFunction(value)) {
                 if (value.metadata != null) {
-                    return value.metadata.docstring;
+                    return `[${value.metadata.parameters == null ? '' : value.metadata.parameters.join(' ')}]\n${value.metadata.docstring}`;
                 }
             }
 

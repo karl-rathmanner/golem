@@ -7,10 +7,13 @@ use(schemHelpers);
 
 function getCoreFunction(symbol: string): Function {
     let fn = coreFunctions[symbol];
-    if (typeof fn !== 'function') {
+    if (typeof fn === 'function') {
+        return fn;
+    } else if ('f' in fn) {
+        return fn.f;
+    } else {
         throw Error(`"${symbol}" is not a function.`);
     }
-    return fn;
 }
 
 describe('core operators', function () {

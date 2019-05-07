@@ -15,7 +15,7 @@ export abstract class EnvSetupMap {
     // I'm allowing the map to have undefined entries to defining EnvSetupMaps that contain a subset of a string literal type. e.g.:
     // const editorEnv: {[symbolName in EventPageActionName]?: SchemType} = {...}
     // If the above index signature wasn't nullable, only maps containing keys for *all* string literals would be accepted.
-    [symbol: string]: Function | {f: Function, docstring: string} | {value: any | undefined }
+    [symbol: string]: Function | {f: Function, docstring?: string, paramstring?: string} | {value: any | undefined }
 }
 
 /**  Environments map symbols to values
@@ -175,9 +175,17 @@ export class Env {
                 const schemSymbol = SchemSymbol.from(symbol);
                 const value = map[symbol];
                 if (typeof value === 'function') {
-                    this.set(schemSymbol, new SchemFunction(value, {name: symbol}));
-                } else if ('f' in value && 'docstring' in value) {
-                    this.set(schemSymbol, new SchemFunction(value.f, {name: symbol, docstring: value.docstring}));
+                    this.set(schemSymbol, new SchemFunction(value, {name: symbol, parameters: ['?'], docstring: 'Created from a js function.'}));
+                } else if ('f' in value && typeof value.f === 'function') {
+                    const docstr = value.docstring == null ? '' : value.docstring;
+                    let params = ['?'];
+
+                    // These are "necessary" when js maps are added to an environment (think: core.ts)
+                    // You could generate these dynamically but I don't wanna think about all the edge cases.
+                    if (value.paramstring != null && value.paramstring.length > 0) {
+                        params = value.paramstring.split(' ');
+                    }
+                    this.set(schemSymbol, new SchemFunction(value.f, {name: symbol, docstring: docstr, parameters: params}));
                 } else if (typeof value !== 'undefined') {
                     this.set(schemSymbol, value);
                 }

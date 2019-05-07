@@ -75,6 +75,8 @@ export type SchemMapKey = SchemSymbol | SchemKeyword | SchemString | SchemNumber
 export type SchemMetadata = {
     name?: string,
     docstring?: string,
+    parameters?: string[],
+    paramstring?: string,
     sourceIndexStart?: number,
     sourceIndexEnd?: number,
     [index: string]: any,
@@ -90,10 +92,11 @@ export class SchemFunction implements Callable, Metadatable, TaggedType {
     constructor(public f: Function,
         public metadata?: SchemMetadata,
         public fnContext?: { ast: AnySchemType, params: SchemVector | SchemList, env: Env }) {
-        // bind a function's name to itself within its environment
-        // this allows recursion even in 'anonymous' functions
-        if (this.fnContext && metadata && metadata.name && metadata.name.length > 0) {
-            this.fnContext.env.set(SchemSymbol.from(metadata.name), this);
+            // bind a function's name to itself within its environment
+            // this allows recursion even in 'anonymous' functions
+        if (fnContext && metadata && metadata.name && metadata.name.length > 0) {
+            metadata.parameters = fnContext.params.map((p: SchemSymbol ) => p.name);
+            this.fnContext!.env.set(SchemSymbol.from(metadata.name), this);
         }
     }
 
@@ -104,16 +107,6 @@ export class SchemFunction implements Callable, Metadatable, TaggedType {
             return await that.evalSchem(functionBody, childEnv);
         }, metadata, { ast: functionBody, params: bindings, env: env });
     }
-
-    /*
-    newEnv(args: AnySchemType[]): Env {
-      if (this.fnContext) {
-        return new Env(this.fnContext.env, this.fnContext.params, args);
-      } else {
-        return new Env(void 0, void 0, args);
-      }
-    }
-    */
 
     invoke(...args: any[]) {
         return this.f(...args.map(coerceToSchem));
