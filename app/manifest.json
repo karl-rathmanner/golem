@@ -34,26 +34,17 @@
     "commands": {
         "open-editor": {
             "suggested_key": {
-                "default":"Alt+A"
+                "default":"Alt+M"
             },
             "description": "Opens a Monaco instance in a new tab"
         },
         "open-schem-playground": {
-            "suggested_key": {
-                "default":"Alt+S"
-            },
             "description": "Opens the Schem Playground"
         },
         "go-go-golem" : {
-            "suggested_key": {
-                "default":"Alt+G"
-            },
             "description": "Go-Go-Golem! (Does nothing, intended to be re-introduced later.)"
         },
         "advanceSchemInterpreter" : {
-            "suggested_key": {
-                "default":"Alt+R"
-            },
             "description": "Go-On-Golem! (Proceed with one evaluation step, if interpreter is paused.)"
         },
         "bindableCommand1" : {
