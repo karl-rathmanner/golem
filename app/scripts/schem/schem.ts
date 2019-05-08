@@ -379,16 +379,17 @@ export class Schem {
                             const contextDef = env.getContextSymbol(first);
                             const contextIds = await this.contextManager.prepareContexts(contextDef);
 
-                            /** (contextSymbol: (form))
-                            * execute (form) in any context matching the definition bound to contextSymbol:
+                            /** (contextSymbol: & forms)
+                            * execute forms in any context matching the definition bound to contextSymbol:
+                            * The forms are wrappen in an implicit 'do', so only the last one's value will be finally retured
                             * This is currently only supported if the interpreter instance exists in a privileged context
                             */
                             if (!this.priviledgedContextIsReady) {
                                 throw new Error(`Tried to use foreign context execution from an interpreter instance that has no access to privileged functions. (Or maybe they weren't initialized yet.)`);
                             }
 
-                            let form = ast[1];
-                            if (isSchemList(form)) {
+                            if (isSchemList(ast[1])) {
+                                let form = new SchemList(SchemSymbol.from('do'), ...ast.slice(1)) as any;
                                 // if the whole form is quasiquoted, evaluate it in this context to resolve any unquoted parts, then evaluate that it in the foreign context
                                 if (isSchemSymbol(form[0]) && (form[0] as SchemSymbol).name === 'quasiquote') {
                                     form = await this.evalSchem(form, env);
