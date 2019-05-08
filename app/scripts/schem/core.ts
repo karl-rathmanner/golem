@@ -54,6 +54,8 @@ export const coreFunctions: { [symbol: string]: any } = {
         },
     },
     'quot': {
+        paramstring: 'dividend divisor',
+        docstring: `Returns quotient, rounded towards zero.`,
         f: (dividend: SchemNumber, divisor: SchemNumber) => {
             const quotient = dividend.valueOf() / divisor.valueOf();
             // round towards zero
@@ -61,9 +63,13 @@ export const coreFunctions: { [symbol: string]: any } = {
         },
     },
     'sqr': {
+        paramstring: 'number',
+        docstring: `Squares number.`,
         f: (d: SchemNumber) => new SchemNumber(d.valueOf() * d.valueOf()),
     },
     '=': {
+        paramstring: 'x & more',
+        docstring: `Returns true if all arguments are equal.`,
         f: (...args: any[]) => {
             throwErrorIfArityIsInvalid(args.length, 1);
             // If passed a single value (= x) the result is always true.
@@ -101,37 +107,51 @@ export const coreFunctions: { [symbol: string]: any } = {
         },
     },
     '>': {
+        paramstring: 'x & more',
+        docstring: `Returns true if each successive argument (from left to right) is bigger than the previous one.`,
         f: (...args: SchemNumber[]) => {
             return doNumericComparisonForEachConsecutivePairInArray((a, b) => { return a > b; }, args);
         },
     },
     '<': {
+        paramstring: 'x & more',
+        docstring: `Returns true if each successive argument (from left to right) is smaller than the previous one.`,
         f: (...args: SchemNumber[]) => {
             return doNumericComparisonForEachConsecutivePairInArray((a, b) => { return a < b; }, args);
         },
     },
     '>=': {
+        paramstring: 'x & more',
+        docstring: `Returns true if each successive argument (from left to right) is bigger than or equal to the previous one.`,
         f: (...args: SchemNumber[]) => {
             return doNumericComparisonForEachConsecutivePairInArray((a, b) => { return a >= b; }, args);
         },
     },
     '<=': {
+        paramstring: 'x & more',
+        docstring: `Returns true if each successive argument (from left to right) is smaller than or equal to the previous one.`,
         f: (...args: SchemNumber[]) => {
             return doNumericComparisonForEachConsecutivePairInArray((a, b) => { return a <= b; }, args);
         },
     },
     // returns arguments as a list
     'list': {
+        paramstring: '& items?',
+        docstring: `Returns a list containing the arguments.`,
         f: (...args: AnySchemType[]) => {
             return new SchemList().concat(args);
         },
     },
     'vector': {
+        paramstring: '& items?',
+        docstring: `Returns a vector containing the arguments.`,
         f: (...args: AnySchemType[]) => {
             return new SchemVector().concat(args);
         },
     },
     'hash-map': {
+        paramstring: '& items',
+        docstring: `Returns a map. Successive arguments are treated as key value pairs. Expects an even number of arguments.`,
         f: async (...args: any) => {
             throwErrorIfArityIsInvalid(args.length, 0, Infinity, true);
             const newMap = new SchemMap();
@@ -142,6 +162,8 @@ export const coreFunctions: { [symbol: string]: any } = {
         },
     },
     'vec': {
+        paramstring: 'collection',
+        docstring: `Returns a vector. If you supply a map, it gets flattened. e.g. {a 1 b 2} => (a 1 b 2)`,
         f: (coll: RegularSchemCollection) => {
             if (isSchemList(coll)) {
                 return new SchemVector(...coll);
@@ -156,71 +178,99 @@ export const coreFunctions: { [symbol: string]: any } = {
     },
     // type checks
     'empty?': {
+        paramstring: 'value',
+        docstring: `Returns true if the argument is empty. (When its count or length is zero.)`,
         f: (arg: AnySchemType) => {
             return SchemBoolean.fromBoolean('length' in arg && arg.length === 0);
         },
     },
     'number?': {
+        paramstring: 'value',
+        docstring: `Returns true if the argument is a number.`,
         f: (arg: AnySchemType) => {
             return SchemBoolean.fromBoolean(isSchemNumber(arg) || typeof arg === 'number');
         },
     },
     'string?': {
+        paramstring: 'value',
+        docstring: `Returns true if the argument is a string.`,
         f: (arg: AnySchemType) => {
             return SchemBoolean.fromBoolean(isSchemString(arg) || typeof arg === 'string');
         },
     },
     'symbol?': {
+        paramstring: 'value',
+        docstring: `Returns true if the argument is a symbol.`,
         f: (arg: AnySchemType) => {
             return SchemBoolean.fromBoolean(isSchemSymbol(arg));
         },
     },
     'keyword?': {
+        paramstring: 'value',
+        docstring: `Returns true if the argument is a keyword.`,
         f: (arg: AnySchemType) => {
             return SchemBoolean.fromBoolean(isSchemKeyword(arg));
         },
     },
     'schem-function?': {
+        paramstring: 'value',
+        docstring: `Returns true if the argument is a SchemFunction. Will return fale for native js functions..`,
         f: (arg: AnySchemType) => {
             return SchemBoolean.fromBoolean(isSchemFunction(arg));
         },
     },
     'js-function?': {
+        paramstring: 'value',
+        docstring: `Returns true if the argument is a native javascript function. Will return false for Schem`,
         f: (arg: AnySchemType) => {
-            return SchemBoolean.fromBoolean(typeof arg === 'function');
+            return SchemBoolean.fromBoolean(typeof arg === 'function' && !isSchemFunction(arg));
         },
     },
     'atom?': {
+        paramstring: 'value',
+        docstring: `Returns true if the argument is an atom.`,
         f: (arg: AnySchemType) => {
             return SchemBoolean.fromBoolean(isSchemAtom(arg));
         },
     },
     'list?': {
+        paramstring: 'value',
+        docstring: `Returns true if the argument is a list.`,
         f: (arg: AnySchemType): SchemBoolean => {
             return SchemBoolean.fromBoolean(isSchemList(arg));
         },
     },
     'vecor?': {
+        paramstring: 'value',
+        docstring: `Returns true if the argument is a vector.`,
         f: (arg: AnySchemType): SchemBoolean => {
             return SchemBoolean.fromBoolean(isSchemVector(arg));
         },
     },
     'map?': {
+        paramstring: 'value',
+        docstring: `Returns true if the argument is a map.`,
         f: (arg: AnySchemType): SchemBoolean => {
             return SchemBoolean.fromBoolean(isSchemMap(arg));
         },
     },
     'array?': {
+        paramstring: 'value',
+        docstring: `Returns true if the argument is a js Array of some kind.`,
         f: (arg: AnySchemType): SchemBoolean => {
             return SchemBoolean.fromBoolean(isArray(arg));
         },
     },
     'schem-type?': {
+        paramstring: 'value',
+        docstring: `Returns true if the argument is any Schem type.`,
         f: (arg: AnySchemType) => {
             return SchemBoolean.fromBoolean(isSchemType(arg));
         },
     },
     'count': {
+        paramstring: 'coll-or-string',
+        docstring: `Returns argument's length or count of its items. (For maps, each key value pair counts as one item.)`,
         f: (arg: any) => {
             if ('count' in arg) {
                 return new SchemNumber(arg.count());
@@ -236,6 +286,8 @@ export const coreFunctions: { [symbol: string]: any } = {
         },
     },
     'first': {
+        paramstring: 'value',
+        docstring: `Returns the first item of a collection.`,
         f: (sequential: SchemList | SchemVector | Array<any>) => {
             throwErrorForNonSequentialArguments(sequential);
             if (sequential.length === 0) return SchemNil.instance;
@@ -243,6 +295,8 @@ export const coreFunctions: { [symbol: string]: any } = {
         },
     },
     'rest': {
+        paramstring: 'value',
+        docstring: `Returns all but the first item of a collection.`,
         f: (sequential: SchemList | SchemVector | Array<any>) => {
             throwErrorForNonSequentialArguments(sequential);
             if (sequential.length === 0) return SchemNil.instance;
@@ -250,6 +304,8 @@ export const coreFunctions: { [symbol: string]: any } = {
         },
     },
     'last': {
+        paramstring: 'value',
+        docstring: `Returns the last item of a collection.`,
         f: (sequential: SchemList | SchemVector | Array<any>) => {
             throwErrorForNonSequentialArguments(sequential);
             if (sequential.length === 0) return SchemNil.instance;
@@ -257,6 +313,8 @@ export const coreFunctions: { [symbol: string]: any } = {
         },
     },
     'butlast': {
+        paramstring: 'value',
+        docstring: `Returns all but the last item of a collection.`,
         f: (sequential: SchemList | SchemVector | Array<any>) => {
             throwErrorForNonSequentialArguments(sequential);
             if (sequential.length === 0) return SchemNil.instance;
@@ -264,6 +322,8 @@ export const coreFunctions: { [symbol: string]: any } = {
         },
     },
     'nth': {
+        paramstring: 'value',
+        docstring: `Returns the nth item of any collection that can be accesed by an index.`,
         f: (sequential: SchemList | SchemVector | Array<any>, index: SchemNumber) => {
             throwErrorForNonSequentialArguments(sequential);
             const i = index.valueOf();
@@ -278,19 +338,25 @@ export const coreFunctions: { [symbol: string]: any } = {
             }
         },
     },
-    /** calls pr_str (escaped) on each argument, joins the results, seperated by ' ' */
+    /** */
     'pr-str': {
+        paramstring: '& args',
+        docstring:  `Calls pr_str (escaped) on each argument, joins the results, seperated by ' '.`,
         f: async (...args: AnySchemType[]) => {
             return new SchemString((await asyncStringifyAll(args, true)).join(' '));
         },
     },
-    /** calls pr_str (unescaped) on each argument, concatenates the results */
+    /** */
     'str': {
+        paramstring: '& args',
+        docstring:  `Calls pr_str (unescaped) on each argument, concatenates the results.`,
         f: async (...args: AnySchemType[]) => {
             return new SchemString((await asyncStringifyAll(args, false)).join(''));
         },
     },
     'prn': {
+        paramstring: '& args',
+        docstring:  `Stringifies args, joins them and prints them to the browser console. Returns nil.`,
         f: async (...args: AnySchemType[]) => {
             const stringified = await asyncStringifyAll(args);
             console.log(stringified.join(' '));
@@ -298,38 +364,51 @@ export const coreFunctions: { [symbol: string]: any } = {
         },
     },
     'println': {
+        paramstring: '& args',
+        docstring:  `Stringifies args (unescaped) and prints them to the browser console. Returns nil.`,
         f: async (...args: AnySchemType[]) => {
             console.log(await asyncStringifyAll(args, false));
             return SchemNil.instance;
         },
     },
     'read-string': {
+        paramstring: 'string',
+        docstring:  `Reads a string and turns it into an abstract syntax tree.`,
         f: (str: SchemString) => {
             return readStr(str.valueOf());
         },
     },
     'xhr-get': {
+        paramstring: 'url',
+        docstring:  `Makes an asynchronous http GET request and returns a promise. In most cases, you can treat this like a synchronous operation that just takes a lot of time. ;)`,
         f: async (url: SchemString) => {
             return xhrPromise('GET', url.valueOf());
         },
     },
     'xhr-post': {
+        paramstring: 'url',
+        docstring:  `Makes an asynchronous http PUT request and returns a promise. In most cases, you can treat this like a synchronous operation that just takes a lot of time. ;)`,
         f: async (url: SchemString, body: AnySchemType) => {
             return xhrPromise('POST', url.valueOf(), schemToJs(body));
         },
     },
     'xhr-put': {
-        f: async (url: SchemString, body: AnySchemType) => {
+        paramstring: 'url body',
+        docstring:  `Makes an asynchronous http PUT request and returns a promise. In most cases, you can treat this like a synchronous operation that just takes a lot of time. ;)`,
+        f: async (url: SchemString, body: any) => {
             return xhrPromise('PUT', url.valueOf(), schemToJs(body));
         },
     },
     'xhr-delete': {
+        paramstring: 'url',
+        docstring:  `Makes an asynchronous http DELETE request and returns a promise. In most cases, you can treat this like a synchronous operation that just takes a lot of time. ;)`,
         f: async (url: SchemString) => {
             return xhrPromise('DELETE', url.valueOf());
         },
     },
-
     'slurp': {
+        paramstring: 'path-or-url options',
+        docstring:  `Reads the contents of a file from the local file system when the arguments starts with '/', otherwise it returns the response of GETing the resource from the supplied url.`,
         f: async (pathOrUrl: SchemString | string, opts?: SchemMap) => {
             pathOrUrl = pathOrUrl.valueOf();
             // get full URL for files packaged with the browser extension, when url begins with a slash
@@ -347,6 +426,8 @@ export const coreFunctions: { [symbol: string]: any } = {
         },
     },
     'xml->map': {
+        paramstring: 'string-or-xml-document options',
+        docstring: `Turns an xml string or XMLDocument object into a Schem map.`,
         f: (xml: XMLDocument | string | SchemString, options?: SchemMap) => {
             let xmlDoc: XMLDocument;
             if (typeof xml === 'string') {
@@ -360,6 +441,8 @@ export const coreFunctions: { [symbol: string]: any } = {
         },
     },
     'get': {
+        paramstring: 'map key default-value?',
+        docstring: `Looks up the value for a key in a map and returns that. Returns the default value when the lookup fails. Or nil if you didn's supply a default value.`,
         f: (map: SchemMap, key: SchemMapKey, defaultValue?: AnySchemType) => {
             if (isSchemMap(map)) {
                 if (isValidKeyType(key)) {
@@ -372,26 +455,36 @@ export const coreFunctions: { [symbol: string]: any } = {
         },
     },
     'atom': {
+        paramstring: 'value',
+        docstring: `Returns an atom with 'value' as its ... value.`,
         f: (value: AnySchemType) => {
             return new SchemAtom(value);
         },
     },
     'deref': {
+        paramstring: 'atom',
+        docstring: `Returns the value of an atom.`,
         f: (atom: SchemAtom) => {
             return atom.getValue();
         },
     },
     'reset!': {
+        paramstring: 'atom value',
+        docstring: `Sets the atoms value.`,
         f: (atom: SchemAtom, value: AnySchemType) => {
             return atom.setValue(value);
         },
     },
     'cons': {
+        paramstring: 'item coll',
+        docstring: `Returns a new list containing item as the first item, followed by the contents of coll. (cons a (b c)) => (a b c)`,
         f: (item: AnySchemType, list: SchemList) => {
             return new SchemList(item, ...list);
         },
     },
     'conj': {
+        paramstring: 'target-collection & elements',
+        docstring: `Adds elements to the collection. Depending on the collection type, that means different things:\n For lists: at the beginning, for vectors: at the end.\nIf your target collection is a map, check the examples file or consult the clojure docs. It might work more or less like that. ;)`,
         f: (targetCollection: SchemList | SchemVector | SchemMap, ...elements: AnySchemType[]) => {
             if (isSchemList(targetCollection)) {
                 return new SchemList(...elements, ...targetCollection);
@@ -423,6 +516,8 @@ export const coreFunctions: { [symbol: string]: any } = {
         },
     },
     'concat': {
+        paramstring: '& sequential-collection',
+        docstring: `Returns a list containing the concatenated contents of sequential-collections.`,
         f: (...seqs: (SchemList | SchemVector | SchemMap)[]) => {
             throwErrorIfArityIsInvalid(seqs.length, 1);
 
@@ -443,6 +538,8 @@ export const coreFunctions: { [symbol: string]: any } = {
         },
     },
     'map': {
+        paramstring: 'fn & sequential-collections',
+        docstring: `Please see the example file. My fingers hurt.`,
         f: async (fn: SchemFunction, ...sequentials: (SchemList | SchemVector | Array<any>)[]) => {
             throwErrorForNonSequentialArguments(...sequentials);
 
@@ -469,6 +566,8 @@ export const coreFunctions: { [symbol: string]: any } = {
         },
     },
     'filter': {
+        paramstring: 'predicate list-or-vector',
+        docstring: `Returns a new list, containing all elements of the original list for which the predicate function returns true. Checks run kind of cuncurrently.`,
         f: async (pred: SchemFunction, seq: SchemVector | SchemList) => {
             const elementValidity = await Promise.all(seq.map((value) => {
                 return pred.f(value).then((result: any) => (result === SchemBoolean.true));
@@ -485,6 +584,8 @@ export const coreFunctions: { [symbol: string]: any } = {
     },
     /** behaves like clojure's reduce, at least for lists and vectors */
     'reduce': {
+        paramstring: 'fn initial-value? sequential',
+        docstring: `Please see the example file. My fingers hurt.`,
         f: async (func: SchemFunction, ...restArgs: AnySchemType[]) => {
             // TODO: switch calls to nth for first/rest, also implement those for maps
             // Sooo many awaits!
@@ -533,11 +634,15 @@ export const coreFunctions: { [symbol: string]: any } = {
         },
     },
     'score-string-similarity': {
+        paramstring: 'string-a string-b',
+        docstring: `Returns a score for the similarity between string-a and string-b. The algorithm I made up was used to sort autocompletion suggestions so this is probably unfit for most other applications.`,
         f: (needle: SchemString, haystack: SchemString) => {
             return new SchemNumber(computeSimpleStringSimilarityScore(needle.toString(), haystack.toString()));
         },
     },
     'sort-and-filter-by-string-similarity': {
+        paramstring: 'needle haystack score-threshold',
+        docstring: `Can be used to filter and rank suggestions for auto-completions based on some incomplete user input.`,
         f: (needle: SchemString, haystack: SchemList | SchemVector, scoreThreshold: SchemNumber = new SchemNumber(1)) => {
 
             const rankedHaystack: Array<[number, SchemString | SchemSymbol | SchemKeyword]> = haystack.map((hay) => {
@@ -570,11 +675,15 @@ export const coreFunctions: { [symbol: string]: any } = {
         },
     },
     'pretty-print': {
+        paramstring: 'map indentation-size?',
+        docstring: `Tries to print the contents of a map in a more readable way.`,
         f: async (m: SchemMap, indent: SchemNumber = new SchemNumber(2)) => {
             return new SchemString(await prettyPrint(m, true, { indentSize: indent.valueOf() }));
         },
     },
     'prompt': {
+        paramstring: 'message default-value',
+        docstring: `Currently just an alias for window.prompt.`,
         f: (message: SchemString = new SchemString(''), defaultValue: SchemString = new SchemString('')) => {
             let input = window.prompt(message.toString(), defaultValue.getStringRepresentation());
             return new SchemString(input);
@@ -582,6 +691,8 @@ export const coreFunctions: { [symbol: string]: any } = {
         },
     },
     'apply': {
+        paramstring: 'fn arglist',
+        docstring: `Calls function with the contents (!) or arglist as parameters. e.g.: (apply fn [a b c]) => (fn a b c)`,
         f: async (fn: SchemFunction | Function, argList: SchemList | SchemVector) => {
             throwErrorForNonSequentialArguments(argList);
             if (isSchemFunction(fn)) {
@@ -591,17 +702,20 @@ export const coreFunctions: { [symbol: string]: any } = {
             }
         },
     },
-    /** invokes a js function without passing arguments */
-    'call': {
-        f: async (obj: SchemJSReference | Function) => {
-            if (isSchemJSReference(obj) && obj.typeof() === 'function') {
-                return await obj.invoke();
-            } else if (typeof obj === 'function') {
-                return await obj();
-            }
-        },
-    },
+    // Obsolete due to dot-accessor syntax?
+    // /** invokes a js function without passing arguments */
+    // 'call': {
+    //     f: async (obj: SchemJSReference | Function) => {
+    //         if (isSchemJSReference(obj) && obj.typeof() === 'function') {
+    //             return await obj.invoke();
+    //         } else if (typeof obj === 'function') {
+    //             return await obj();
+    //         }
+    //     },
+    // },
     're-pattern': {
+        paramstring: 'string',
+        docstring: `Creates a Schem regular expression from a string.`,
         f: async (pattern: SchemString) => {
             const matches = /(?:\(\?(.*)?\))?(.+)/.exec(pattern.getStringRepresentation());
             if (matches === null) {
@@ -615,21 +729,27 @@ export const coreFunctions: { [symbol: string]: any } = {
         },
     },
     're-find': {
+        paramstring: 'regular-expression string',
+        docstring: `Returns a list of matches for regular-expression in string.`,
         f: async (rex: SchemRegExp, str: SchemString) => {
             const matches = rex.exec(str.getStringRepresentation());
             if (matches !== null) {
-                return new SchemVector(...matches.map(m => new SchemString(m)));
+                return new SchemList(...matches.map(m => new SchemString(m)));
             } else {
                 return SchemNil.instance;
             }
         },
     },
     'lazy-vector': {
+        paramstring: 'producer-fn count?',
+        docstring: `Creates a lazy vector. Please see the example file for examples.`,
         f: (producer: SchemFunction, count?: SchemNumber) => {
             return new SchemLazyVector(producer, (count) ? count.valueOf() : Infinity);
         },
     },
     'subvec': {
+        paramstring: 'vector-ish-thing atart? end?',
+        docstring: `Returns a slice of a vector, array or LazyVector. (Realizing a LazyVector in the process.)`,
         f: async (source: SchemVector | Array<any> | SchemLazyVector, start?: SchemNumber, end?: SchemNumber) => {
             if (isSchemVector(source) || isArray(source)) {
                 return source.slice((start) ? start.valueOf() : 0, (end) ? end.valueOf() : undefined);
@@ -641,68 +761,89 @@ export const coreFunctions: { [symbol: string]: any } = {
             }
         },
     },
-    'console-log': {
+    'log': {
+        paramstring: '& args',
+        docstring: `Alias for console.log.`,
         f: (...args: []) => {
             console.log(...args);
             return SchemNil.instance;
         },
     },
-    'set!': {
-        f: (sym: SchemSymbol | SchemJSReference, value: AnySchemType) => {
-            if (isSchemSymbol(sym)) {
-                if (!SchemSymbol.refersToJavascriptObject(sym)) {
-                    throw new Error(`You're not allowed to set Schem bindings to new values. Use atoms for mutable state.`);
-                }
-                setJsProperty(sym.name, schemToJs(value));
-            } else if (isSchemJSReference(sym)) {
-                sym.set(schemToJs(value));
-            }
-        },
-    },
+    // Obsolete due to bang accessor?
+    // 'set!': {
+    //     f: (sym: SchemSymbol | SchemJSReference, value: AnySchemType) => {
+    //         if (isSchemSymbol(sym)) {
+    //             if (!SchemSymbol.refersToJavascriptObject(sym)) {
+    //                 throw new Error(`You're not allowed to set Schem bindings to new values. Use atoms for mutable state.`);
+    //             }
+    //             setJsProperty(sym.name, schemToJs(value));
+    //         } else if (isSchemJSReference(sym)) {
+    //             sym.set(schemToJs(value));
+    //         }
+    //     },
+    // },
     'add-watch': {
+        paramstring: 'atom name fn',
+        docstring: `Adds a watch function to an atom. (See Example file.)`,
         f: (atom: SchemAtom, name: SchemKeyword, f: SchemFunction): void => {
             atom.addWatch(name, f);
         },
     },
     'remove-watch': {
+        paramstring: 'atom name fn',
+        docstring: `Removes a watch function from an atom. (See Example file.)`,
         f: (atom: SchemAtom, name: SchemKeyword): void => {
             atom.removeWatch(name);
         },
     },
     'storage-create': {
+        paramstring: 'path-and-filename value',
+        docstring: `Saves a value to a new file in the virtual file system. Won't override existing files.`,
         f: async (qualifiedObjectName: SchemString, value: AnySchemType) => {
             return await VirtualFileSystem.writeObject(qualifiedObjectName.valueOf(), schemToJs(value));
         },
     },
     'storage-create-or-update': {
+        paramstring: 'path-and-filename value',
+        docstring: `Saves a value to a new file in the virtual file system or updates an existing file.`,
         f: async (qualifiedObjectName: SchemString, value: AnySchemType) => {
             return await VirtualFileSystem.writeObject(qualifiedObjectName.valueOf(), schemToJs(value), true);
         },
     },
     'storage-read': {
+        paramstring: 'path-and-filename',
+        docstring: `Reads a file from the virtual file system.`,
         f: async (qualifiedObjectName: SchemString) => {
             return await VirtualFileSystem.readObject(qualifiedObjectName.valueOf());
         },
     },
     'storage-update': {
+        paramstring: 'path-and-filename value',
+        docstring: `Overwrites the value of an existing file in the virtual file system. Won't create new files.`,
         f: async (qualifiedObjectName: SchemString, value: AnySchemType) => {
             await VirtualFileSystem.updateObject(qualifiedObjectName.valueOf(), schemToJs(value));
             return value;
         },
     },
     'storage-delete': {
+        paramstring: 'path-and-filename',
+        docstring: `Deletes a file from the virtual file system.`,
         f: async (qualifiedObjectName: SchemString) => {
             await VirtualFileSystem.removeObject(qualifiedObjectName.valueOf());
             return SchemNil.instance;
         },
     },
     'storage-exists': {
+        paramstring: 'path-and-filename',
+        docstring: `Returns true if a file by that name exists in the virtual file system.`,
         f: async (qualifiedObjectName: SchemString) => {
             let exists = await VirtualFileSystem.existsOject(qualifiedObjectName.valueOf());
             return SchemBoolean.fromBoolean(exists);
         },
     },
     'storage-clear-all': {
+        paramstring: '',
+        docstring: `THIS DELETES ALL YOUR PRECIOUS FILES! WHY WOULD YOU DO THIS?!`,
         f: async () => {
             if (window.confirm('Do you really want to clear the local storage? This would deletes all objects.')) {
                 VirtualFileSystem.clearStorage();
@@ -711,7 +852,10 @@ export const coreFunctions: { [symbol: string]: any } = {
             return new SchemString('Clearing the storage was canceled.');
         },
     },
+    // TODO: fix it!
     'storage-ls': {
+        paramstring: 'path',
+        docstring: `Kurrently kaputt.`,
         f: async (path: SchemString) => {
             const folderInfo = await VirtualFileSystem.listFolderContents(path.valueOf());
             return jsObjectToSchemType(folderInfo, { depth: 9001 });
@@ -723,9 +867,13 @@ export const coreFunctions: { [symbol: string]: any } = {
             return resolveJSPropertyChain(jsObject, ...pNames);
         },
     },
-    'sleep': async (ms: SchemNumber) => {
-        await new Promise(resolve => setTimeout(resolve, ms.valueOf()));
-        return SchemNil.instance;
+    'sleep': {
+        paramstring: 'milliseconds',
+        docstring: `Does nothing for n ms, then returns nothing. How very zen!`,
+        f: async (ms: SchemNumber) => {
+            await new Promise(resolve => setTimeout(resolve, ms.valueOf()));
+            return SchemNil.instance;
+        },
     }
 };
 
