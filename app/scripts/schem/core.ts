@@ -412,7 +412,7 @@ export const coreFunctions: { [symbol: string]: any } = {
         f: async (pathOrUrl: SchemString | string, opts?: SchemMap) => {
             pathOrUrl = pathOrUrl.valueOf();
             // get full URL for files packaged with the browser extension, when url begins with a slash
-            if (pathOrUrl[0] === '/') {
+            if (pathOrUrl[0].startsWith('/extension-resources/')) {
                 return new SchemString(await xhrPromise('GET', browser.extension.getURL(pathOrUrl)));
             }
 
@@ -845,7 +845,7 @@ export const coreFunctions: { [symbol: string]: any } = {
         paramstring: '',
         docstring: `THIS DELETES ALL YOUR PRECIOUS FILES! WHY WOULD YOU DO THIS?!`,
         f: async () => {
-            if (window.confirm('Do you really want to clear the local storage? This would deletes all objects.')) {
+            if (window.confirm('Do you really want to clear the local storage? This would delete all objects and then they are gone forever.')) {
                 VirtualFileSystem.clearStorage();
                 return new SchemString('Local storage was cleared.');
             }
