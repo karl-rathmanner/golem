@@ -47,11 +47,24 @@ function setLanguageConfiguration() {
         },
     });
 }
-
-const specialFormsAndKeywords = [
-    'def', 'defmacro', 'defcontext', 'let', 'do', 'if', 'fn',
-    'quote', 'quasiquote', 'unquote', 'macroexpand', 'macroexpand-all', 'set-interpreter-options',
-];
+interface SpecialFormsAndKeywordsMetadata {
+    [sym: string]: { paramstring: string, docstring: string };
+}
+const specialFormsAndKeywords: SpecialFormsAndKeywordsMetadata = {
+    'def': { paramstring: 'symbol value', docstring: `Binds 'value' to a symbol in the current environment.` },
+    'defmacro': { paramstring: 'name docstring? [parameters] & expressions', docstring: 'Creates and binds a macro function in the current environment.' },
+    'defcontext': { paramstring: 'context-symbol options?', docstring: 'Creates and binds a context definition in the current environment. \n e.g.: (defcontext any-tab: {:tabQuery {:url "*://*/*"} :features ["schem-interpreter"]})' },
+    'let': { paramstring: '[symbol1 value1 symbol2 value2 ...] & expressions', docstring: `Creates a new child environment and binds a list of symbols and values, then the 'expressions' are evaluated in that environment. The binding vector supports basic destructuring.` },
+    'do': { paramstring: 'expression & more-expressions', docstring: 'Evaluates all expressions in sequence, but only returns the value of the last one.' },
+    'if': { paramstring: 'condition true-expr & else-expr', docstring: `If 'condition' evaluates to true, 'true-expr' is evaluated and its value returned. Otherwise, the optional 'else-expr' is evaluated and returned. If you omited 'else-expr', and the condition was false, nil is returned.`},
+    'fn': { paramstring: 'name? docstring? [parameters] & expressions', docstring: `Creates a function that is optionally named and documented. You have to provide a parameters vector. Usually it would consist of any number of symbols but it can be empty. The function body is defined by 'expressions'. When a function is called, these expressions are wrapped in a 'do' form and evaluated in a child environment of the caller environment, in which the arguments are bound to the symbols you defined in the parameter vector.`},
+    'quote': { paramstring: '& expressions', docstring: `Returns the expressions themselves, that is without evaluating them. This is equivalent to the single quote reader macro:\ni.e.: (= (quote x y) '(x y)` },
+    'quasiquote': { paramstring: '& expressions', docstring: `Returns the expressions themselves, that is without evaluating them – unless an expression is a list starting with the symbol 'unquote'. There are reader macros for quasiquote (~) and unquote (\`).\ni.e.: (= (quasiquote x (unquote y)) ~(x \`y))` },
+    'unquote': { paramstring: '& expressions', docstring: 'Unquote forms are only valid inside of quasiquote forms. (At any nesting level.)' },
+    'macroexpand': { paramstring: 'list', docstring: 'If list is a macro function, that macro will be expanded and the resulting list is returned without being evaluated. This will only expand the outermost macro and leave nested macros as is.' },
+    'macroexpand-all': { paramstring: 'list', docstring: 'All macro functions contained in list be expanded and the resulting list is returned without being evaluated.' },
+    'set-interpreter-options': { paramstring: 'options-map', docstring: 'Allows you to change how the interpreter interprets. Pretty much undocumented.\ne.g.: (set-interpreter-options {"logArepInput" true "pauseEvaluation" false})' },
+};
 
 function setMonarchTokensProvider() {
     // placeholder borrowed from: https://github.com/Microsoft/monaco-languages/blob/master/src/clojure/clojure.ts
@@ -65,7 +78,7 @@ function setMonarchTokensProvider() {
             { open: '{', close: '}', token: 'delimiter.curly' },
             { open: '[', close: ']', token: 'delimiter.square' },
         ],
-        keywords: specialFormsAndKeywords,
+        keywords: Object.keys(specialFormsAndKeywords),
         constants: ['true', 'false', 'nil'],
         tokenizer: {
             root: [
@@ -137,6 +150,15 @@ function registerCompletionItemProvider() {
 
 /** Creates a list of completion items of all symbols currently bound in the interpreter's root environment. */
 async function createSchemCompletionItems(range: monaco.IRange): Promise<monaco.languages.CompletionList> {
+    const pickDocumentation = (schemValue: any) => {
+        let metadata = (isSchemFunction(schemValue) && schemValue.metadata != null) ? schemValue.metadata : null;
+
+        if (metadata != null) {
+            return `[${schemValue.metadata.parameters == null ? '' : schemValue.metadata.parameters.join(' ')}]\n\n${schemValue.metadata.docstring}`;
+        } else {
+            return 'No documentation found.';
+        }
+    };
 
     /** Turns a single schem symbol into a completion item with runtime information */
     function schemSymbolToCompletionItem(sym: SchemSymbol): monaco.languages.CompletionItem {
@@ -145,7 +167,6 @@ async function createSchemCompletionItems(range: monaco.IRange): Promise<monaco.
         const pickKind = (v: any) => {
             // Not caring about the semantics here, just trying to pick ones with a fitting icon
             // TODO: see if CompletionItemKind can be extended or customized
-
             if (!isSchemType(v)) {
                 return monaco.languages.CompletionItemKind.Value;
             } else switch (v.typeTag) {
@@ -196,16 +217,6 @@ async function createSchemCompletionItems(range: monaco.IRange): Promise<monaco.
             }
         };
 
-        const pickDocumentation = (value: any) => {
-            if (isSchemFunction(value)) {
-                if (value.metadata != null) {
-                    return `[${value.metadata.parameters == null ? '' : value.metadata.parameters.join(' ')}]\n${value.metadata.docstring}`;
-                }
-            }
-
-            return 'No documentation';
-        };
-
         return {
             label: sym.name,
             kind: pickKind(resolvedValue),
@@ -219,15 +230,16 @@ async function createSchemCompletionItems(range: monaco.IRange): Promise<monaco.
     // Create completion items for built-in keywords
     let reservedKeywordCompletionItems: monaco.languages.CompletionItem[] = [];
 
-    specialFormsAndKeywords.forEach(kw => {
+    for (const sym in specialFormsAndKeywords ) {
         reservedKeywordCompletionItems.push({
-            label: kw,
+            label: sym,
             kind: monaco.languages.CompletionItemKind.Keyword,
-            insertText: kw + ' ',
+            insertText: sym + ' ',
             detail: 'special form or reserved word',
+            documentation: `[${specialFormsAndKeywords[sym].paramstring}]\n\n${specialFormsAndKeywords[sym].docstring}`,
             range: range
         });
-    });
+    }
 
     // Get all symbols bound in the interpreter's root environment
     let symbols = await interpreterForCompletion.readEval(`(list-symbols)`);

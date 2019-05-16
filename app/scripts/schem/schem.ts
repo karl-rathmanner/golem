@@ -189,7 +189,7 @@ export class Schem {
                                 return SchemBoolean.true;
                             }
                             /** (let (symbol1 value1 symbol2 value2 ...) & expressions) or (let [symbol1 value1 symbol2 value2 ...] & expressions)
-                            * Creates a new child environment and binds a list of symbols and values, the following expression is evaluated in that environment
+                            * Creates a new child environment and binds a list of symbols and values, then the 'expressions' are evaluated in that environment.
                             * Supports basic sequential destructuring
                             */
                             case 'let':
@@ -253,7 +253,7 @@ export class Schem {
                                 }
 
                             /** (fn name? docstring? [parameters] & expressions)
-                            *  Defines a new function in the current environment. When it's called, the function body gets executed in a new child environmet.
+                            *  Creates a function. When it's called, the function body gets executed in a new child environmet.
                             *  In this child environmet, the symbols provided in params are bound to the values provided as arguments by the caller.
                             */
                             case 'fn':
@@ -297,7 +297,7 @@ export class Schem {
 
                                 options.forEach((key, value) => {
                                     if (isSchemString(key) && isSchemBoolean(value) && key.valueOf() in this.debug) {
-                                        (this.debug as any)[key.valueOf()] = value.valueOf();  // typecost is necessary, because the debug options literal lacks a string indexer – but we allready checked if the object has that key, so it's all good
+                                        (this.debug as any)[key.valueOf()] = value.valueOf();  // typecast is necessary, because the debug options literal lacks a string indexer – but we allready checked if the object has that key, so it's all good
                                     }
                                     return void 0;
                                 });
