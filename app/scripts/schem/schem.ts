@@ -168,11 +168,7 @@ export class Schem {
                                 if (!isSchemSymbol(sym)) {
                                     throw new Error(`First argument of defmacro must be a symbol!`);
                                 }
-                                // if (!isSchemList(body) || !isSchemVector) {
-                                //   throw new Error(`Second argument of defmacro must be a list or vector!`);
-                                // }
-
-                                const macroFunction = this.fn(env, new SchemList(sym, ...fnAst));
+                                const macroFunction = this.fn(env, ast);
                                 macroFunction.isMacro = true;
                                 return env.set(sym, macroFunction);
 
