@@ -1,3 +1,18 @@
+## 0.9.0
+- Improved Parinfer integration by at least three units of satisfaction.
+- Added hooks for custom shortcuts and tab reloads.
+- Added and fixed a bunch of core functions.
+- Added webRequest permission.
+- The context manager can now detect existing contexts when it is initialized. ContextInstances are no longer persisted in local storage.
+- Upgraded dependencies.
+
+## 0.8.0
+Adds editor support for different filetypes/languages; Parinfer can be disabled via the F1-menu.
+(Currently: *.schem & *.json, everything else is treated as plain text.)
+
+## 0.7.1-4
+That mechanism I talked about in the 0.7.0 randomly stopped working when you weren't looking. It seems to do its job  reliably now. Mostly.
+
 ## 0.7.0
 Golem finally has a mechanism that makes "permanent" changes to websites possible. :)
 

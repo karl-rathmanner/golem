@@ -4,11 +4,11 @@ import { invokeJsProcedure, getJsProperty, setJsProperty } from './javascriptInt
 // (just an idea, doesnt work at this point)
 
 (function addLightweightInterop() {
-  window.golem.features.push('lightweight-js-interop');
-  if (window.golem.injectedProcedures != null) {
-    window.golem.injectedProcedures.set('invoke-js-procedure', invokeJsProcedure);
-    window.golem.injectedProcedures.set('get-js-property', invokeJsProcedure);
-    window.golem.injectedProcedures.set('set-js-property', setJsProperty);
-    console.log('injected lightweight js-interop feature');
-  }
+    window.golem.features.push('lightweight-js-interop');
+    if (window.golem.injectedProcedures != null) {
+        window.golem.injectedProcedures.set('invoke-js-procedure', invokeJsProcedure);
+        window.golem.injectedProcedures.set('get-js-property', invokeJsProcedure);
+        window.golem.injectedProcedures.set('set-js-property', setJsProperty);
+        console.log('injected lightweight js-interop feature');
+    }
 })();

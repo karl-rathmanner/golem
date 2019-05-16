@@ -1,75 +1,80 @@
 (do 
-  ;;; Defnitely the most important macro of all.
-  (defmacro defn
-    (fn
-      "(defn name [args] (body)) is a shortcut for (def name (fn [args] (body))) \n You can also provide a docstring bevore the [args]-part." 
-      [name & args] 
-      `(def ~name (fn ~name ~@args))))
+    ;;; Defnitely the most important macro of all.
+    (defmacro defn
+        "(defn name [args] (body)) is a shortcut for (def name (fn [args] (body))) \n You can also provide a docstring bevore the [args]-part." 
+        [name & args] 
+        `(def ~name (fn ~name ~@args)))
+            
+        ;;; Logic and comparison stuff
+    (defmacro when 
+        "(when predicate & expressions)"
+        [predicate & expressions]
+        `(if ~predicate (do ~@expressions)))
 
-  ;;; Logic and comparison stuff
-  (defmacro when 
-    (fn "(when predicate & expressions)"
-      [predicate & expressions]
-      `(if ~predicate (do ~@expressions))))
+    (defn not "Negates a boolean value" [a] (if a false true))
+    (defmacro not= "Returns true if any argument is not equal to all others." [& args] `(not (= ~@args)))
+    (defn nil? "Returns true if argument has the schem value nil; otherwise: false." [x] (= x nil))
+    (defn null? "Returns true if argument has the javascript value null; otherwise: false." [x] (= x null))
+    (defn undefined? "Returns true if argument is undefined; otherwise: false." [x] (= x undefined))
+    (defn defined? "Returns true if argument is not undefined; otherwise: false." [x] (not= x undefined))
+        
+    (defmacro or 
+         "Evaluates args from left to right until it finds the value 'true'. \n Any arguments following the first 'true' won't be evaluated. \n If none of the arguments are true, 'or' returns the value of the last argument."
+         [& args]      
+         (if (= (count args) 1)
+          (first args)
+          (if (= (first args) true) 
+              true
+              (apply or (rest args)))))
 
-  (defn not "Negates a boolean value" [a] (if a false true))
-  (defmacro not=  (fn "Returns true if any argument is not equal to all others." [& args] `(not (= ~@args))))
-  (defn nil? "Returns true if argument has the schem value nil; otherwise: false." [x] (= x nil))
-  (defn null? "Returns true if argument has the javascript value null; otherwise: false." [x] (= x null))
-  (defn undefined? "Returns true if argument is undefined; otherwise: false." [x] (= x undefined))
-  (defn defined? "Returns true if argument is not undefined; otherwise: false." [x] (not= x undefined))
-  
-  (defmacro or 
-    (fn 
-      "Evaluates args from left to right until it finds the value 'true'. \n Any arguments following the first 'true' won't be evaluated. \n If none of the arguments are true, 'or' returns the value of the last argument."
-      [& args]      
-      (if (= (count args) 1)
-        (first args)
-        (if (= (first args) true) 
-          true
-          (apply or (rest args))))))
+    (defn find-first
+        "Returns the first element of a collection that matches the predicate function. Returns nil if predicate did not return true for any element."
+        [pred collection]      
+        (if (> (count collection) 0)
+            (let [e (first collection)]
+                (if (= (pred e) true) 
+                    e
+                    (find-first pred (rest collection))))
+            nil))
 
+        ; adapted from: https://github.com/kanaka/mal/blob/master/process/guide.md
+    (defmacro cond 
+         "see: https://clojuredocs.org/clojure.core/cond"
+         [& xs]
+         (if (> (count xs) 0) 
+          (list 'if (first xs) 
+              (if (> (count xs) 1) 
+               (nth xs 1) 
+               (throw "odd number of forms supplied to cond")) 
+              (cons 'cond (rest (rest xs))))))
 
-  (defn find-first
-      "Returns the first element of a collection that matches the predicate function. Returns nil if predicate did not return true for any element."
-      [pred & things]      
-      (if (> (count things) 0)
-          (let [e (first things)]
-              (if (= (pred e) true) 
-                  e
-                  (apply find-first (cons pred (rest things)))))
-          nil))
+    ;;; Quality of life stuff
+    (def load-file 
+        (fn (file) 
+            (eval (read-string (str "(do " (slurp file) " )")))))
 
-  ; adapted from: https://github.com/kanaka/mal/blob/master/process/guide.md
-  (defmacro cond 
-    (fn 
-      "see: https://clojuredocs.org/clojure.core/cond"
-      [& xs]
-      (if (> (count xs) 0) 
-        (list 'if (first xs) 
-          (if (> (count xs) 1) 
-            (nth xs 1) 
-            (throw "odd number of forms supplied to cond")) 
-          (cons 'cond (rest (rest xs)))))))
+        ;;; Last but not least: thread first
+    (defmacro -> 
+         "The thread first macro turns this:\n (-> x fn1 (fn2 y z) fn3) \n into this:\n (fn3 (fn2 (fn1 x) y z))"
+         [value & forms]
+         (if (> (count forms) 0)
+          (let (lastForm (last forms))
+              (if (list? lastForm)
+               `(
+                   ~(first lastForm)
+                   ~(apply -> (cons value (butlast forms)))
+                   ~@(rest lastForm))
+               `(
+                   ~lastForm 
+                   ~(apply -> (cons value (butlast forms)))))) 
+          value))
 
-  ;;; Quality of life stuff
-  (def load-file 
-    (fn (file) 
-        (eval (read-string (str "(do " (slurp file) " )")))))
+    (defn iter 
+        "Iterates over a collection, calling f once with each element supplied as the argument. Returns nil, so you'll do probably this for the side effects of f."
+        [seq f]
+        (if (= 0 (count seq))
+            nil
+            (do
+                (f (first seq))
+                (iter (rest seq) f)))))
 
-  ;;; Last but not least: thread first
-  (defmacro -> 
-    (fn self 
-      "The thread first macro turns this:\n (-> x fn1 (fn2 y z) fn3) \n into this:\n (fn3 (fn2 (fn1 x) y z))"
-      [value & forms]
-      (if (> (count forms) 0)
-        (let (lastForm (last forms))
-          (if (list? lastForm)
-            `(
-              ~(first lastForm)
-              ~(apply self (cons value (butlast forms)))
-              ~@(rest lastForm))
-            `(
-              ~lastForm 
-              ~(apply self (cons value (butlast forms)))))) 
-        value))))

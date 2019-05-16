@@ -96,7 +96,7 @@
 ; can re-use it later:
 ; (Notice that parameters can be defined in a [vector] instead of a (list), which looks nicer.)
 (def add (fn [x y] (+ x y)))
- 
+  
 ; Now we can call 'add' with two numbers:
 ; (Granted, 'add' is a silly function, but it serves its purpose here.)
 (add 1 2)
@@ -125,9 +125,9 @@
 ; all following arguments are passed (as elements of a list) to "all-other-arguments".
 ; So the "&" works more or less like the rest operator ("...") in javascript.
 (do
-  (defn jazz-it-up [prefix & all-other-arguments]
-    (map #(str prefix " " % "!") all-other-arguments))
-  (jazz-it-up "And a" "one" "two" "three"))
+    (defn jazz-it-up [prefix & all-other-arguments]
+        (map #(str prefix " " % "!") all-other-arguments))
+    (jazz-it-up "And a" "one" "two" "three"))
 
 
 
@@ -190,15 +190,15 @@
 ; To see this in actino, we need to write some seriously slow code.
 ; The 'sleep' function does nothing and returns nil after n milliseconds:
 (do
-  (console-log "Breathe in.")
-  (sleep 2000)
-  (console-log "Breathe out."))
+    (console-log "Breathe in.")
+    (sleep 2000)
+    (console-log "Breathe out."))
 
 ; Let's define a function that introduces an artificial delay to the evaluation of another function:
 (defn delay-evaluation [ms, function] 
-  (do
-    (sleep ms)
-    function))
+    (do
+        (sleep ms)
+        function))
 
 ; Using it, we can create a really laggy "multiply by two" function:
 (defn slowly-multiply-by-two [x] (delay-evaluation 500 (#(* 2 %) x)))
@@ -296,29 +296,29 @@
 ; The same mechanism that drives variadic function definitions also can be used in 'let' forms.
 ; In this example, all elements after 'second' get shoved into a list which is bound to 'rest'.
 (let [[first second & rest] (subvec all-uneven-numbers 0 5)]
-  [first second rest])
+    [first second rest])
 
 ; Nesting is allowed, too:
 (do 
-  (defn heady-plotter [[[x1 y1] [x2 y2]]]
-    (str "Imagine a line going from " x1 "," y1 " to " x2 "," y2 "!"))
+    (defn heady-plotter [[[x1 y1] [x2 y2]]]
+        (str "Imagine a line going from " x1 "," y1 " to " x2 "," y2 "!"))
 
-  (heady-plotter [[1  2] [3  4]]))
+    (heady-plotter [[1  2] [3  4]]))
 
 ; We've seen how sequential destructuring matches the shapes of collections.
 ; Associative destructuring, on the other hand, looks up keys in maps:
 
-(let [bauz 
-        {:col "yellow", :sp "daug", :verb "wagging it's tail", :name "Beaiengeo"}
-      mauz 
-        {:col "black", :sp "cat", :verb "purring"}
-      describe 
-        (fn [{species :sp,
-              color :col,
-              verb :verb}]
-          (str "The " color " " species " is " verb "."))]
+(let
+    [
+        bauz 
+            {:col "yellow", :sp "daug", :verb "wagging its tail", :name "Beaiengeo"}
+        mauz 
+            {:col "black", :sp "cat", :verb "purring"}
+        describe 
+            (fn [{species :sp, color :col, verb :verb}]
+                (str "The " color " " species " is " verb "."))]
 
-  (str (describe bauz) (describe mauz)))
+    (str (describe bauz) (describe mauz)))
 
 ; Fetching values from nested maps is not supported for the time being, but you can combine 
 ; sequential and associative destructuring; and the '&' operator is legal at any level of nesting.
@@ -340,7 +340,7 @@
 ; Aliasing a js function:
 ; (notice the single quote)
 (let (anoy 'window.alert)
-  (anoy "This works too. Wohoo!"))
+    (anoy "This works too. Wohoo!"))
 
 ; Combining js function invocation and js property resolution:
 (window.alert document.title)
@@ -363,9 +363,9 @@
 ; Sometimes, calling the 'dot' function directly might be useful:
 ; (It also takes strings in lieu of symbols.)
 (do 
-  (defn stringify-document-property [p] (str (. document p)))
-  (def interesting-properties ['title 'location.hostname "body.innerHTML.length"])
-  (map stringify-document-property interesting-properties))
+    (defn stringify-document-property [p] (str (. document p)))
+    (def interesting-properties ['title 'location.hostname "body.innerHTML.length"])
+    (map stringify-document-property interesting-properties))
 
 ;; Invokation using the 'dot' accessor form
 ; (.functionName javascript-object & arguments)
@@ -442,12 +442,12 @@
 ; 3) Adding an event listener in foreign contexts: 
 ; (and doing something useless with local state)
 (xkcd:
-  (do
-    (def count (atom 0))
-    (add-listener "click" "#ctitle"
-      '(do
-        (swap! count #(+ 1 %)
-          (window.alert (str "You clicked the title " (deref count) " times.")))))))
+    (do
+        (def count (atom 0))
+        (add-listener "click" "#ctitle"
+            '(do
+                (swap! count #(+ 1 %)
+                    (window.alert (str "You clicked the title " (deref count) " times.")))))))
 
 ; 4) Increase the page's general comicness:
 (xkcd:(set-css-text "body" "font-family: \"Comic Sans MS\", \"Comic Sans\", cursive"))
@@ -470,15 +470,15 @@
 ; (quasiquote (x (unquote y)) is the same as `(x ~y)
 
 (let [x 1 y 2]
-  (= 
-     (quasiquote (x (unquote y)))
-    `(x ~y)))
+    (= 
+        (quasiquote (x (unquote y)))
+        `(x ~y)))
 
 ; You can also splice-unquote inside of quasiquoted forms using "~@". It evaluates to the contents of a collection.
 ; Here's a short example that illustrates all supported forms of quoting:
 
 (let [onetwo '(1 2)]
-  `[onetwo ~onetwo ~@onetwo])
+    `[onetwo ~onetwo ~@onetwo])
 
 ; Now back to remote DOM manipulation!
 
@@ -490,7 +490,7 @@
 ; "set-title" is only available in the editor context. By quasiquoting the whole form and unquoting 
 ; the symbol "new-title", we create can write a reusable function that lets us change the comic title
 (defn set-title [new-title] 
-    (xkcd: `(set! (js-ref (window.document.querySelector "#ctitle") "innerText") ~new-title)))
+        (xkcd: `(set! (js-ref (window.document.querySelector "#ctitle") "innerText") ~new-title)))
 
 (set-title "Lithp Cycles")
 (set-title "I wonder if the puns will continue forever.")
@@ -506,12 +506,12 @@
 ; a tab is updated. Within that context, the :init form is called once the page completed loading.
 
 (do
-  (def beautify '(set-css-text "body" "font-family: \"Comic Sans MS\", \"Comic Sans\", cursive; background-color: hotpink"))
-  (defcontext happyTab: {:tabQuery {:url "*://*/*"}
-                         :life-time "persistent"
-                         :features ["schem-interpreter" "dom-manipulation"]
-                         :init beautify})
-  (happyTab:(prn "Brace yourself!")))
+    (def beautify '(set-css-text "body" "font-family: \"Comic Sans MS\", \"Comic Sans\", cursive; background-color: hotpink"))
+    (defcontext happyTab: { :tabQuery {:url "*://*/*"}
+                            :life-time "persistent"
+                            :features ["schem-interpreter" "dom-manipulation"]
+                            :init beautify})
+    (happyTab:(prn "Brace yourself!")))
 
 ;;; Autoinstantiate contexts
 
@@ -552,11 +552,11 @@
 ; If you're absolutely positive that all node and attribute names would be valid keywords (i.e. they don't contain colons or slashes and such)
 ; then requesting a map with keyword keys will work too (otherwise :keyType defaults to "string").
 (xml->map 
-  (str "<doc>"
-        "<node1>woo</node1>"
-        "<node2 someAttribute=\"coo.\" someOtherAttribute=\"coo.\">hoo</node2>"
-       "</doc>")
-  {:keyType "keyword"})
+    (str "<doc>"
+                "<node1>woo</node1>"
+                "<node2 someAttribute=\"coo.\" someOtherAttribute=\"coo.\">hoo</node2>"
+              "</doc>")
+    {:keyType "keyword"})
 
 
 
@@ -564,37 +564,37 @@
 
 ; 1) Implementing fizz-buzz using a lazy vector: (very lispy)
 (defn fizz-buzz (start end)
-  ; Subvec realizes a range of values in a lazy-vector, memoizing the values.
-  ; This would save time if you needed to access an element more than once and if accessing it was expensive,
-  ; e.g. if the accessor function contained a get request.
-  ; Truth be told, I don't know if that's useful. But i thought lazy-vectors looked like fun.
-  (subvec 
-    (lazy-vector 
-      #(cond 
-        (= 0 (rem % 15)) "fizzbuzz" 
-        (= 0 (rem % 3)) "fizz" 
-        (= 0 (rem % 5)) "buzz"
-        :else %)) 
-    start end))
+    ; Subvec realizes a range of values in a lazy-vector, memoizing the values.
+    ; This would save time if you needed to access an element more than once and if accessing it was expensive,
+    ; e.g. if the accessor function contained a get request.
+    ; Truth be told, I don't know if that's useful. But i thought lazy-vectors looked like fun.
+    (subvec 
+        (lazy-vector 
+            #(cond 
+                (= 0 (rem % 15)) "fizzbuzz" 
+                (= 0 (rem % 3)) "fizz" 
+                (= 0 (rem % 5)) "buzz"
+                :else %)) 
+        start end))
 
 (fizz-buzz 0 100)
 
 ; 2) Turn the output of fizz-buzz into a div containing an unordered list (creating DOM nodes, not HTML code)
 (let
-  [to-li #(vector :li (str %))]
-  (console-log 
-    (shluk 
-      [:ul 
-        (map to-li (fizz-buzz 0 10))]))) 
+    [to-li #(vector :li (str %))]
+    (console-log 
+        (shluk 
+            [:ul 
+                (map to-li (fizz-buzz 0 10))]))) 
 
 ; Tail call optimization: (if it wasn't for TCO, calling sum with high values would lead to stack overflows)
 (do
-  (def sum (fn (n acc)
-            (if (= n 0)
-              acc
-              (sum (- n 1) (+ n acc)))))
+    (defn sum [n acc]
+        (if (= n 0)
+            acc
+            (sum (- n 1) (+ n acc))))
 
-  (sum 4141 0))
+    (sum 4141 0))
 
 
 
