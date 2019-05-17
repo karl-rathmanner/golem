@@ -61,9 +61,23 @@ export class SchemEditor {
 
         AddSchemSupportToEditor(this.interpreter);
 
+        monaco.editor.defineTheme('dark-schem', {
+            base: 'vs-dark',
+            inherit: true,
+            rules: [
+                { token: 'white.schem', foreground: '6b6b6b'},
+                { token: 'type.special-symbol.schem', foreground: '569cd6'},
+                { token: 'type.symbol.schem', foreground: 'd4d4d4'},
+                { token: 'type.keyword.schem', foreground: 'bebfe9'},
+                { token: 'delimiter.lambda-macro.schem', foreground: '569cd6'}
+            ],
+            colors: {}
+        });
+
+
         this.monacoEditor = monaco.editor.create(this.containerElement, {
             language: 'schem',
-            theme: 'vs-dark'
+            theme: 'dark-schem'
         });
 
         this.addFormEvaluationCommand(this.interpreter);

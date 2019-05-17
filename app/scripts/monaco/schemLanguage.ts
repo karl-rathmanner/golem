@@ -76,7 +76,9 @@ function setMonarchTokensProvider() {
         // C# style strings - only half true!!!
         escapes: /\\(?:[abfnrtv\\"']|x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})/,
 
-        // delimiters: /[\(\)\[\]\{\} ,]/,
+        // These two are tagken from the monarch playground's javascript definition and might be misleading
+        regexpctl: /[(){}\[\]\$\^|\-*+?\.]/,
+        regexpesc: /\\(?:[bBdDfnrstvwWn0\\\/]|@regexpctl|c[A-Z]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4})/,
 
         // The main tokenizer for our languages
         tokenizer: {
@@ -87,7 +89,7 @@ function setMonarchTokensProvider() {
                 { include: 'comment' },
 
                 // numbers
-                [/-?\d+/, 'number'],
+                [/-?\d+\.?\d*/, 'number'],
 
                 // regexes
                 // [/"([^"\\]|\\.)*$/, 'regex.invalid'],  // non-teminated string
@@ -98,16 +100,16 @@ function setMonarchTokensProvider() {
                 [/"/, 'string', '@string'],
 
                 // open braces
-                [/#\(/, { token: 'keyword', bracket: '@open', next: '@in_lambda' }],
+                [/#\(/, { token: 'delimiter.lambda-macro', bracket: '@open', next: '@in_lambda' }],
                 [/\(/, { token: 'delimiter.brace', bracket: '@open', next: '@in_list' }],
                 [/\[/, { token: 'delimiter.bracket', bracket: '@open', next: '@in_vector' }],
                 [/{/, { token: 'delimiter.curly', bracket: '@open', next: '@in_map' }],
 
                 [/\D[\w*+!\-_'?<>]*/, {
                     cases: {
-                        '@keywords': 'keyword',
-                        ':.*': 'type.keyword',
-                        '@default': 'symbol',
+                        '@keywords': 'type.special-symbol',
+                        ':.+': 'type.keyword',
+                        '@default': 'type.symbol',
                     }
                 }],
             ],
@@ -152,9 +154,10 @@ function setMonarchTokensProvider() {
             ],
 
             regex: [
-                [/[^\\"]+/, 'string.regex'], // anything but the ending double quote
-                [/\\./, 'invalid'],
-                [/"/, 'string.regex', '@pop'] // end quote
+                [/@regexpctl/, 'regexp.control'],
+                [/@regexpesc/, 'regexp.escape'],
+                [/"/, 'string.regex', '@pop'], // end quote
+                [/./, 'string.regex'], // anything
             ]
         },
     });
