@@ -153,7 +153,6 @@ function setMonarchTokensProvider() {
 
             regex: [
                 [/[^\\"]+/, 'string.regex'], // anything but the ending double quote
-                [/@escapes/, 'string.regex.escape'],
                 [/\\./, 'invalid'],
                 [/"/, 'string.regex', '@pop'] // end quote
             ]
