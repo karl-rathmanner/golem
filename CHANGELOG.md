@@ -1,3 +1,10 @@
+## 0.10.0
+Some quality of life improvements:
+- Documentation for special forms and hard-wired symbols. (Press [ctrl+space] when the intellisense popup is open.)
+- Added custom syntax highlighting and theme for monaco.
+- Fixed docstrings and parameter info not showing up for macros.
+- Made 'load-file' and 'slurp' handle paths more sensibly.
+
 ## 0.9.0
 - Improved Parinfer integration by at least three units of satisfaction.
 - Added hooks for custom shortcuts and tab reloads.
