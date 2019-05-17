@@ -100,7 +100,7 @@ function setMonarchTokensProvider() {
                 [/"/, 'string', '@string'],
 
                 // open braces
-                [/#\(/, { token: 'delimiter.lambda-macro', bracket: '@open', next: '@in_lambda' }],
+                [/#\(/, { token: 'delimiter.fn-shorthand', bracket: '@open', next: '@in_fn_shorthand' }],
                 [/\(/, { token: 'delimiter.brace', bracket: '@open', next: '@in_list' }],
                 [/\[/, { token: 'delimiter.bracket', bracket: '@open', next: '@in_vector' }],
                 [/{/, { token: 'delimiter.curly', bracket: '@open', next: '@in_map' }],
@@ -139,9 +139,9 @@ function setMonarchTokensProvider() {
                 { include: 'root' },
             ],
 
-            in_lambda: [
-                [/\)/, { token: 'keyword', bracket: '@close', next: '@pop' }],
-                [/%[0-9]?(?=[\(\)\[\]\{\} ,])/, 'keyword'],
+            in_fn_shorthand: [
+                [/\)/, { token: 'delimiter.fn-shorthand', bracket: '@close', next: '@pop' }],
+                [/%[0-9&]?(?=[\(\)\[\]\{\} ,])/, 'fn-shorthand.parameter'],
                 [/%.+? /, 'invalid'],
                 { include: 'root' },
             ],

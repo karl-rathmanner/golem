@@ -69,7 +69,8 @@ export class SchemEditor {
                 { token: 'type.special-symbol.schem', foreground: '569cd6'},
                 { token: 'type.symbol.schem', foreground: 'd4d4d4'},
                 { token: 'type.keyword.schem', foreground: 'bebfe9'},
-                { token: 'delimiter.lambda-macro.schem', foreground: '569cd6'}
+                { token: 'delimiter.fn-shorthand.schem', foreground: '569cd6'},
+                { token: 'fn-shorthand.parameter.schem', foreground: '569cd6'}
             ],
             colors: {}
         });
