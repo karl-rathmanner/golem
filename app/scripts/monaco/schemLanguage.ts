@@ -56,8 +56,8 @@ const specialFormsAndKeywords: SpecialFormsAndKeywordsMetadata = {
     'defcontext': { paramstring: 'context-symbol options?', docstring: 'Creates and binds a context definition in the current environment. \n e.g.: (defcontext any-tab: {:tabQuery {:url "*://*/*"} :features ["schem-interpreter"]})' },
     'let': { paramstring: '[symbol1 value1 symbol2 value2 ...] & expressions', docstring: `Creates a new child environment and binds a list of symbols and values, then the 'expressions' are evaluated in that environment. The binding vector supports basic destructuring.` },
     'do': { paramstring: 'expression & more-expressions', docstring: 'Evaluates all expressions in sequence, but only returns the value of the last one.' },
-    'if': { paramstring: 'condition true-expr & else-expr', docstring: `If 'condition' evaluates to true, 'true-expr' is evaluated and its value returned. Otherwise, the optional 'else-expr' is evaluated and returned. If you omited 'else-expr', and the condition was false, nil is returned.`},
-    'fn': { paramstring: 'name? docstring? [parameters] & expressions', docstring: `Creates a function that is optionally named and documented. You have to provide a parameters vector. Usually it would consist of any number of symbols but it can be empty. The function body is defined by 'expressions'. When a function is called, these expressions are wrapped in a 'do' form and evaluated in a child environment of the caller environment, in which the arguments are bound to the symbols you defined in the parameter vector.`},
+    'if': { paramstring: 'condition true-expr & else-expr', docstring: `If 'condition' evaluates to true, 'true-expr' is evaluated and its value returned. Otherwise, the optional 'else-expr' is evaluated and returned. If you omited 'else-expr', and the condition was false, nil is returned.` },
+    'fn': { paramstring: 'name? docstring? [parameters] & expressions', docstring: `Creates a function that is optionally named and documented. You have to provide a parameters vector. Usually it would consist of any number of symbols but it can be empty. The function body is defined by 'expressions'. When a function is called, these expressions are wrapped in a 'do' form and evaluated in a child environment of the caller environment, in which the arguments are bound to the symbols you defined in the parameter vector.` },
     'quote': { paramstring: '& expressions', docstring: `Returns the expressions themselves, that is without evaluating them. This is equivalent to the single quote reader macro:\ni.e.: (= (quote x y) '(x y)` },
     'quasiquote': { paramstring: '& expressions', docstring: `Returns the expressions themselves, that is without evaluating them – unless an expression is a list starting with the symbol 'unquote'. There are reader macros for quasiquote (~) and unquote (\`).\ni.e.: (= (quasiquote x (unquote y)) ~(x \`y))` },
     'unquote': { paramstring: '& expressions', docstring: 'Unquote forms are only valid inside of quasiquote forms. (At any nesting level.)' },
@@ -67,61 +67,99 @@ const specialFormsAndKeywords: SpecialFormsAndKeywordsMetadata = {
 };
 
 function setMonarchTokensProvider() {
-    // placeholder borrowed from: https://github.com/Microsoft/monaco-languages/blob/master/src/clojure/clojure.ts
-    // TODO: revisit https://microsoft.github.io/monaco-editor/monarch.html and rewrite/adapt tokenizer
     monaco.languages.setMonarchTokensProvider('schem', <ILanguage>{
-        defaultToken: '',
-        ignoreCase: false,
-        tokenPostfix: '.schem',
-        brackets: [
-            { open: '(', close: ')', token: 'delimiter.parenthesis' },
-            { open: '{', close: '}', token: 'delimiter.curly' },
-            { open: '[', close: ']', token: 'delimiter.square' },
-        ],
+        // Set defaultToken to invalid to see what you do not tokenize yet
+        defaultToken: 'invalid',
+
         keywords: Object.keys(specialFormsAndKeywords),
-        constants: ['true', 'false', 'nil'],
+
+        // C# style strings - only half true!!!
+        escapes: /\\(?:[abfnrtv\\"']|x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})/,
+
+        // delimiters: /[\(\)\[\]\{\} ,]/,
+
+        // The main tokenizer for our languages
         tokenizer: {
             root: [
-                // [/#[xXoObB][0-9a-fA-F]+/, 'number.hex'],
-                [/[+-]?\d+(?:(?:\.\d*)?(?:[eE][+-]?\d+)?)?/, 'number.float'],
-                [/(?:\b(?:(def|defn|defmacro|defmulti|defonce|ns|ns-unmap|fn))\b)(\s+)((?:\w|\-|\!|\?)*)/, ['keyword', 'white', 'variable']],
-                [
-                    /[a-zA-Z_#][a-zA-Z0-9_\-\?\!\*]*/,
-                    {
-                        cases: {
-                            '@keywords': 'keyword',
-                            '@constants': 'constant',
-                            '@default': 'identifier',
-                        },
-                    },
-                ],
-                { include: '@whitespace' },
-                { include: '@strings' },
+
+                // whitespace
+                [/[ \t\r\n,]+/, 'white'],
+                { include: 'comment' },
+
+                // numbers
+                [/-?\d+/, 'number'],
+
+                // regexes
+                // [/"([^"\\]|\\.)*$/, 'regex.invalid'],  // non-teminated string
+                [/#"/, 'string.regex', '@regex'],
+
+                // strings
+                [/"([^"\\]|\\.)*$/, 'string.invalid'],  // non-teminated string
+                [/"/, 'string', '@string'],
+
+                // open braces
+                [/#\(/, { token: 'keyword', bracket: '@open', next: '@in_lambda' }],
+                [/\(/, { token: 'delimiter.brace', bracket: '@open', next: '@in_list' }],
+                [/\[/, { token: 'delimiter.bracket', bracket: '@open', next: '@in_vector' }],
+                [/{/, { token: 'delimiter.curly', bracket: '@open', next: '@in_map' }],
+
+                [/\D[\w*+!\-_'?<>]*/, {
+                    cases: {
+                        '@keywords': 'keyword',
+                        ':.*': 'type.keyword',
+                        '@default': 'symbol',
+                    }
+                }],
             ],
+
             comment: [
-                [/[^\(comment]+/, 'comment'],
-                [/\)/, 'comment', '@push'],
-                [/\(comment/, 'comment', '@pop'],
-                [/[\)]/, 'comment'],
+                [/;.*$/, 'comment']
             ],
+
             whitespace: [
                 [/[ \t\r\n]+/, 'white'],
-                [/\(comment/, 'comment', '@comment'],
-                [/;.*$/, 'comment'],
+                [/\/\*/, 'comment', '@comment'],
+                [/\/\/.*$/, 'comment'],
             ],
-            strings: [
-                [/"$/, 'string', '@popall'],
-                [/"(?=.)/, 'string', '@multiLineString'],
+
+            in_list: [
+                [/\)/, { token: 'delimiter.brace', bracket: '@close', next: '@pop' }],
+                { include: 'root' },
             ],
-            multiLineString: [
-                [/\\./, 'string.escape'],
-                [/"/, 'string', '@popall'],
-                [/.(?=.*")/, 'string'],
-                [/.*\\$/, 'string'],
-                [/.*$/, 'string', '@popall'],
+
+            in_vector: [
+                [/\]/, { token: 'delimiter.bracket', bracket: '@close', next: '@pop' }],
+                { include: 'root' },
             ],
+
+            in_map: [
+                [/}/, { token: 'delimiter.curly', bracket: '@close', next: '@pop' }],
+                { include: 'root' },
+            ],
+
+            in_lambda: [
+                [/\)/, { token: 'keyword', bracket: '@close', next: '@pop' }],
+                [/%[0-9]?(?=[\(\)\[\]\{\} ,])/, 'keyword'],
+                [/%.+? /, 'invalid'],
+                { include: 'root' },
+            ],
+
+            string: [
+                [/[^\\"]+/, 'string'],
+                [/@escapes/, 'string.escape'],
+                [/\\./, 'invalid'],
+                [/"/, 'string', '@pop']
+            ],
+
+            regex: [
+                [/[^\\"]+/, 'string.regex'], // anything but the ending double quote
+                [/@escapes/, 'string.regex.escape'],
+                [/\\./, 'invalid'],
+                [/"/, 'string.regex', '@pop'] // end quote
+            ]
         },
     });
+
 }
 
 function registerCompletionItemProvider() {
@@ -230,7 +268,7 @@ async function createSchemCompletionItems(range: monaco.IRange): Promise<monaco.
     // Create completion items for built-in keywords
     let reservedKeywordCompletionItems: monaco.languages.CompletionItem[] = [];
 
-    for (const sym in specialFormsAndKeywords ) {
+    for (const sym in specialFormsAndKeywords) {
         reservedKeywordCompletionItems.push({
             label: sym,
             kind: monaco.languages.CompletionItemKind.Keyword,
@@ -314,5 +352,5 @@ function createJSCompletionItems(textModel: monaco.editor.ITextModel, position: 
         }
     }
 
-    return { suggestions: jsCompletionItems};
+    return { suggestions: jsCompletionItems };
 }
