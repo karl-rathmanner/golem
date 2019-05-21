@@ -1,6 +1,5 @@
 import { unescape } from './schem/reader';
 import { Schem } from './schem/schem';
-import { SchemString, SchemNil } from './schem/types';
 
 export interface ContextArepResponse {
     result?: string;

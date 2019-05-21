@@ -273,7 +273,7 @@ export async function invokeJsProcedure(qualifiedProcedureName: string, procedur
             // Convert Schem alues to JS objects
             return Promise.resolve(obj[procedureName](...procedureArgs.map(coerceToJs)));
         } catch (e) {
-            console.error(e);
+            // console.error(e);
             return Promise.reject('Js procedure invocation failed with message: ' + e.message);
         }
     }

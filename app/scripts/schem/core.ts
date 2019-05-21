@@ -874,6 +874,16 @@ export const coreFunctions: { [symbol: string]: any } = {
             await new Promise(resolve => setTimeout(resolve, ms.valueOf()));
             return SchemNil.instance;
         },
+    },
+    'throw': {
+        paramstring: 'exception',
+        docstring: 'Throws an exception.',
+        f: (e: any) => { throw e; }
+    },
+    'throw-error': {
+        paramstring: 'error-message',
+        docstring: 'Throws an Error object containing a message.',
+        f: (e: any) => { throw e; }
     }
 };
 

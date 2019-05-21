@@ -7,6 +7,7 @@ import { pr_str } from './printer';
 import { readStr } from './reader';
 import { isCallableSchemType, isSchemBoolean, isSchemContextSymbol, isSchemFunction, isSchemJSReference, isSchemLazyVector, isSchemList, isSchemMap, isSchemNil, isSchemString, isSchemSymbol, isSchemVector, isSequential, isValidKeyType, isSchemType } from './typeGuards';
 import { AnySchemType, SchemAtom, SchemBoolean, SchemContextDefinition, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemString, SchemSymbol, SchemVector, SchemJSReference } from './types';
+import { isSymbol } from 'util';
 
 export class Schem {
 
@@ -283,6 +284,30 @@ export class Schem {
                                     return expandedList[1];
                                 } else {
                                     throw new Error(`Something went wrong during macro expansion!`);
+                                }
+
+                            /** (try form (catch symbol form)) */
+                            case 'try':
+                                const [, tryForm, catchForm] = ast;
+                                try {
+                                    return await this.evalSchem(tryForm, env);
+                                } catch (e) {
+                                    // If no catch form exists, propagate the exception
+                                    if (catchForm == null) {
+                                        throw e;
+                                    }
+                                    
+                                    const childEnv = new Env(env);
+                                    const [catchSymbol, exceptionSymbol, catchExpression] = catchForm;
+                                    if (isSchemSymbol(catchSymbol) && catchSymbol.name === 'catch') {
+                                        if (!isSchemSymbol(exceptionSymbol)) {
+                                            throw new Error(`The first argument of catch must be a symbol. If an exception is thrown, its value will be bound to that symbol.`);
+                                        }
+
+                                        childEnv.set(exceptionSymbol, e);
+                                        return await this.evalSchem(catchExpression, childEnv);
+                                    }
+                                    throw new Error(`The catch form must start with the symbol 'catch'.`)
                                 }
 
                             /** (set-interpreter-options map) changes interpreter settings

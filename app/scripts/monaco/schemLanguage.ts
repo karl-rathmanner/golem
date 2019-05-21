@@ -63,6 +63,8 @@ const specialFormsAndKeywords: SpecialFormsAndKeywordsMetadata = {
     'unquote': { paramstring: '& expressions', docstring: 'Unquote forms are only valid inside of quasiquote forms. (At any nesting level.)' },
     'macroexpand': { paramstring: 'list', docstring: 'If list is a macro function, that macro will be expanded and the resulting list is returned without being evaluated. This will only expand the outermost macro and leave nested macros as is.' },
     'macroexpand-all': { paramstring: 'list', docstring: 'All macro functions contained in list be expanded and the resulting list is returned without being evaluated.' },
+    'try' : { paramstring : 'form catch-expression', docstring: `'(try form (catch exception-symbol exception-handling-form))' tries to evaluate 'form' and returns its value. If an error is thrown during the evaluation of 'form', the 'exception-handling-form' is evaluated instead in a new environment. In this environment, the exeption's value is bound to 'exception-symbol'`},
+    'catch': { paramstring: 'exception-symbol form', docstring: `Only valid inside of a 'try' form.\n(try form (catch exception-symbol exception-handling-form))`},
     'set-interpreter-options': { paramstring: 'options-map', docstring: 'Allows you to change how the interpreter interprets. Pretty much undocumented.\ne.g.: (set-interpreter-options {"logArepInput" true "pauseEvaluation" false})' },
 };
 
