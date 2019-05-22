@@ -19,9 +19,8 @@ export class SchemEditor {
     private interpreter: Schem;
 
     private parinferEnabledContextKey: monaco.editor.IContextKey<boolean>;
-    private parinferFrequency = 1400;
 
-    constructor(private containerElement: HTMLElement, private options: { mode?: 'Schem' | 'JSON' | 'Text', interpreter?: Schem, expandContainer: boolean } = { mode: 'Schem', expandContainer: true }) {
+    constructor(private containerElement: HTMLElement, private options: { language?: string, interpreter?: Schem, expandContainer: boolean } = { language: 'schem', expandContainer: true }) {
 
         if (options.interpreter == null) {
             this.interpreter = new Schem();
@@ -33,17 +32,7 @@ export class SchemEditor {
         }
 
         this.addSchemSupport();
-
-        switch (options.mode) {
-            case 'Schem':
-                this.enableSchemMode();
-                break;
-            case 'JSON':
-                this.enableJsonMode();
-                break;
-            default:
-                this.enableTextMode;
-        }
+        this.switchModelLanguage(options.language);
 
         this.addCustomActionsToCommandPalette();
 
@@ -100,19 +89,15 @@ export class SchemEditor {
         this.monacoEditor.createContextKey('parinferEnabled', false);
     }
 
-    public enableJsonMode() {
-        this.disableSchemMode();
-        const model = this.monacoEditor.getModel();
-        if (model != null) {
-            monaco.editor.setModelLanguage(model, 'json');
-        }
-    }
-
-    public enableTextMode() {
-        this.disableSchemMode();
-        const model = this.monacoEditor.getModel();
-        if (model != null) {
-            monaco.editor.setModelLanguage(model, '');
+    public switchModelLanguage(language?: string) {
+        if (language === 'schem') {
+            this.enableSchemMode();
+        } else {
+            this.disableSchemMode();
+            const model = this.monacoEditor.getModel();
+            if (model != null) {
+                monaco.editor.setModelLanguage(model, language != null ? language : '');
+            }
         }
     }
 
@@ -258,15 +243,7 @@ export class SchemEditor {
             id: 'enableTextEditMode',
             label: 'Switch to text edit mode',
             run: () => {
-                this.enableTextMode();
-            }
-        });
-
-        this.monacoEditor.addAction({
-            id: 'enableJSONEditMode',
-            label: 'Switch to JSON edit mode',
-            run: () => {
-                this.enableJsonMode();
+                this.switchModelLanguage('');
             }
         });
 
@@ -274,7 +251,7 @@ export class SchemEditor {
             id: 'enableSchemFeatures',
             label: 'Switch to Schem editing mode (including Parinfer)',
             run: () => {
-                this.enableSchemMode();
+                this.switchModelLanguage('schem');
             }
         });
 
@@ -445,17 +422,9 @@ export class SchemEditor {
         let candidate = await VirtualFileSystem.readObject(qualifiedFileName);
 
         if (typeof candidate === 'string') {
-            this.openFileName = qualifiedFileName;
-            window.location.hash = qualifiedFileName;
-            this.monacoEditor.setValue(candidate);
-
-            if (/\.schem$/.test(qualifiedFileName)) {
-                this.enableSchemMode();
-            } else if (/\.json$/.test(qualifiedFileName)) {
-                this.enableJsonMode();
-            } else {
-                this.enableTextMode();
-            }
+            this.updateOpenFileName(qualifiedFileName);
+            this.monacoEditor.setValue(candidate)
+            
         } else {
             window.alert(`The editor currently can't open non-string objects.`);
             throw new Error(`Can only load strings into the editor, encountered something else saved under: ${qualifiedFileName}`);
@@ -476,11 +445,24 @@ export class SchemEditor {
 
         if (mayOverwrite) {
             await VirtualFileSystem.writeObject(qualifiedFileName, script, true).then(() => {
-                this.openFileName = qualifiedFileName;
-                window.location.hash = qualifiedFileName;
+                this.updateOpenFileName(qualifiedFileName);
                 return;
             }).catch(e => e);
         }
+    }
+
+    private updateOpenFileName(qualifiedFileName: string) {
+        this.openFileName = qualifiedFileName;
+        window.location.hash = qualifiedFileName;
+
+        const match = qualifiedFileName.match(/\.([^\.]*)$/)
+            const fileExtension = match != null ? match[1] : null;
+
+            if (fileExtension != null) {
+                this.switchModelLanguage(fileExtension);
+            } else {
+                this.switchModelLanguage('');
+            }
     }
 
     /** Enables schem interpretation and completion in the event page context. Needed for editing the .rc-file. */

@@ -33,7 +33,7 @@ export const scripts = () => {
         new MonacoWebpackPlugin({
           output: 'monaco/',
           // features: ['bracketMatching', 'suggest'], <-- TODO: pick and choose features?
-          languages: ['json']
+          languages: ['json', 'css', 'html', 'xml']
         })
       ],
       module: {
