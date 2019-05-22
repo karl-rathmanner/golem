@@ -400,21 +400,26 @@ export class Schem {
                             const contextDef = env.getContextSymbol(first);
                             const contextIds = await this.contextManager.prepareContexts(contextDef);
 
-                            /** (contextSymbol: & forms)
+                            /** (context-symbol: & forms) or (context-symbol: symbol-that-refers-to-a-form)
                             * execute forms in any context matching the definition bound to contextSymbol:
-                            * The forms are wrappen in an implicit 'do', so only the last one's value will be finally retured
-                            * This is currently only supported if the interpreter instance exists in a privileged context
+                            * The forms are wrapped in an implicit 'do', so only the last one's value will be finally retured
+                            * If you provide a symbol that refers to a form instead, then that symbol is resolved in the local context.
+                            * This is special form currently only supported if the interpreter instance exists in a privileged context
                             */
                             if (!this.priviledgedContextIsReady) {
                                 throw new Error(`Tried to use foreign context execution from an interpreter instance that has no access to privileged functions. (Or maybe they weren't initialized yet.)`);
                             }
 
-                            if (isSchemList(ast[1])) {
-                                let form = new SchemList(SchemSymbol.from('do'), ...ast.slice(1)) as any;
-                                // if the whole form is quasiquoted, evaluate it in this context to resolve any unquoted parts, then evaluate that it in the foreign context
-                                if (isSchemSymbol(form[0]) && (form[0] as SchemSymbol).name === 'quasiquote') {
-                                    form = await this.evalSchem(form, env);
+                            if (isSchemList(ast[1]) || isSchemSymbol(ast[1])) {
+                                let form: SchemList;
+
+                                // If context-symbol was followed by a symbol instead of a list, evaluate that symbol in the current context first.
+                                if (isSchemSymbol(ast[1])) {
+                                    form = await this.evalSchem(ast[1], env) as any;
+                                } else {
+                                    form = new SchemList(SchemSymbol.from('do'), ...ast.slice(1)) as any;
                                 }
+
                                 let resultsAndErrors = await this.contextManager.arepInContexts(contextIds, await pr_str(form), ast[2]);
                                 return new SchemList(...resultsAndErrors.map(resultOrError => {
                                     if ('result' in resultOrError) {
@@ -425,26 +430,8 @@ export class Schem {
                                         return m;
                                     }
                                 }));
-                                // or do tco? -> "continue fromTheTop;"
-
-                                /** (contextSymbol:js.symbol args)
-                                * invoke a js function in its contexts
-                                */
-                            } else if (isSchemSymbol(ast[1])) {
-                                const sym = ast[1] as SchemSymbol;
-                                let results;
-                                if (SchemSymbol.refersToJavascriptObject(sym)) {
-                                    // no need to inject an interpreter if all you want to do is invoke a js function
-                                    const v = new SchemVector(...ast.slice(2));
-                                    const args = await this.evalAST(v, env);
-                                    results = await this.contextManager.invokeJsProcedure(contextIds, sym.name, args);
-                                    return new SchemList(...results.map(r => readStr(r)));
-                                } else {
-                                    throw new Error(`Syntax error. Can't directly invoke a function in a different context. You probably forgot some parens. Try (context:(function args)) instead of (context:function args)`);
-                                    // TODO: golem.injectedProcedures actually can be invoked directly. Implement lightweight invoking mechanism.
-                                }
                             } else {
-                                throw new Error(`Syntax error. A context symbol must be followed by either a list or a qualified javacript name.`);
+                                throw new Error(`Syntax error. A context symbol must be followed by either a list or a symbol that refers to a list.`);
                             }
 
                         } else {
