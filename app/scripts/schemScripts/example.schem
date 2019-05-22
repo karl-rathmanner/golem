@@ -414,16 +414,16 @@
 ;; The general concept
 
 ; 1) Defining an execution context that matches any regular tab:
-(defcontext anyTab: {:tabQuery {:url "*://*/*"}})
+(defcontext any-tab: {:tabQuery {:url ["http://*/*" "https://*/*"]}})
 
 ; 2a) Evaluating and printing something in a different context (check any other tab's console).
 ; Foreign contexts are lazily realized by forms like this. The results from each context will 
 ; be returned in a list. Errors are silently swept under the rug, currently. Sometimes.
 ; Check your js console(s), don't forget about the background page.
-(anyTab:(prn (+ 41 1)))
+(any-tab:(prn (+ 41 1)))
 
 ; 2b) Returning a value gathered from a different context in this context:
-(str "They feel: " (anyTab: (prompt "How's it going over there?")))
+(anyTab: (str document.title))
 
 ;; Remote DOM manipulation and other shenanigans.
 
@@ -460,8 +460,8 @@
 ; (set-css-text "body" "background-color: gray")
 
 ; 7,8) Crummy examples for using JSReferences to *do things elsewhere*:
-(xkcd: ((js-ref (window.document.querySelector "#ctitle") "append") (shluk [:div "Y'ello!"])))
-(xkcd: (set! (js-ref (window.document.querySelector "title") "text") "Y'orange!"))
+(xkcd: (.append (window.document.querySelector "#ctitle") (shluk [:div "Y'ello!"])))
+(xkcd: (!innerText (window.document.querySelector "#ctitle") "Y'orange!"))
 
 ; Another short digression on quoting:
 ; You've seen regular quoting above. There's also quasiquoting which is very useful in the context of
@@ -483,17 +483,18 @@
 ; Now back to remote DOM manipulation!
 
 ; 9) Dynamically creating expressions for foreign contexts
-; When you pass a quasiquoted form to a foreign context, you get the chance to partially evaluate it
-; in "this" context, before the resulting expression is evaluated in the "other" context.
+; When you pass a symbol to a foreign context, that symbol will be resolved and evaluated in 'this' environment before it gets "sent over".
+; (I'm not quite sure if this syntax stays that way, though. (The same goes for any syntax you see here, though.))
 ;
-; In this example "new-title" is not bound to any value in the xkcd-context, the argument passed to
-; "set-title" is only available in the editor context. By quasiquoting the whole form and unquoting 
-; the symbol "new-title", we create can write a reusable function that lets us change the comic title
-(defn set-title [new-title] 
-        (xkcd: `(set! (js-ref (window.document.querySelector "#ctitle") "innerText") ~new-title)))
+; In this example 'new-title' is not bound to any value in the xkcd-context, the value passed to
+; 'set-comic-title' is only available in the editor context. But since 'form' is evaluated locally,
+; 'xkcd:' will see a string value instead of the symbol 'new-title'.
+(defn set-comic-title [new-title] 
+    (def form `(!innerText (window.document.querySelector "#ctitle") ~new-title))
+    (xkcd: form)) 
 
-(set-title "Lithp Cycles")
-(set-title "I wonder if the puns will continue forever.")
+(set-comic-title "Lithp Cycles")
+(set-comic-title "I wonder if the puns will continue forever.")
 
 
 ;;; Persistent contexts
