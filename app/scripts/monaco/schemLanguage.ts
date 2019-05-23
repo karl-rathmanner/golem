@@ -30,10 +30,6 @@ function registerLanguage() {
 function setLanguageConfiguration() {
     monaco.languages.setLanguageConfiguration('schem', {
         autoClosingPairs: [
-            // TODO: autoclose when parinfer is turned off
-            // { open: '(', close: ')' },
-            // { open: '[', close: ']' },
-            // { open: '{', close: '}' },
             { open: '"', close: '"' },
         ],
         brackets: [
@@ -73,7 +69,8 @@ function setMonarchTokensProvider() {
         // Set defaultToken to invalid to see what you do not tokenize yet
         defaultToken: 'invalid',
 
-        keywords: Object.keys(specialFormsAndKeywords),
+        // Here goes 'stuff that I want to be blue', like special forms or built-in macros.
+        special_symbols: Object.keys(specialFormsAndKeywords).concat(['defn']),
 
         // C# style strings - only half true!!!
         escapes: /\\(?:[abfnrtv\\"']|x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})/,
@@ -109,7 +106,7 @@ function setMonarchTokensProvider() {
 
                 [/\D[\w*+!\-_'?<>]*/, {
                     cases: {
-                        '@keywords': 'type.special-symbol',
+                        '@special_symbols': 'type.special-symbol',
                         ':.+': 'type.keyword',
                         '@default': 'type.symbol',
                     }
