@@ -5,7 +5,7 @@
         [name & args] 
         `(def ~name (fn ~name ~@args)))
             
-        ;;; Logic and comparison stuff
+    ;;; Logic and comparison stuff
     (defmacro when 
         "(when predicate & expressions)"
         [predicate & expressions]
@@ -37,7 +37,7 @@
                     (find-first pred (rest collection))))
             nil))
 
-        ; adapted from: https://github.com/kanaka/mal/blob/master/process/guide.md
+    ; adapted from: https://github.com/kanaka/mal/blob/master/process/guide.md
     (defmacro cond 
          "see: https://clojuredocs.org/clojure.core/cond"
          [& xs]
@@ -53,7 +53,7 @@
         (fn (file) 
             (eval (read-string (str "(do " (slurp file) " )")))))
 
-        ;;; Last but not least: thread first
+    ;;; Last but not least: thread first
     (defmacro -> 
          "The thread first macro turns this:\n (-> x fn1 (fn2 y z) fn3) \n into this:\n (fn3 (fn2 (fn1 x) y z))"
          [value & forms]
