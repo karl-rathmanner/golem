@@ -10,6 +10,7 @@ export function AddSchemSupportToEditor(interpreter: Schem) {
     setLanguageConfiguration();
     setMonarchTokensProvider();
     registerCompletionItemProvider();
+    registerHoverProvider();
     SetInterpreterForCompletion(interpreter);
 }
 
@@ -163,22 +164,78 @@ function setMonarchTokensProvider() {
 
 }
 
+function registerHoverProvider() {
+    monaco.languages.registerHoverProvider('schem', {
+        provideHover: (model, position) => {
+            const tokenRange = getRangeOfTokenAtPosition(model, position);
+
+            if (tokenRange != null) {
+                const tokenAtPosition = model.getValueInRange(tokenRange);
+                return {
+                    contents: [ 
+                        { value: '**Infos!**' },
+                        { value: `Hovering over: ${tokenAtPosition}` }
+                    ]
+                }
+            } else {
+                return {
+                    contents: [ 
+                        { value: '**No infos!**' },
+                        { value: 'No token found. How did that happen?' }
+                    ]
+                }
+            }
+        }
+    });
+}
+
+function getRangeOfTokenAtPosition(model: monaco.editor.ITextModel, position: monaco.IPosition) {
+    const lineContent = model.getLineContent(position.lineNumber);
+    const lineTokens = monaco.editor.tokenize(lineContent, 'schem')[0];
+    
+    let tokenStart, tokenEnd: number | null = null;
+    
+    for (let i = 0; i < lineTokens.length; i++) {
+        if (i === lineTokens.length -1) {
+            //last token
+            tokenStart = lineTokens[i].offset + 1;
+            tokenEnd = model.getLineMaxColumn(position.lineNumber);
+        } else if (lineTokens[i].offset <= position.column && lineTokens[i+1].offset >= position.column) {
+            tokenStart = lineTokens[i].offset + 1;
+            tokenEnd = lineTokens[i+1].offset + 1;
+            break;
+        }
+    }
+    
+    if (tokenStart != null && tokenEnd != null) {
+        return new monaco.Range(position.lineNumber, tokenStart, position.lineNumber, tokenEnd);
+    } else {
+        return null;
+    }
+}
+
 function registerCompletionItemProvider() {
     monaco.languages.registerCompletionItemProvider('schem', {
         triggerCharacters: ['.'],
-        // provideCompletionItems: (textModel, position, context, token): monaco.languages.ProviderResult<Promise<monaco.languages.CompletionList>> => {
-        provideCompletionItems: (textModel, position, context, token) => {
-            const word = textModel.getWordUntilPosition(position);
+        provideCompletionItems: (textModel, position, context, cancellationToken) => {
+            let tokenRange = getRangeOfTokenAtPosition(textModel, new monaco.Position(position.lineNumber, position.column - 1));
+
+            if (tokenRange == null) {
+                throw new Error(`No token found at cursor position.`);
+            } 
+            
             const defaultRange: monaco.IRange = {
                 startLineNumber: position.lineNumber,
                 endLineNumber: position.lineNumber,
-                startColumn: word.startColumn,
-                endColumn: word.endColumn
+                startColumn: tokenRange.startColumn,
+                endColumn: tokenRange.endColumn
             };
 
-            // Completion was triggered by the user typing a dot -> propose javascript completion items
-            if (context.triggerCharacter === '.') {
-                return createJSCompletionItems(textModel, position, defaultRange);
+            const tokenToComplete = textModel.getValueInRange(defaultRange);
+
+            if (/\./.test(tokenToComplete)) {
+                // the token that is to be completed contains a dot, propose javascript completion items
+                return createJSCompletionItems(tokenToComplete, defaultRange);
             } else {
                 // propose schem completion items
                 return createSchemCompletionItems(defaultRange);
@@ -191,7 +248,6 @@ function registerCompletionItemProvider() {
 async function createSchemCompletionItems(range: monaco.IRange): Promise<monaco.languages.CompletionList> {
     const pickDocumentation = (schemValue: any) => {
         let metadata = (isSchemFunction(schemValue) && schemValue.metadata != null) ? schemValue.metadata : null;
-
         if (metadata != null) {
             return `[${schemValue.metadata.parameters == null ? '' : schemValue.metadata.parameters.join(' ')}]\n\n${schemValue.metadata.docstring}`;
         } else {
@@ -225,11 +281,7 @@ async function createSchemCompletionItems(range: monaco.IRange): Promise<monaco.
                 return symbol.name;
             }
             if (isSchemSymbol(symbol)) {
-                if (value.typeTag === SchemTypes.SchemFunction) {
-                    return symbol.name + ' ';
-                } else {
-                    return symbol.name + ' ';
-                }
+                return symbol.name;
             } else {
                 return symbol.name + ': ';
             }
@@ -273,7 +325,7 @@ async function createSchemCompletionItems(range: monaco.IRange): Promise<monaco.
         reservedKeywordCompletionItems.push({
             label: sym,
             kind: monaco.languages.CompletionItemKind.Keyword,
-            insertText: sym + ' ',
+            insertText: sym,
             detail: 'special form or reserved word',
             documentation: `[${specialFormsAndKeywords[sym].paramstring}]\n\n${specialFormsAndKeywords[sym].docstring}`,
             range: range
@@ -294,30 +346,9 @@ async function createSchemCompletionItems(range: monaco.IRange): Promise<monaco.
 /** Handles completion for js-symbols by looking up object properties in the current editor environment at runtime.
  * TODO: Add special case for foreign execution context forms? (By looking up properties in foreign js contexts.)
 */
-function createJSCompletionItems(textModel: monaco.editor.ITextModel, position: monaco.Position, defaultRange: monaco.IRange): monaco.languages.CompletionList {
+function createJSCompletionItems(token: string, tokenRange: monaco.IRange): monaco.languages.CompletionList {
     let jsCompletionItems: monaco.languages.CompletionItem[] = [];
-
-    // starting at the cursor position and going left:
-    // find the first character that isn't either alphanumeric or a dot
-    // "(foo (aaa.bbb.cc█ dd)" -> "aaa.bbb.ccc"
-    let columnOfLeftmostWOrDot;
-    for (columnOfLeftmostWOrDot = position.column; columnOfLeftmostWOrDot > 0; columnOfLeftmostWOrDot--) {
-        const characterAtColumn = textModel.getValueInRange({
-            startColumn: columnOfLeftmostWOrDot - 1,
-            endColumn: columnOfLeftmostWOrDot,
-            startLineNumber: position.lineNumber,
-            endLineNumber: position.lineNumber
-        });
-
-        if (!/[\w.]/.test(characterAtColumn)) break;
-    }
-
-    const jsSymbol = textModel.getValueInRange({
-        startColumn: columnOfLeftmostWOrDot,
-        endColumn: position.column,
-        startLineNumber: position.lineNumber,
-        endLineNumber: position.lineNumber
-    });
+    const jsSymbol = token;
 
     // find the part of the completion word that comes before the last dot
     // "aaa.bbb.ccc" -> "aaa.bbb"
@@ -338,14 +369,14 @@ function createJSCompletionItems(textModel: monaco.editor.ITextModel, position: 
             };
             if (properties != null) properties.forEach(propertyName => {
                 const type = typeof obj[propertyName];
-
+                const suggestionText = `${partBeforeLastDot}.${propertyName}`;
                 jsCompletionItems.push({
-                    label: propertyName,
+                    label: suggestionText,
                     commitCharacters: ['.'],
                     kind: typeToKind(type),
-                    insertText: propertyName,
+                    insertText: suggestionText,
                     detail: `Javascript ${type}`,
-                    range: defaultRange
+                    range: tokenRange
                 });
 
 
