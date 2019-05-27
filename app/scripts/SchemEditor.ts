@@ -146,9 +146,9 @@ export class SchemEditor {
             const source = model.getValue();
             const parinferResult = parinfer.indentMode(source, { cursorLine: cursorPosition.lineNumber, cursorX: cursorPosition.column});
 
-            // Only update the editor if parinfer changed anything and only if that change wasn't just a single whitespace.
+            // Only update the editor if parinfer changed anything and only if that change wasn't just a single whitespace or a deletion using backspace.
             // This should reduce flashing and cursor shenannigans. (I can't get parinfer's rule relaxation around the cursor to work correctly, but this is way better than the previous hack.)
-            if (parinferResult.text !== source && changes[0].text !== ' ') {
+            if (parinferResult.text !== source && changes[0].text !== ' ' && changes[0].text !== '') {
                 const lastPosition = model.getPositionAt(model.getValueLength());
                 this.monacoEditor.executeEdits(
                     'Parinfer',
