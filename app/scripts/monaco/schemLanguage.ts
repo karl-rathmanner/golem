@@ -172,18 +172,18 @@ function registerHoverProvider() {
             if (tokenRange != null) {
                 const tokenAtPosition = model.getValueInRange(tokenRange);
                 return {
-                    contents: [ 
+                    contents: [
                         { value: '**Infos!**' },
                         { value: `Hovering over: ${tokenAtPosition}` }
                     ]
-                }
+                };
             } else {
                 return {
-                    contents: [ 
+                    contents: [
                         { value: '**No infos!**' },
                         { value: 'No token found. How did that happen?' }
                     ]
-                }
+                };
             }
         }
     });
@@ -192,21 +192,21 @@ function registerHoverProvider() {
 function getRangeOfTokenAtPosition(model: monaco.editor.ITextModel, position: monaco.IPosition) {
     const lineContent = model.getLineContent(position.lineNumber);
     const lineTokens = monaco.editor.tokenize(lineContent, 'schem')[0];
-    
+
     let tokenStart, tokenEnd: number | null = null;
-    
+
     for (let i = 0; i < lineTokens.length; i++) {
-        if (i === lineTokens.length -1) {
-            //last token
+        if (i === lineTokens.length - 1) {
+            // last token
             tokenStart = lineTokens[i].offset + 1;
             tokenEnd = model.getLineMaxColumn(position.lineNumber);
-        } else if (lineTokens[i].offset <= position.column && lineTokens[i+1].offset >= position.column) {
+        } else if (lineTokens[i].offset <= position.column && lineTokens[i + 1].offset >= position.column) {
             tokenStart = lineTokens[i].offset + 1;
-            tokenEnd = lineTokens[i+1].offset + 1;
+            tokenEnd = lineTokens[i + 1].offset + 1;
             break;
         }
     }
-    
+
     if (tokenStart != null && tokenEnd != null) {
         return new monaco.Range(position.lineNumber, tokenStart, position.lineNumber, tokenEnd);
     } else {
@@ -222,8 +222,8 @@ function registerCompletionItemProvider() {
 
             if (tokenRange == null) {
                 throw new Error(`No token found at cursor position.`);
-            } 
-            
+            }
+
             const defaultRange: monaco.IRange = {
                 startLineNumber: position.lineNumber,
                 endLineNumber: position.lineNumber,
@@ -356,11 +356,14 @@ function createJSCompletionItems(token: string, tokenRange: monaco.IRange): mona
     let partBeforeLastDot = (matches && matches.length > 0) ? matches[1] : null;
 
     if (partBeforeLastDot != null) {
-        let obj: any = resolveJSPropertyChain(window, partBeforeLastDot);
-        if (obj != null) {
+
+        try {
+            // Trying to resolving a non-existent property throws an exception, we don't care about it though.
+            let obj: any = resolveJSPropertyChain(window, partBeforeLastDot);
+
             const properties = getAllProperties(obj);
             const typeToKind = (type: 'string' | 'number' | 'boolean' | 'symbol' | 'undefined' | 'object' | 'function' | 'bigint') => {
-                // these are picked based for the icon monaco displays, not for semantic reasons
+                // These are picked based on how much I like the icon monaco displays, not for semantic reasons.
                 switch (type) {
                     case 'object': return monaco.languages.CompletionItemKind.Module;
                     case 'function': return monaco.languages.CompletionItemKind.Function;
@@ -378,9 +381,9 @@ function createJSCompletionItems(token: string, tokenRange: monaco.IRange): mona
                     detail: `Javascript ${type}`,
                     range: tokenRange
                 });
-
-
             });
+        } catch {
+            // Got nothing to suggest -> got nothing to do.
         }
     }
 
