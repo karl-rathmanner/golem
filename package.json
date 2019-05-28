@@ -86,8 +86,7 @@
     "acorn": "^6.1.1",
     "ajv": "^6.10.0",
     "dexie": "^2.0.4",
-    "jquery": "^3.4.1",
-    "monaco-editor": "^0.16.2",
+    "monaco-editor": "^0.17.0",
     "monaco-editor-webpack-plugin": "^1.7.0",
     "typescript": "^3.4.5"
   }

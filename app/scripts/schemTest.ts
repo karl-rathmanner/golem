@@ -1,17 +1,19 @@
-import * as $ from 'jquery';
 import { browser } from 'webextension-polyfill-ts';
-import { Settings } from './Settings';
 import { EnvSetupMap } from './schem/env';
 import { pr_str } from './schem/printer';
 import { tokenize } from './schem/reader';
 import { Schem } from './schem/schem';
-import { SchemKeyword, SchemList, SchemNil, SchemString, SchemSymbol, AnySchemType } from './schem/types';
+import { isSchemKeyword, isSchemString, isSchemSymbol } from './schem/typeGuards';
+import { AnySchemType, SchemList, SchemNil, SchemString } from './schem/types';
+import { Settings } from './Settings';
 import { CommandHistory } from './utils/commandHistory';
 import { Key } from './utils/Key.enum';
-import { isSchemKeyword, isSchemSymbol, isSchemString } from './schem/typeGuards';
 
-$.when($.ready).then(async () => {
-    const inputElement = $('#input');
+
+document.addEventListener("DOMContentLoaded", () =>  {
+    console.log('added');
+
+    const inputElement = document.getElementById('input') as HTMLTextAreaElement;
     const commandHistory = new CommandHistory();
     const interpreter = new Schem();
 
@@ -44,7 +46,7 @@ $.when($.ready).then(async () => {
             return SchemNil.instance;
         },
         'clear-repl': () => {
-            $('#output').text('');
+            document.getElementById('output')!.textContent = '';
         },
         'set-repl-separator': (char: SchemString) => {
             if (isSchemString(char) && char.length > 0) {
@@ -60,98 +62,9 @@ $.when($.ready).then(async () => {
         }
     };
 
-    inputElement.focus();
-    inputElement.keydown((e) => {
-        if (e.ctrlKey) switch (e.keyCode) {
-
-            case Key.UpArrow:
-                commandHistory.previousCommand().then(v => inputElement.val(v));
-                break;
-            case Key.DownArrow:
-                inputElement.val(commandHistory.nextCommand());
-                break;
-        } else {
-            switch (e.keyCode) {
-                case Key.Enter:
-                    if (!e.shiftKey) {
-                        commandHistory.resetHistoryPosition();
-                        const input = inputElement.val() as string;
-                        commandHistory.addCommandToHistory(input);
-
-                        interpreter.arep(input, envOverwrites).then((result) => {
-                            appendToOutput(result);
-                        }).catch(e => {
-                            console.warn('Exception during Schem evaluation:', e);
-                            appendToOutput(e);
-                        });
-
-                        inputElement.val('');
-                    }
-                    break;
-
-                case Key.Tab:
-                    if (autocompleteSuggestions.length > 0) {
-                        selectedSuggestion += (e.shiftKey) ? -1 : 1;
-
-                        if (selectedSuggestion >= autocompleteSuggestions.length) {
-                            selectedSuggestion = -1;
-                        }
-
-                        let replaceWith: string = '';
-                        if (selectedSuggestion < -1) selectedSuggestion = -1;
-
-                        if (selectedSuggestion < 0) {
-                            replaceWith = lastManuallyTypedToken;
-                        } else {
-                            replaceWith = autocompleteSuggestions[selectedSuggestion];
-                        }
-
-                        insertAndDeleteRelativeToCursor(e.currentTarget, replaceWith, cursorPositionInToken, (tokenAtCursorPosition.length - cursorPositionInToken), replaceWith.length - cursorPositionInToken);
-                    }
-                    e.preventDefault();
-                    break;
-                default:
-            }
-        }
-    });
-
-    inputElement.keypress((e) => {
-        if (!(e.keyCode === Key.Tab)) {
-            selectedSuggestion = -1;
-        }
-        switch (e.charCode) {
-            case 40: // (
-                insertAndDeleteRelativeToCursor(e.currentTarget, ')', 0);
-                break;
-            case 91: // [
-                insertAndDeleteRelativeToCursor(e.currentTarget, ']', 0);
-                break;
-            case 123: // {
-                insertAndDeleteRelativeToCursor(e.currentTarget, '}', 0);
-                break;
-            case 34: // "
-                insertAndDeleteRelativeToCursor(e.currentTarget, '"', 0);
-                break;
-        }
-    });
-
-    function appendToOutput(str: string) {
-        $('#output').text($('#output').text() + str + currentSeparator);
-        $('#output').animate({ scrollTop: $('#output').prop('scrollHeight') }, 700);
-    }
-
-    function insertAndDeleteRelativeToCursor(target: HTMLElement, insert: string, deleteBefore: number = 0, deleteAfter: number = 0, moveCursor: number = 0) {
-        const cursorPosition = ($(target).prop('selectionStart') as number);
-        const currentVal = (typeof $(target).val() === 'string') ? $(target).val() as string : '';
-        const newVal = currentVal.slice(0, cursorPosition - deleteBefore) + insert + currentVal.slice(cursorPosition + deleteAfter);
-        $(target).val(newVal);
-        (target as HTMLInputElement).setSelectionRange(cursorPosition + moveCursor, cursorPosition + moveCursor);
-    }
-
-    inputElement.on('change keyup paste', (e) => {
-
-        let currentInput = (typeof $(e.currentTarget).val() === 'string') ? $(e.currentTarget).val() as string : '';
-        const cursorPosition = $(e.currentTarget).prop('selectionStart') as number;
+    const changeHandler = (e: Event) => {
+        let currentInput = (e.currentTarget != null) ? (e.currentTarget as HTMLTextAreaElement).value : '';
+        const cursorPosition = (e.currentTarget as HTMLTextAreaElement).selectionStart;
         currentInput = currentInput.slice(0, cursorPosition) + '☺' + currentInput.slice(cursorPosition);
         const tokens = tokenize(currentInput);
 
@@ -170,15 +83,16 @@ $.when($.ready).then(async () => {
 
         interpreter.readEval(`(sort-and-filter-by-string-similarity "${lastManuallyTypedToken}" (list-symbols))`).then((suggestions) => {
             if (suggestions instanceof SchemList) {
-                $('#autocompleteSuggestions').empty();
+                const acSuggestionElement = document.getElementById('autocompleteSuggestions')!;
+                acSuggestionElement.textContent = '';
                 autocompleteSuggestions = [];
                 suggestions.map((s, i) => {
                     if (isSchemSymbol(s) || isSchemString(s) || isSchemKeyword(s)) {
                         autocompleteSuggestions.push(s.getStringRepresentation());
 
-                        $('#autocompleteSuggestions').append(`<span class="${(i === selectedSuggestion) ? 'highlightedSuggestion' : 'acSuggestion'}">${s.getStringRepresentation()}</span>`);
+                        acSuggestionElement.insertAdjacentHTML('beforeend', `<span class="${(i === selectedSuggestion) ? 'highlightedSuggestion' : 'acSuggestion'}">${s.getStringRepresentation()}</span>`);
                         if (i < suggestions.length - 1) {
-                            $('#autocompleteSuggestions').append('<span class="acDivider">|</span>');
+                            acSuggestionElement.insertAdjacentHTML('beforeend', '<span class="acDivider">|</span>');
                         }
                     }
                 });
@@ -187,7 +101,106 @@ $.when($.ready).then(async () => {
             console.log('autocomplete lokup failed, no biggy.');
         });
 
-    });
+    };
+
+    if (inputElement != null) {
+        inputElement.focus();
+        inputElement.addEventListener("keydown", (e) => {
+            if (e.ctrlKey) switch (e.keyCode) {
+    
+                case Key.UpArrow:
+                    commandHistory.previousCommand().then(v => inputElement.value = v);
+                    break;
+                case Key.DownArrow:
+                    inputElement.value = commandHistory.nextCommand();
+                    break;
+            } else {
+                switch (e.keyCode) {
+                    case Key.Enter:
+                        if (!e.shiftKey) {
+                            commandHistory.resetHistoryPosition();
+                            const input = inputElement.value;
+                            commandHistory.addCommandToHistory(input);
+    
+                            interpreter.arep(input, envOverwrites).then((result) => {
+                                appendToOutput(result);
+                            }).catch(e => {
+                                console.warn('Exception during Schem evaluation:', e);
+                                appendToOutput(e);
+                            });
+    
+                            inputElement.value = '';
+                        }
+                        break;
+    
+                    case Key.Tab:
+                        if (autocompleteSuggestions.length > 0) {
+                            selectedSuggestion += (e.shiftKey) ? -1 : 1;
+    
+                            if (selectedSuggestion >= autocompleteSuggestions.length) {
+                                selectedSuggestion = -1;
+                            }
+    
+                            let replaceWith: string = '';
+                            if (selectedSuggestion < -1) selectedSuggestion = -1;
+    
+                            if (selectedSuggestion < 0) {
+                                replaceWith = lastManuallyTypedToken;
+                            } else {
+                                replaceWith = autocompleteSuggestions[selectedSuggestion];
+                            }
+    
+                            insertAndDeleteRelativeToCursor(e.currentTarget  as HTMLTextAreaElement, replaceWith, cursorPositionInToken, (tokenAtCursorPosition.length - cursorPositionInToken), replaceWith.length - cursorPositionInToken);
+                        }
+                        e.preventDefault();
+                        break;
+                    default:
+                }
+            }
+        });
+    
+        inputElement.addEventListener("keypress", (e) => {
+            if (!(e.keyCode === Key.Tab)) {
+                selectedSuggestion = -1;
+            }
+            if (e.currentTarget == null) throw 'eh?';
+
+            switch (e.charCode) {
+                case 40: // (
+                    insertAndDeleteRelativeToCursor(e.currentTarget as HTMLTextAreaElement, ')', 0);
+                    break;
+                case 91: // [
+                    insertAndDeleteRelativeToCursor(e.currentTarget as HTMLTextAreaElement, ']', 0);
+                    break;
+                case 123: // {
+                    insertAndDeleteRelativeToCursor(e.currentTarget as HTMLTextAreaElement, '}', 0);
+                    break;
+                case 34: // "
+                    insertAndDeleteRelativeToCursor(e.currentTarget as HTMLTextAreaElement, '"', 0);
+                    break;
+            }
+        });
+
+        inputElement.addEventListener("change", changeHandler);
+        inputElement.addEventListener("keyup", changeHandler);
+        inputElement.addEventListener("paste", changeHandler);
+
+    }
+
+    function appendToOutput(str: string) {
+        const outputElement = document.getElementById('output')!;
+        outputElement.textContent =  outputElement.textContent + str + currentSeparator;
+        outputElement.animate({ scrollTop: outputElement.scrollHeight }, 700);
+    }
+
+    function insertAndDeleteRelativeToCursor(target: HTMLTextAreaElement, insert: string, deleteBefore: number = 0, deleteAfter: number = 0, moveCursor: number = 0) {
+        const cursorPosition = target.selectionStart as number;
+        const currentVal = (typeof target.value === 'string') ? target.value : '';
+        const newVal = currentVal.slice(0, cursorPosition - deleteBefore) + insert + currentVal.slice(cursorPosition + deleteAfter);
+        target.value = newVal;
+        target.setSelectionRange(cursorPosition + moveCursor, cursorPosition + moveCursor);
+    }
+
 
     function suggestAutocompletion() {
     }
