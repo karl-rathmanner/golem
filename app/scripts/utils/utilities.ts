@@ -49,3 +49,13 @@ export const escapeXml = (s: string) => {
     holder.textContent = s;
     return holder.innerHTML;
 };
+
+/** Returns a string containing random uppercase characters. */
+export function randomString(length: number) {
+    let rndstr = '';
+    for (let index = 0; index < length; index++) {
+        rndstr += String.fromCharCode(65 + Math.random() * 24);
+    }
+
+    return rndstr;
+}

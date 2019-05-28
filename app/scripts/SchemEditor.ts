@@ -145,22 +145,26 @@ export class SchemEditor {
         if (model != null && cursorPosition != null) {
             const source = model.getValue();
             const parinferResult = parinfer.indentMode(source, { cursorLine: cursorPosition.lineNumber, cursorX: cursorPosition.column});
-            console.log(changes);
 
+            console.log(changes);
             // Only update the editor if parinfer changed anything and only if that change didn't end with a space and if it wasn't a deletion.
             // This should reduce flashing and cursor shenannigans. (I can't get parinfer's rule relaxation around the cursor to work correctly, but this is way better than the previous hack.)
-            if (parinferResult.text !== source && !/ $/.test(changes[0].text) && changes[0].text !== '') {
+            if (parinferResult.text !== source && !/ $/.test(changes[0].text)) {
+                const cursorOffset = (changes[0].text === '') ? -1 : 0;
+                console.log(cursorOffset);
                 const lastPosition = model.getPositionAt(model.getValueLength());
+
                 this.monacoEditor.executeEdits(
                     'Parinfer',
                     [
                         {
+                            forceMoveMarkers: true,
                             range: new monaco.Range(0, 0, lastPosition.lineNumber, lastPosition.column),
                             text: parinferResult.text,
-                        }
-                    ],
-                    [
-                        new monaco.Selection(parinferResult.cursorLine, parinferResult.cursorX, parinferResult.cursorLine, parinferResult.cursorX)
+                        },
+                    ], [
+                        // new monaco.Selection(parinferResult.cursorLine - 1, parinferResult.cursorX + cursorOffset, parinferResult.cursorLine, parinferResult.cursorX)
+                        // new monaco.Selection(1, 1, 1, 1)
                     ]);
 
             } else if (parinferResult.error != null) {
@@ -424,8 +428,7 @@ export class SchemEditor {
 
         if (typeof candidate === 'string') {
             this.updateOpenFileName(qualifiedFileName);
-            this.monacoEditor.setValue(candidate)
-            
+            this.monacoEditor.setValue(candidate);
         } else {
             window.alert(`The editor currently can't open non-string objects.`);
             throw new Error(`Can only load strings into the editor, encountered something else saved under: ${qualifiedFileName}`);
@@ -456,14 +459,14 @@ export class SchemEditor {
         this.openFileName = qualifiedFileName;
         window.location.hash = qualifiedFileName;
 
-        const match = qualifiedFileName.match(/\.([^\.]*)$/)
-            const fileExtension = match != null ? match[1] : null;
+        const match = qualifiedFileName.match(/\.([^\.]*)$/);
+        const fileExtension = match != null ? match[1] : null;
 
-            if (fileExtension != null) {
-                this.switchModelLanguage(fileExtension);
-            } else {
-                this.switchModelLanguage('');
-            }
+        if (fileExtension != null) {
+            this.switchModelLanguage(fileExtension);
+        } else {
+            this.switchModelLanguage('');
+        }
     }
 
     /** Enables schem interpretation and completion in the event page context. Needed for editing the .rc-file. */

@@ -1,5 +1,6 @@
-import { AnySchemType, SchemVector, SchemNil, SchemBoolean, SchemMap } from './schem/types';
-import { isSchemNil, isSchemVector, isSchemKeyword, isSchemMap, isSchemString, isSchemList } from './schem/typeGuards';
+import { AnySchemType, SchemVector, SchemNil, SchemBoolean, SchemMap, SchemKeyword, SchemFunction } from './schem/types';
+import { isSchemNil, isSchemVector, isSchemKeyword, isSchemMap, isSchemString, isSchemList, isSchemAtom } from './schem/typeGuards';
+import { randomString } from './utils/utilities';
 
 export const shlukerts: { [symbol: string]: any } = {
     'shluk': (input: SchemVector | SchemNil, e: AnySchemType): HTMLElement | void => {
@@ -41,6 +42,28 @@ function createHTMLElement(input: SchemVector | SchemNil): HTMLElement | void {
         body.forEach(element => {
             if (isSchemString(element)) {
                 node.appendChild(document.createTextNode(element.valueOf()));
+            } else if (isSchemAtom(element)) {
+                const atomValue = element.getValue();
+
+                if (isSchemString(atomValue)) {
+                    const watchName = 'databinding-watch-' + randomString(16);
+                    const newSpan = document.createElement('span');
+                    newSpan.setAttribute('golem-atom', watchName);
+                    newSpan.textContent = atomValue.valueOf();
+                    node.appendChild(newSpan);
+                    element.addWatch(SchemKeyword.from(watchName), new SchemFunction((...args: any) => {
+                        const [, , , newValue] = args;
+                        const atomSpan = document.querySelector(`[golem-atom=${watchName}]`);
+                        console.log(watchName, newValue);
+                        if (atomSpan != null && isSchemString(newValue)) {
+                            atomSpan.textContent = newValue.valueOf();
+                        } else {
+                            throw new Error('As of now, only atoms with string values are supported by shlukerts.');
+                        }
+                    }));
+                } else {
+                    throw new Error('As of now, only atoms with string values are supported by shlukerts.');
+                }
             } else if (isSchemVector(element)) {
                 const childNode = createHTMLElement(element);
                 if (childNode != null) {
