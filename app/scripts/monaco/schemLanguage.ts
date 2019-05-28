@@ -281,7 +281,7 @@ async function createSchemCompletionItems(range: monaco.IRange): Promise<monaco.
                 return symbol.name;
             }
             if (isSchemSymbol(symbol)) {
-                return symbol.name;
+                return symbol.name + ' ';
             } else {
                 return symbol.name + ': ';
             }
@@ -325,7 +325,7 @@ async function createSchemCompletionItems(range: monaco.IRange): Promise<monaco.
         reservedKeywordCompletionItems.push({
             label: sym,
             kind: monaco.languages.CompletionItemKind.Keyword,
-            insertText: sym,
+            insertText: sym + ' ',
             detail: 'special form or reserved word',
             documentation: `[${specialFormsAndKeywords[sym].paramstring}]\n\n${specialFormsAndKeywords[sym].docstring}`,
             range: range
@@ -377,7 +377,7 @@ function createJSCompletionItems(token: string, tokenRange: monaco.IRange): mona
                     label: suggestionText,
                     commitCharacters: ['.'],
                     kind: typeToKind(type),
-                    insertText: suggestionText,
+                    insertText: suggestionText + ' ',
                     detail: `Javascript ${type}`,
                     range: tokenRange
                 });
