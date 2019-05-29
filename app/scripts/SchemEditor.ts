@@ -1,14 +1,14 @@
 import * as monaco from 'monaco-editor';
+import { browser } from 'webextension-polyfill-ts';
+import { EventPageMessage, eventPageMessagingSchemFunctions } from './eventPageMessaging';
 import * as parinfer from './monaco/parinfer';
-import { eventPageMessagingSchemFunctions, EventPageMessage } from './eventPageMessaging';
 import { AddSchemSupportToEditor, SetInterpreterForCompletion } from './monaco/schemLanguage';
 import { readStr, unescape as schemUnescape } from './schem/reader';
 import { filterRecursively, Schem } from './schem/schem';
 import { AnySchemType, SchemBoolean, SchemList, SchemNil, SchemString } from './schem/types';
+import { Settings } from './Settings';
 import { extractErrorMessage } from './utils/utilities';
 import { VirtualFileSystem } from './virtualFilesystem';
-import { Settings } from './Settings';
-import { browser } from 'webextension-polyfill-ts';
 
 /** Uses the Monaco editor to provide a very integrated Schem development environment. */
 export class SchemEditor {
@@ -144,16 +144,14 @@ export class SchemEditor {
 
         if (model != null && cursorPosition != null) {
             const source = model.getValue();
-            const parinferResult = parinfer.indentMode(source, { cursorLine: cursorPosition.lineNumber, cursorX: cursorPosition.column});
+            const columnOffset = 1;
+            const lineOffset =  -1;
+            
+            const parinferResult = parinfer.indentMode(source, { cursorLine: cursorPosition.lineNumber + lineOffset, cursorX: cursorPosition.column + columnOffset});
 
-            console.log(changes);
-            // Only update the editor if parinfer changed anything and only if that change didn't end with a space and if it wasn't a deletion.
-            // This should reduce flashing and cursor shenannigans. (I can't get parinfer's rule relaxation around the cursor to work correctly, but this is way better than the previous hack.)
-            if (parinferResult.text !== source && !/ $/.test(changes[0].text)) {
-                const cursorOffset = (changes[0].text === '') ? -1 : 0;
-                console.log(cursorOffset);
+            // Only update the editor if parinfer changed anything to reduce flashing.
+            if (parinferResult.text !== source) { 
                 const lastPosition = model.getPositionAt(model.getValueLength());
-
                 this.monacoEditor.executeEdits(
                     'Parinfer',
                     [
@@ -161,10 +159,9 @@ export class SchemEditor {
                             forceMoveMarkers: true,
                             range: new monaco.Range(0, 0, lastPosition.lineNumber, lastPosition.column),
                             text: parinferResult.text,
-                        },
+                        }
                     ], [
-                        // new monaco.Selection(parinferResult.cursorLine - 1, parinferResult.cursorX + cursorOffset, parinferResult.cursorLine, parinferResult.cursorX)
-                        // new monaco.Selection(1, 1, 1, 1)
+                        new monaco.Selection(parinferResult.cursorLine - lineOffset, parinferResult.cursorX - columnOffset, parinferResult.cursorLine - lineOffset, parinferResult.cursorX - columnOffset)
                     ]);
 
             } else if (parinferResult.error != null) {
