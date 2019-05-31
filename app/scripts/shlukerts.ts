@@ -1,4 +1,4 @@
-import { AnySchemType, SchemVector, SchemNil, SchemBoolean, SchemMap, SchemKeyword, SchemFunction, SchemAtom } from './schem/types';
+import { AnySchemType, SchemVector, SchemNil, SchemBoolean, SchemMap, SchemKeyword, SchemFunction, SchemAtom, SchemString } from './schem/types';
 import { isSchemNil, isSchemVector, isSchemKeyword, isSchemMap, isSchemString, isSchemList, isSchemAtom, isSchemFunction } from './schem/typeGuards';
 import { randomString } from './utils/utilities';
 import { EnvSetupMap } from './schem/env';
@@ -32,11 +32,11 @@ export const shlukerts: EnvSetupMap = {
     }
 };
 
-async function createHTMLElement(input: SchemVector | SchemNil): Promise<HTMLElement | void> {
-    if (isSchemNil(input) || input.count() < 1) {
+async function createHTMLElement(args: SchemVector | SchemNil): Promise<HTMLElement | void> {
+    if (isSchemNil(args) || args.count() < 1) {
         return;
     } else {
-        const tagOrAtom: SchemKeyword | SchemAtom = input[0] as SchemKeyword | SchemAtom;
+        const tagOrAtom: SchemKeyword | SchemAtom = args[0] as SchemKeyword | SchemAtom;
         
         if (!isSchemKeyword(tagOrAtom) && !isSchemAtom(tagOrAtom)) {
             throw new Error(`A shlukerts vector's first element must be a tag (denoted by a keyword or string) or an atom.`);
@@ -70,9 +70,30 @@ async function createHTMLElement(input: SchemVector | SchemNil): Promise<HTMLEle
             return element;
         }
 
+        // e.g. [:div ...]
         if (isSchemKeyword(tagOrAtom)) {
-            const attributes = isSchemMap(input[1]) ? input[1] as SchemMap : null;
-            let body = (attributes == null) ? input.slice(1) : input.slice(2);
+
+            const attributes = isSchemMap(args[1]) ? args[1] as SchemMap : new SchemMap(); // e.g. [:div {:title "meh"}]
+            let body = (isSchemMap(args[1])) ? args.slice(2) : args.slice(1);
+
+            const [wholeMatch, tagName, id, classNames] =  tagOrAtom.name.match(/([^#.]+)(#[^.]*)?(\.[^#]*)?/) || [null, null, null, null];
+            // e.g. "div#id.c1.c2" -> 
+            //
+            // tagName == "div"
+            // id == "#id" (optional)
+            // classNames == ".c1.c2" (optional)
+
+            if (wholeMatch == null || tagName == null) throw new Error(`Shlukerts vector started with an invalid keyword. (Expected something like ":tag" or ":tag#id.class1.class2..." etc. but got "${tagOrAtom.name}" instead.)`);
+            
+            const node = document.createElement(tagName);
+
+            if (id != null) {
+                attributes.set(SchemKeyword.from('id'), new SchemString(id.slice(1)));
+            }
+
+            if (classNames != null) {
+                attributes.set(SchemKeyword.from('class'), new SchemString(classNames.slice(1).replace('.', ' ')));
+            }
     
             // expand lists into the body, turning [:ul (list [:li "ah"] [:li "oh"])] into [:ul [:li "ah"] [:li "oh"]]
             body = body.reduce((body: AnySchemType[], element): AnySchemType[] => {
@@ -84,7 +105,7 @@ async function createHTMLElement(input: SchemVector | SchemNil): Promise<HTMLEle
                 return body;
             }, []);
 
-            const node = document.createElement(tagOrAtom.name);
+            
             if (attributes != null) attributes.forEach((key, value) => {
                 const attributeName = isSchemKeyword(key) ? key.name : key.getStringRepresentation();
                 node.setAttribute(attributeName, value.toString());
@@ -112,7 +133,7 @@ async function createHTMLElement(input: SchemVector | SchemNil): Promise<HTMLEle
             return node;
         } else if (isSchemAtom(tagOrAtom)) {
             let value = tagOrAtom.getValue();
-            const transformationFuncion: SchemFunction | undefined = input[1];
+            const transformationFuncion: SchemFunction | undefined = args[1];
 
             if (isSchemFunction(transformationFuncion)) {
                 // TODO: use evalSchem instead
