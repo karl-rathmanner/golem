@@ -6,7 +6,6 @@
       "noImplicitUseStrict": true,
       "noImplicitReturns": true,
       "strictNullChecks": true,
-      "jsx": "react",
-      "lib": ["dom", "es6"]
+      "lib": ["dom", "es6", "es2017", "dom.iterable"]
   }
 }
