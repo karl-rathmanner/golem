@@ -85,7 +85,7 @@ export function schemToJs(schemObject?: AnySchemType | null, options: { keySeria
     if (isSchemMap(schemObject)) {
         jsObject = {};
         schemObject.forEach((key, value) => {
-            let jsKey, jsValue;
+            let jsKey;
 
             if (options.keySerialization === 'includeTypePrefix') {
                 jsKey = toSchemMapKey(key);
@@ -133,7 +133,7 @@ export function schemToJs(schemObject?: AnySchemType | null, options: { keySeria
                     jsObject.push(schemToJs(firstElement, options));
                 } else {
                     // ad atomic value
-                    jsObject.push(firstElement.valueOf());
+                    jsObject.push(atomicSchemObjectToJS(firstElement));
                 }
 
             }
