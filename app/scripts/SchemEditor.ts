@@ -9,6 +9,8 @@ import { AnySchemType, SchemBoolean, SchemList, SchemNil, SchemString } from './
 import { Settings } from './Settings';
 import { extractErrorMessage } from './utils/utilities';
 import { VirtualFileSystem } from './virtualFilesystem';
+import { AvailableSchemContextFeatures } from './contextManager';
+import { shlukerts } from './shlukerts';
 
 /** Uses the Monaco editor to provide a very integrated Schem development environment. */
 export class SchemEditor {
@@ -113,6 +115,13 @@ export class SchemEditor {
         'editor-update-layout': () => {
             this.updateEditorLayout();
             return SchemNil.instance;
+        },
+        'editor-load-feature': (featureName: SchemString) => {
+            if (featureName.toString() === 'shlukerts') {
+                this.interpreter.replEnv.addMap(shlukerts);
+            } else {
+                throw new Error(`This function is a placeholder for some proper module loading syntax. It can't load the feature you requested. It can't do much of anything, to be honest.`);
+            }
         }
     };
 
