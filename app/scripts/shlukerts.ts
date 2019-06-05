@@ -5,9 +5,9 @@ import { EnvSetupMap } from './schem/env';
 
 export const shlukerts: EnvSetupMap = {
     'shluk': {
-        f: async (input: SchemVector | SchemNil, e: AnySchemType): Promise<HTMLElement | void> => {
+        f: async (shlukertsVector: SchemVector | SchemNil, e: AnySchemType): Promise<HTMLElement | void> => {
         // [:div {:id "foo"} "I <3 content!"]
-        return await createHTMLElement(input);
+        return await createDocumentFragment(shlukertsVector);
         },
         paramstring: "shlukerts-vector",
         docstring: 
@@ -18,7 +18,7 @@ export const shlukerts: EnvSetupMap = {
             `  └─ Creates an h1 element with attributes.\n` +
             `[:ul (list [:li "one"] [:li "two])]\n` + 
             `  └─ Lists are expanded, this turns into:\n` +
-             `    [:ul [[:li "one"] [:li "two"]]\n` +
+            `     [:ul [[:li "one"] [:li "two"]]\n` +
             `[:span "Text " atom " more text."]\n` + 
             `  └─ Simple data binding.\n` +
             `     The atom must have a string value.\n` +
@@ -27,16 +27,21 @@ export const shlukerts: EnvSetupMap = {
             `     The atom's value must be an HTMLElement.\n` +
             `[atom transformation-function]\n` +
             `  └─ more advanced data binding\n` +
-            `     Atom can have any value, but the\n` +
-            `     Transformation fn must return an HTMLElement\n`
+            `     The atom can have any value, but the\n` +
+            `     transformation fn must return an HTMLElement.\n`
+    },
+    'dom->shluk' : {
+        f: createShlukertsVector,
+        docstring: `Turns an HTML/XML document, subtree or node into a shlukerts vector.`,
+        paramstring: `document-or-element`
     }
 };
 
-async function createHTMLElement(args: SchemVector | SchemNil): Promise<HTMLElement | void> {
-    if (isSchemNil(args) || args.count() < 1) {
+async function createDocumentFragment(shlukertsVector: SchemVector | SchemNil): Promise<HTMLElement | void> {
+    if (isSchemNil(shlukertsVector) || shlukertsVector.count() < 1) {
         return;
     } else {
-        const tagOrAtom: SchemKeyword | SchemAtom = args[0] as SchemKeyword | SchemAtom;
+        const tagOrAtom: SchemKeyword | SchemAtom = shlukertsVector[0] as SchemKeyword | SchemAtom;
         
         if (!isSchemKeyword(tagOrAtom) && !isSchemAtom(tagOrAtom)) {
             throw new Error(`A shlukerts vector's first element must be a tag (denoted by a keyword or string) or an atom.`);
@@ -73,8 +78,8 @@ async function createHTMLElement(args: SchemVector | SchemNil): Promise<HTMLElem
         // e.g. [:div ...]
         if (isSchemKeyword(tagOrAtom)) {
 
-            const attributes = isSchemMap(args[1]) ? args[1] as SchemMap : new SchemMap(); // e.g. [:div {:title "meh"}]
-            let body = (isSchemMap(args[1])) ? args.slice(2) : args.slice(1);
+            const attributes = isSchemMap(shlukertsVector[1]) ? shlukertsVector[1] as SchemMap : new SchemMap(); // e.g. [:div {:title "meh"}]
+            let body = (isSchemMap(shlukertsVector[1])) ? shlukertsVector.slice(2) : shlukertsVector.slice(1);
 
             const [wholeMatch, tagName, id, classNames] =  tagOrAtom.name.match(/([^#.]+)(#[^.]*)?(\.[^#]*)?/) || [null, null, null, null];
             // e.g. "div#id.c1.c2" -> 
@@ -124,7 +129,7 @@ async function createHTMLElement(args: SchemVector | SchemNil): Promise<HTMLElem
                         throw new Error('As of now, only atoms with string values are supported by shlukerts.');
                     }
                 } else if (isSchemVector(element)) {
-                    const childNode = await createHTMLElement(element);
+                    const childNode = await createDocumentFragment(element);
                     if (childNode != null) {
                         node.appendChild(childNode);
                     }
@@ -133,7 +138,7 @@ async function createHTMLElement(args: SchemVector | SchemNil): Promise<HTMLElem
             return node;
         } else if (isSchemAtom(tagOrAtom)) {
             let value = tagOrAtom.getValue();
-            const transformationFuncion: SchemFunction | undefined = args[1];
+            const transformationFuncion: SchemFunction | undefined = shlukertsVector[1];
 
             if (isSchemFunction(transformationFuncion)) {
                 // TODO: use evalSchem instead
@@ -149,4 +154,37 @@ async function createHTMLElement(args: SchemVector | SchemNil): Promise<HTMLElem
             }
         }
     }
+}
+
+function createShlukertsVector(nodeOrDocument: Element | Document) : SchemVector | SchemNil {
+    if (nodeOrDocument == null) return SchemNil.instance;
+    const vector = new SchemVector();
+
+    if (! (nodeOrDocument instanceof Document)) {
+        vector.push(SchemKeyword.from(nodeOrDocument.nodeName));
+
+        if (nodeOrDocument.hasAttributes()) {
+            const attrMap = new SchemMap();
+            for (let i = 0; i < nodeOrDocument.attributes.length; i++) {
+                attrMap.set(
+                    SchemKeyword.from(nodeOrDocument.attributes[i].name),
+                    new SchemString(nodeOrDocument.attributes[i].value))
+            }
+            vector.push(attrMap);
+        }
+    }
+    
+    const childNodes = nodeOrDocument.childNodes;
+
+    if (childNodes != null) for (const element of nodeOrDocument.childNodes) {
+        if (element instanceof Text) {
+            vector.push(new SchemString(element.textContent));
+        } else if (element instanceof Element) {
+            vector.push(createShlukertsVector(element));
+        } else {
+            throw new Error(`Encountered something in the dom fragement, that was neither an Element nor a text node. Are you sure this is a document or document fragment object?`);
+        }
+    }
+
+    return vector;
 }
