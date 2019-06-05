@@ -211,6 +211,7 @@ export class SchemVector extends Array<any> implements Callable, Indexable, Coun
         return (this.length > 1) ? new SchemVector(...this.slice(1)) : new SchemVector();
     }
 
+    /** Returns a new Vector with element as the first item, followed by the original items. */
     cons(element: AnySchemType) {
         return new SchemVector(element, ...this);
     }
