@@ -1,4 +1,4 @@
-import { isSchemAtom, isSchemBoolean, isSchemLazyVector, isSchemMap, isSchemNumber, isSchemString, isSchemSymbol, isSchemList, isSchemVector, isSchemKeyword, isSchemRegExp, isSchemContextSymbol, isSchemNil, isSchemJSReference } from './typeGuards';
+import { isSchemAtom, isSchemBoolean, isSchemLazyVector, isSchemMap, isSchemNumber, isSchemString, isSchemSymbol, isSchemList, isSchemVector, isSchemKeyword, isSchemRegExp, isSchemContextSymbol, isSchemNil, isSchemJSReference, isSchemCollection } from './typeGuards';
 import { SchemContextInstance, SchemFunction, SchemList, AnySchemType, SchemVector, SchemNil } from './types';
 
 export async function pr_str(ast: any, escapeStrings: boolean = true): Promise<string> {
@@ -69,12 +69,12 @@ export async function pr_str(ast: any, escapeStrings: boolean = true): Promise<s
 
 export async function prettyPrint(ast: AnySchemType, escapeStrings: boolean = true, opts: { indentSize: number } = { indentSize: 2 }, currentIndentDepth = 0, addComma = false): Promise<string> {
     if (ast instanceof SchemList) {
-        return `(${(await ast.amap(e => prettyPrint(e, escapeStrings, opts, currentIndentDepth + 1))).join(' ')})` +
+        return `(${(await ast.amap(async e => await prettyPrint(e, escapeStrings, opts, currentIndentDepth + 1))).join(' ')})` +
             (addComma ? ',' : '');
     } else if (ast instanceof SchemVector) {
         return '[' +
-            (await ast.amap((e, index) => {
-                return prettyPrint(e, escapeStrings, opts, currentIndentDepth + 1, (index < ast.length - 1));
+            (await ast.amap(async (e, index) => {
+                return await prettyPrint(e, escapeStrings, opts, currentIndentDepth + 1, (index < ast.length - 1));
             })).join(' ') +
             ']' +
             (addComma ? ',' : '');
@@ -94,9 +94,9 @@ export async function prettyPrint(ast: AnySchemType, escapeStrings: boolean = tr
         const numberOfElements = ast.flatten().length;
         return '{\n' +
             ' '.repeat(opts.indentSize * (currentIndentDepth + 1)) +
-            ast.flatten().map((e, index) => {
+            ast.flatten().map(async (e, index) => {
                 let useComma = ((index % 2) > 0) && (index < numberOfElements - 1);
-                return prettyPrint(e, escapeStrings, opts, currentIndentDepth + 1, useComma);
+                return await prettyPrint(e, escapeStrings, opts, currentIndentDepth + 1, useComma);
             }).join(' ') +
             '\n' + ' '.repeat(opts.indentSize * (currentIndentDepth)) +
             '}' +
@@ -104,4 +104,50 @@ export async function prettyPrint(ast: AnySchemType, escapeStrings: boolean = tr
     } else {
         return await pr_str(ast, escapeStrings) + (addComma ? ',' : '');
     }
+}
+
+export async function prettyLog(ast: AnySchemType): Promise<void> {
+    if (isSchemList(ast) || isSchemVector(ast) || isSchemMap(ast)) {
+        let groupTitle = 'unknown collection type';
+        let flatCollection;
+
+        if (isSchemMap(ast)) {
+            flatCollection = ast.flatten();
+            groupTitle = '{';
+        } else {
+            if (isSchemList(ast)) {
+                groupTitle = `(`;
+            } else if (isSchemVector(ast)) {
+                groupTitle = '[';
+            } 
+            flatCollection = ast;
+        }
+
+        let previewString = '';
+        for (let i = 0; i < flatCollection.length && previewString.length < 100; i++) {
+            previewString += await pr_str(flatCollection[i]) + ' ';
+        }
+
+        if (previewString.length > 100) {
+            previewString = previewString.slice(0, 100) + ' (...)';
+        } else {
+            if (isSchemMap(ast)) previewString.replace(/ $/, '}');
+            if (isSchemList(ast)) previewString.replace(/ $/, ')');
+            if (isSchemVector(ast)) previewString.replace(/ $/, ']')
+        }
+
+        console.groupCollapsed(groupTitle + previewString);
+
+        for (let i = 0; i < flatCollection.length; i++) {
+            if (i > 100) {
+                console.log(`[omitting ${flatCollection.length - i} more items]`)
+                i = flatCollection.length;
+            }
+            await prettyLog(flatCollection[i]);
+        }
+        console.groupEnd();
+    } else {
+        console.log(await pr_str(ast));
+    }
+    return undefined;
 }
