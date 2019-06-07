@@ -38,7 +38,7 @@ export class Schem {
         // Schem functions that need to reference the repl Environment go here - addMap doesn't support that
         this.replEnv.set('eval', (rand: AnySchemType) => this.evalSchem(rand, this.replEnv));
         this.replEnv.set('swap!', async (atom: SchemAtom, fn: SchemFunction, ...rest: AnySchemType[]) => {
-            atom.setValue(await this.evalSchem(new SchemList(fn, atom.getValue(), ...rest), this.replEnv));
+            atom.setValue(fn.invoke(atom.getValue(), ...rest));
             return atom.getValue();
         }
         );
