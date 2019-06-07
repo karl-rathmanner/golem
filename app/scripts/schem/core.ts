@@ -2,7 +2,7 @@ import { isArray } from 'util';
 import { browser } from 'webextension-polyfill-ts';
 import { atomicSchemObjectToJS, jsObjectToSchemType, resolveJSPropertyChain, schemToJs, setJsProperty } from '../javascriptInterop';
 import { VirtualFileSystem } from '../virtualFilesystem';
-import { prettyPrint, pr_str } from './printer';
+import { prettyPrint, pr_str, prettyLog } from './printer';
 import { readStr } from './reader';
 import { isSchemAtom, isSchemFunction, isSchemJSReference, isSchemKeyword, isSchemLazyVector, isSchemList, isSchemMap, isSchemNumber, isSchemString, isSchemSymbol, isSchemType, isSchemVector, isSequential, isValidKeyType } from './typeGuards';
 import { AnySchemType, RegularSchemCollection, SchemAtom, SchemBoolean, SchemFunction, SchemJSReference, SchemKeyword, SchemLazyVector, SchemList, SchemMap, SchemMapKey, SchemNil, SchemNumber, SchemRegExp, SchemString, SchemSymbol, SchemVector } from './types';
@@ -388,15 +388,15 @@ export const coreFunctions: { [symbol: string]: any } = {
     'xhr-post': {
         paramstring: 'url',
         docstring:  `Makes an asynchronous http PUT request and returns a promise. In most cases, you can treat this like a synchronous operation that just takes a lot of time. ;)`,
-        f: async (url: SchemString, body: AnySchemType) => {
-            return xhrPromise('POST', url.valueOf(), schemToJs(body));
+        f: async (url: SchemString, body: any) => {
+            return xhrPromise('POST', url.valueOf(), body);
         },
     },
     'xhr-put': {
         paramstring: 'url body',
         docstring:  `Makes an asynchronous http PUT request and returns a promise. In most cases, you can treat this like a synchronous operation that just takes a lot of time. ;)`,
         f: async (url: SchemString, body: any) => {
-            return xhrPromise('PUT', url.valueOf(), schemToJs(body));
+            return xhrPromise('PUT', url.valueOf(), body);
         },
     },
     'xhr-delete': {
@@ -764,8 +764,8 @@ export const coreFunctions: { [symbol: string]: any } = {
     'log': {
         paramstring: '& args',
         docstring: `Alias for console.log.`,
-        f: (...args: []) => {
-            console.log(...args);
+        f: (arg: any) => {
+            prettyLog(arg);
             return SchemNil.instance;
         },
     },
