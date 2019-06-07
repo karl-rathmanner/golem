@@ -34,7 +34,40 @@ export const shlukerts: EnvSetupMap = {
         f: createShlukertsVector,
         docstring: `Turns an HTML/XML document, subtree or node into a shlukerts vector.`,
         paramstring: `document-or-element`
-    }
+    },
+    'html->shluk' :  {
+        f: (str: SchemString) => {
+            const dp = new DOMParser();
+            return createShlukertsVector(dp.parseFromString(str.toString(), 'text/html'));
+        },
+        docstring: `Parses an HTLM string and turns the resulting document into a shlukerts vector.`,
+        paramstring: `html-string`
+    },
+    'xml->shluk' :  {
+        f: (str: SchemString) => {
+            const dp = new DOMParser();
+            return createShlukertsVector(dp.parseFromString(str.toString(), 'text/xml'));
+        },
+        docstring: `Parses an XML string and turns the resulting document into a shlukerts vector.`,
+        paramstring: `xml-string`
+    },
+    'parse-xml' : {
+        f: (str: SchemString) => {
+            const dp = new DOMParser();
+            return dp.parseFromString(str.toString(), 'text/xml');
+        },
+        docstring: `Uses DOMParser to turn an XML-String into a document object.`,
+        paramstring: `xml-string`
+    },
+    'parse-html' : {
+        f: (str: SchemString) => {
+            const dp = new DOMParser();
+            return dp.parseFromString(str.toString(), 'text/html');
+        },
+        docstring: `Uses DOMParser to turn an HTML-String into a document object.`,
+        paramstring: `xml-string`
+    },
+
 };
 
 async function createDocumentFragment(shlukertsVector: SchemVector | SchemNil): Promise<HTMLElement | void> {
@@ -52,6 +85,10 @@ async function createDocumentFragment(shlukertsVector: SchemVector | SchemNil): 
             element.setAttribute('golem-atom', watchName); 
             atom.addWatch(SchemKeyword.from(watchName), new SchemFunction(async (...args: any) => {
                 let [, , , newValue] = args;
+
+                if (newValue instanceof Promise) {
+                    newValue = await newValue;
+                }
 
                 if (transformationFuncion != null) {
                     newValue = await transformationFuncion.f(newValue);
@@ -160,7 +197,7 @@ function createShlukertsVector(nodeOrDocument: Element | Document) : SchemVector
     if (nodeOrDocument == null) return SchemNil.instance;
     const vector = new SchemVector();
 
-    if (! (nodeOrDocument instanceof Document)) {
+    if (!(nodeOrDocument instanceof Document)) {
         vector.push(SchemKeyword.from(nodeOrDocument.nodeName));
 
         if (nodeOrDocument.hasAttributes()) {
@@ -172,6 +209,8 @@ function createShlukertsVector(nodeOrDocument: Element | Document) : SchemVector
             }
             vector.push(attrMap);
         }
+    } else {
+        vector.push(SchemKeyword.from('#document'));
     }
     
     const childNodes = nodeOrDocument.childNodes;
