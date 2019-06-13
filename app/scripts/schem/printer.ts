@@ -1,4 +1,4 @@
-import { isSchemAtom, isSchemBoolean, isSchemLazyVector, isSchemMap, isSchemNumber, isSchemString, isSchemSymbol, isSchemList, isSchemVector, isSchemKeyword, isSchemRegExp, isSchemContextSymbol, isSchemNil, isSchemJSReference, isSchemCollection } from './typeGuards';
+import { isSchemAtom, isSchemBoolean, isSchemLazyVector, isSchemMap, isSchemNumber, isSchemString, isSchemSymbol, isSchemList, isSchemVector, isSchemKeyword, isSchemRegExp, isSchemContextSymbol, isSchemNil, isSchemJSReference, isSchemCollection, isSchemType } from './typeGuards';
 import { SchemContextInstance, SchemFunction, SchemList, AnySchemType, SchemVector, SchemNil } from './types';
 
 export async function pr_str(ast: any, escapeStrings: boolean = true): Promise<string> {
@@ -147,7 +147,11 @@ export async function prettyLog(ast: AnySchemType): Promise<void> {
         }
         console.groupEnd();
     } else {
-        console.log(await pr_str(ast));
+        if (isSchemType(ast)) {
+            console.log(await pr_str(ast));
+        } else {
+            console.log(ast);
+        }
     }
     return undefined;
 }
