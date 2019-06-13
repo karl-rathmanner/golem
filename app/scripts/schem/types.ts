@@ -665,7 +665,6 @@ export class SchemContextInstance implements TaggedType {
     constructor(public id: number, public tabId: number, public windowId: number, public definition: SchemContextDefinition, public frameId?: number) {
     }
 
-
     static fromStringified(serialized: string) {
         const obj = JSON.parse(serialized) as SchemContextInstance;
         return new SchemContextInstance(obj.id, obj.tabId, obj.windowId, SchemContextDefinition.fromDirtyParsedJSONObject(obj.definition), obj.frameId);

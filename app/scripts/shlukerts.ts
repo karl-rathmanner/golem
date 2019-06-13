@@ -67,7 +67,6 @@ export const shlukerts: EnvSetupMap = {
         docstring: `Uses DOMParser to turn an HTML-String into a document object.`,
         paramstring: `xml-string`
     },
-
 };
 
 async function createDocumentFragment(shlukertsVector: SchemVector | SchemNil): Promise<HTMLElement | void> {
