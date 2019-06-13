@@ -15,8 +15,8 @@
     (defmacro not= "Returns true if any argument is not equal to all others." [& args] `(not (= ~@args)))
     (defn nil? "Returns true if argument has the schem value nil; otherwise: false." [x] (= x nil))
     (defn null? "Returns true if argument has the javascript value null; otherwise: false." [x] (= x null))
-    (defn undefined? "Returns true if argument is undefined; otherwise: false." [x] (= x undefined))
-    (defn defined? "Returns true if argument is not undefined; otherwise: false." [x] (not= x undefined))
+    (defn undefined? "Returns true if argument is undefined; otherwise: false." [symbol] (= nil (resolve symbol)))
+    (defn defined? "Returns true if argument is not undefined; otherwise: false." [symbol] (not= nil (resolve symbol)))
         
     (defmacro or 
          "Evaluates args from left to right until it finds the value 'true'. \n Any arguments following the first 'true' won't be evaluated. \n If none of the arguments are true, 'or' returns the value of the last argument."
