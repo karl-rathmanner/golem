@@ -6,8 +6,9 @@ import { Env, EnvSetupMap } from './env';
 import { pr_str } from './printer';
 import { readStr } from './reader';
 import { isCallableSchemType, isSchemBoolean, isSchemContextSymbol, isSchemFunction, isSchemJSReference, isSchemLazyVector, isSchemList, isSchemMap, isSchemNil, isSchemString, isSchemSymbol, isSchemVector, isSequential, isValidKeyType, isSchemType } from './typeGuards';
-import { AnySchemType, SchemAtom, SchemBoolean, SchemContextDefinition, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemString, SchemSymbol, SchemVector, SchemJSReference } from './types';
+import { AnySchemType, SchemAtom, SchemBoolean, SchemContextDefinition, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemString, SchemSymbol, SchemVector, SchemJSReference, SchemNumber } from './types';
 import { isSymbol } from 'util';
+import { GlobalGolemState } from '../GlobalGolemState';
 
 export class Schem {
 
@@ -22,11 +23,44 @@ export class Schem {
     };
 
     private priviledgedContextIsReady = false;
-    private contextManager: SchemContextManager;
+
+    private async getContextManager(): Promise<SchemContextManager> {
+        const ggsInstance = await GlobalGolemState.getInstance();
+        if (ggsInstance != null) {
+            return ggsInstance.contextManager;
+        } else {
+            throw new Error(`Couldn't find context manager because golem couldn't be initialized.`)
+        }
+    }
 
     constructor() {
         this.replEnv.addMap(coreFunctions);
         this.replEnv.addMap(interopFunctions);
+        
+
+        this.replEnv.addMap({
+            'cm-get-active-context-ids': {
+                f: async () => {
+                    const cm = await this.getContextManager();
+                    const contextIds = await cm.getAllActiveContextIds();
+                    return new SchemList(...contextIds.map(e => new SchemNumber(e)));
+                }
+            },
+            'cm-get-context-instance' : {
+                f: async (id: SchemNumber) => {
+                    const cm = await this.getContextManager();
+                    return await cm.getContextInstance(id.valueOf());
+                }
+            },
+            'cm-get-context-id' : {
+                f: async (contextDefinition: SchemContextDefinition) => {
+                    const cm = await this.getContextManager();
+                    const id = cm.idOfContextInstanceMatchingPattern(contextDefinition);
+                    return (id != null) ? new SchemNumber(id) : SchemNil.instance;
+                }
+            }
+        });
+
         // bind bottom types and global objects so they show up in autocompletion
         this.replEnv.set('null', null);
         this.replEnv.set('undefined', undefined);
@@ -377,28 +411,11 @@ export class Schem {
                             continue fromTheTop;
                         }
                     } else if (isSchemContextSymbol(first)) {
-                        // try to initialize context manager
-                        if (this.contextManager == null) {
-                            if (browser.extension != null) {
-                                if (browser.extension.getBackgroundPage != null && browser.extension.getBackgroundPage() != null) {
-                                    this.priviledgedContextIsReady = true;
+                        const contextManager = await this.getContextManager();
 
-                                    if (browser.extension.getBackgroundPage() == null) {
-                                        throw new Error(`Trying to access the priviledged context from an unpriviledged one.`);
-                                    }
-                                    const priviledgedContext = browser.extension.getBackgroundPage().golem.priviledgedContext;
-                                    if (priviledgedContext == null) {
-                                        throw new Error(`priviledged context is either not set up yet`);
-                                    }
-
-                                    this.contextManager = priviledgedContext.globalState.contextManager;
-                                }
-                            }
-                        }
-                        // still no context manager?
-                        if (this.contextManager != null) {
+                        if (contextManager != null) {
                             const contextDef = env.getContextSymbol(first);
-                            const contextIds = await this.contextManager.prepareContexts(contextDef);
+                            const contextIds = await contextManager.prepareContexts(contextDef);
 
                             /** (context-symbol: & forms) or (context-symbol: symbol-that-refers-to-a-form)
                             * execute forms in any context matching the definition bound to contextSymbol:
@@ -420,7 +437,7 @@ export class Schem {
                                     form = new SchemList(SchemSymbol.from('do'), ...ast.slice(1)) as any;
                                 }
 
-                                let resultsAndErrors = await this.contextManager.arepInContexts(contextIds, await pr_str(form), ast[2]);
+                                let resultsAndErrors = await contextManager.arepInContexts(contextIds, await pr_str(form), ast[2]);
                                 return new SchemList(...resultsAndErrors.map(resultOrError => {
                                     if ('result' in resultOrError) {
                                         return readStr(resultOrError.result);
