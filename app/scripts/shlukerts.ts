@@ -9,17 +9,17 @@ export const shlukerts: EnvSetupMap = {
         // [:div {:id "foo"} "I <3 content!"]
         return await createDocumentFragment(shlukertsVector);
         },
-        paramstring: "shlukerts-vector",
-        docstring: 
+        paramstring: 'shlukerts-vector',
+        docstring:
             `Shluk takes vectors and transforms them into a\n` +
             `DOM tree based on a bunch of underdocumented rules.\n` +
             `Have some examples instead:\n\n` +
             `[:h1 {:class "myStyle"} "Some text."]\n` +
             `  └─ Creates an h1 element with attributes.\n` +
-            `[:ul (list [:li "one"] [:li "two])]\n` + 
+            `[:ul (list [:li "one"] [:li "two])]\n` +
             `  └─ Lists are expanded, this turns into:\n` +
             `     [:ul [[:li "one"] [:li "two"]]\n` +
-            `[:span "Text " atom " more text."]\n` + 
+            `[:span "Text " atom " more text."]\n` +
             `  └─ Simple data binding.\n` +
             `     The atom must have a string value.\n` +
             `[atom-with-a-DOM-tree-value]\n` +
@@ -74,14 +74,14 @@ async function createDocumentFragment(shlukertsVector: SchemVector | SchemNil): 
         return;
     } else {
         const tagOrAtom: SchemKeyword | SchemAtom = shlukertsVector[0] as SchemKeyword | SchemAtom;
-        
+
         if (!isSchemKeyword(tagOrAtom) && !isSchemAtom(tagOrAtom)) {
             throw new Error(`A shlukerts vector's first element must be a tag (denoted by a keyword or string) or an atom.`);
         }
 
         const bindAtomToElement = (element: HTMLElement, atom: SchemAtom, transformationFuncion?: SchemFunction) => {
             const watchName = 'databinding-watch-' + randomString(16);
-            element.setAttribute('golem-atom', watchName); 
+            element.setAttribute('golem-atom', watchName);
             atom.addWatch(SchemKeyword.from(watchName), new SchemFunction(async (...args: any) => {
                 let [, , , newValue] = args;
 
@@ -101,7 +101,7 @@ async function createDocumentFragment(shlukertsVector: SchemVector | SchemNil): 
                 if (isSchemString(newValue)) {
                     atomElement.textContent = newValue.valueOf();
                 } else if (newValue instanceof HTMLElement) {
-                    newValue.setAttribute('golem-atom', watchName); 
+                    newValue.setAttribute('golem-atom', watchName);
                     const p = atomElement.parentElement;
                     p!.replaceChild(newValue, atomElement);
                 } else {
@@ -109,7 +109,7 @@ async function createDocumentFragment(shlukertsVector: SchemVector | SchemNil): 
                 }
             }));
             return element;
-        }
+        };
 
         // e.g. [:div ...]
         if (isSchemKeyword(tagOrAtom)) {
@@ -118,14 +118,14 @@ async function createDocumentFragment(shlukertsVector: SchemVector | SchemNil): 
             let body = (isSchemMap(shlukertsVector[1])) ? shlukertsVector.slice(2) : shlukertsVector.slice(1);
 
             const [wholeMatch, tagName, id, classNames] =  tagOrAtom.name.match(/([^#.]+)(#[^.]*)?(\.[^#]*)?/) || [null, null, null, null];
-            // e.g. "div#id.c1.c2" -> 
+            // e.g. "div#id.c1.c2" ->
             //
             // tagName == "div"
             // id == "#id" (optional)
             // classNames == ".c1.c2" (optional)
 
             if (wholeMatch == null || tagName == null) throw new Error(`Shlukerts vector started with an invalid keyword. (Expected something like ":tag" or ":tag#id.class1.class2..." etc. but got "${tagOrAtom.name}" instead.)`);
-            
+
             const node = document.createElement(tagName);
 
             if (id != null) {
@@ -135,7 +135,7 @@ async function createDocumentFragment(shlukertsVector: SchemVector | SchemNil): 
             if (classNames != null) {
                 attributes.set(SchemKeyword.from('class'), new SchemString(classNames.slice(1).replace('.', ' ')));
             }
-    
+
             // expand lists into the body, turning [:ul (list [:li "ah"] [:li "oh"])] into [:ul [:li "ah"] [:li "oh"]]
             body = body.reduce((body: AnySchemType[], element): AnySchemType[] => {
                 if (isSchemList(element)) {
@@ -146,7 +146,7 @@ async function createDocumentFragment(shlukertsVector: SchemVector | SchemNil): 
                 return body;
             }, []);
 
-            
+
             if (attributes != null) attributes.forEach((key, value) => {
                 const attributeName = isSchemKeyword(key) ? key.name : key.getStringRepresentation();
                 node.setAttribute(attributeName, value.toString());
@@ -192,7 +192,7 @@ async function createDocumentFragment(shlukertsVector: SchemVector | SchemNil): 
     }
 }
 
-function createShlukertsVector(nodeOrDocument: Element | Document) : SchemVector | SchemNil {
+function createShlukertsVector(nodeOrDocument: Element | Document): SchemVector | SchemNil {
     if (nodeOrDocument == null) return SchemNil.instance;
     const vector = new SchemVector();
 
@@ -204,14 +204,14 @@ function createShlukertsVector(nodeOrDocument: Element | Document) : SchemVector
             for (let i = 0; i < nodeOrDocument.attributes.length; i++) {
                 attrMap.set(
                     SchemKeyword.from(nodeOrDocument.attributes[i].name),
-                    new SchemString(nodeOrDocument.attributes[i].value))
+                    new SchemString(nodeOrDocument.attributes[i].value));
             }
             vector.push(attrMap);
         }
     } else {
         vector.push(SchemKeyword.from('#document'));
     }
-    
+
     const childNodes = nodeOrDocument.childNodes;
 
     if (childNodes != null) for (const element of nodeOrDocument.childNodes) {
