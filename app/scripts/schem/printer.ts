@@ -6,7 +6,7 @@ export async function pr_str(ast: any, escapeStrings: boolean = true): Promise<s
         return (ast.valueOf()) ? 'true' : 'false';
     } else if (isNumber(ast)) {
         return ast.toString();
-    } else if (ast instanceof SchemNil) { // wat? -> isSchemNil(ast)) {
+    } else if (ast instanceof SchemNil) {
         return 'nil';
     } else if (isSchemSymbol(ast) || isSchemKeyword(ast) || isSchemRegExp(ast) || isSchemContextSymbol(ast)) {
         return ast.toString();

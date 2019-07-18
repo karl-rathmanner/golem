@@ -14,8 +14,10 @@ export const shlukerts: EnvSetupMap = {
             `Shluk takes vectors and transforms them into a\n` +
             `DOM tree based on a bunch of underdocumented rules.\n` +
             `Have some examples instead:\n\n` +
-            `[:h1 {:class "myStyle"} "Some text."]\n` +
-            `  └─ Creates an h1 element with attributes.\n` +
+            `[:h1 {:title "Some title."} "Some text."]\n` +
+            `  └─ Creates an h1 element with a title attribute.\n` +
+            `[:div#myId.myClass.myOtherClass "Some other text."]\n` +
+            `  └─ Optional id and classes shorthand.\n` +
             `[:ul (list [:li "one"] [:li "two])]\n` +
             `  └─ Lists are expanded, this turns into:\n` +
             `     [:ul [[:li "one"] [:li "two"]]\n` +

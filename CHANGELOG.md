@@ -1,3 +1,23 @@
+## 0.11.0
+Schem improvements:
+- Finally removed SchemBoolean, SchemNumber and SchemString types. The interpreter uses the respective native types now, which is a lot cleaner.
+- Added 'try', 'catch' and 'throw' forms.
+- Added a bunch of other functions.
+
+Shlukerts:
+- Added one way data binding. If you use atoms within shlukerts vectors the corresponding dom elements will be automatically updated whenever the atoms' values change. No examples, yet. Sorry.
+- Added functions for converting structures the other way. (e.g. dom tree to shlukerts vector)
+- Added xml/html parsing functions.
+- Added the id/class shorthand syntax that hiccup uses.
+
+Editor improvements:
+- Upgraded to monaco 0.17.0
+- Added support for css, xml, html and plain text buffers.
+- Added proper parinfer rule relaxation near the cursor.
+- Autocompletion is now aware of where tokens start and end. 
+- Parinfer can be enabled and disabled through the F2 menu.
+- Some syntax highlighting tweaks.
+
 ## 0.10.0
 Some quality of life improvements:
 - Documentation for special forms and hard-wired symbols. (Press [ctrl+space] when the intellisense popup is open.)
