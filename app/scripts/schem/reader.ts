@@ -1,4 +1,4 @@
-import { AnySchemType, SchemList, SchemSymbol, SchemNil, SchemBoolean, SchemVector, SchemMap, SchemKeyword, SchemMapKey, SchemContextSymbol, RegularSchemCollection, Indexable } from './types';
+import { AnySchemType, SchemList, SchemSymbol, SchemNil, SchemVector, SchemMap, SchemKeyword, SchemMapKey, SchemContextSymbol, RegularSchemCollection, Indexable } from './types';
 import { isSchemSymbol, isSchemKeyword, isSchemMap, isString, isNumber } from './typeGuards';
 
 type token = {
@@ -178,8 +178,8 @@ function readAtom(reader: Reader) {
         return SchemContextSymbol.from(token.value.substr(0, token.value.length - 1));
         // true, false and nil are straight forward
     } else switch (token.value) {
-        case 'true': return SchemBoolean.true;
-        case 'false': return SchemBoolean.false;
+        case 'true': return true;
+        case 'false': return false;
         case 'nil': return SchemNil.instance;
     }
 

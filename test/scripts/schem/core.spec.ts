@@ -1,6 +1,6 @@
 import { coreFunctions } from '../../../app/scripts/schem/core';
 import { expect, use } from 'chai';
-import { SchemBoolean, SchemList, SchemMap, SchemNil, SchemVector, SchemKeyword, SchemSymbol, AnySchemType } from '../../../app/scripts/schem/types';
+import { SchemList, SchemMap, SchemNil, SchemVector, SchemKeyword, SchemSymbol, AnySchemType } from '../../../app/scripts/schem/types';
 import schemHelpers from './chaiSchemHelper';
 // Adds Schem specific assertions to chai
 use(schemHelpers);
@@ -21,47 +21,47 @@ describe('core operators', function () {
 
     describe('(= x y &) - equality', function () {
         it('always true with a single argument', function () {
-            expect(getCoreFunction('=')(1)).equals(SchemBoolean.true);
-            expect(SchemBoolean.true).equals(SchemBoolean.true);
-            expect(getCoreFunction('=')(SchemNil.instance)).equals(SchemBoolean.true);
-            expect(getCoreFunction('=')('meep')).equals(SchemBoolean.true);
+            expect(getCoreFunction('=')(1)).equals(true);
+            expect(true).equals(true);
+            expect(getCoreFunction('=')(SchemNil.instance)).equals(true);
+            expect(getCoreFunction('=')('meep')).equals(true);
         });
 
         it('true when two values and types are equal', function () {
-            expect(getCoreFunction('=')(1, 1)).equals(SchemBoolean.true);
-            expect(getCoreFunction('=')('meep', 'meep')).equals(SchemBoolean.true);
-            expect(getCoreFunction('=')(SchemKeyword.from('k'), SchemKeyword.from('k'))).equals(SchemBoolean.true);
+            expect(getCoreFunction('=')(1, 1)).equals(true);
+            expect(getCoreFunction('=')('meep', 'meep')).equals(true);
+            expect(getCoreFunction('=')(SchemKeyword.from('k'), SchemKeyword.from('k'))).equals(true);
         });
 
         it('false for two different values or types', function () {
-            expect(getCoreFunction('=')(1, 2)).equals(SchemBoolean.false);
-            expect(getCoreFunction('=')(SchemKeyword.from('a'), SchemKeyword.from('b'))).equals(SchemBoolean.false);
-            expect(getCoreFunction('=')(SchemKeyword.from('a'), SchemSymbol.from('a'))).equals(SchemBoolean.false);
+            expect(getCoreFunction('=')(1, 2)).equals(false);
+            expect(getCoreFunction('=')(SchemKeyword.from('a'), SchemKeyword.from('b'))).equals(false);
+            expect(getCoreFunction('=')(SchemKeyword.from('a'), SchemSymbol.from('a'))).equals(false);
         });
 
 
         it('true when all of more than two values and types are the same', function () {
-            expect(getCoreFunction('=')(1, 1, 1)).equals(SchemBoolean.true);
-            expect(getCoreFunction('=')(SchemBoolean.false, SchemBoolean.false, SchemBoolean.false, SchemBoolean.false)).equals(SchemBoolean.true);
+            expect(getCoreFunction('=')(1, 1, 1)).equals(true);
+            expect(getCoreFunction('=')(false, false, false, false)).equals(true);
         });
 
         it('false if any one of more than two values or types is different', function () {
-            expect(getCoreFunction('=')(1, 1, 2)).equals(SchemBoolean.false);
-            expect(getCoreFunction('=')('a', 'b', 'a')).equals(SchemBoolean.false);
-            expect(getCoreFunction('=')(SchemSymbol.from('a'), SchemSymbol.from('a'), SchemKeyword.from('a'))).equals(SchemBoolean.false);
+            expect(getCoreFunction('=')(1, 1, 2)).equals(false);
+            expect(getCoreFunction('=')('a', 'b', 'a')).equals(false);
+            expect(getCoreFunction('=')(SchemSymbol.from('a'), SchemSymbol.from('a'), SchemKeyword.from('a'))).equals(false);
         });
 
         it('true for collections with same length and content, regardless of type', function () {
-            expect(getCoreFunction('=')(SchemList.fromPrimitiveValues(1, 2, 3, 4, 5), SchemVector.fromPrimitiveValues(1, 2, 3, 4, 5))).equals(SchemBoolean.true);
+            expect(getCoreFunction('=')(SchemList.fromPrimitiveValues(1, 2, 3, 4, 5), SchemVector.fromPrimitiveValues(1, 2, 3, 4, 5))).equals(true);
             expect(getCoreFunction('=')(new SchemVector(42, '42', SchemKeyword.from('42')),
                 new SchemList(42, '42', SchemKeyword.from('42'))));
-            expect(getCoreFunction('=')(SchemList.fromPrimitiveValues(1, 2, 3, 4), SchemVector.fromPrimitiveValues(1, 2, 3, 4))).equals(SchemBoolean.true);
+            expect(getCoreFunction('=')(SchemList.fromPrimitiveValues(1, 2, 3, 4), SchemVector.fromPrimitiveValues(1, 2, 3, 4))).equals(true);
         });
 
         it('false for lists with different length or content', function () {
-            expect(getCoreFunction('=')(SchemList.fromPrimitiveValues(1, 2, 3, 4, 5), SchemList.fromPrimitiveValues(1, 2, 3, 4))).equals(SchemBoolean.false);
-            expect(getCoreFunction('=')(SchemVector.fromPrimitiveValues(1, 2, 3, 4), SchemVector.fromPrimitiveValues(4, 2, 4, 2))).equals(SchemBoolean.false);
-            expect(getCoreFunction('=')(SchemVector.fromPrimitiveValues(1, 2, 3, 4), SchemList.fromPrimitiveValues(42, 23, 42, 23))).equals(SchemBoolean.false);
+            expect(getCoreFunction('=')(SchemList.fromPrimitiveValues(1, 2, 3, 4, 5), SchemList.fromPrimitiveValues(1, 2, 3, 4))).equals(false);
+            expect(getCoreFunction('=')(SchemVector.fromPrimitiveValues(1, 2, 3, 4), SchemVector.fromPrimitiveValues(4, 2, 4, 2))).equals(false);
+            expect(getCoreFunction('=')(SchemVector.fromPrimitiveValues(1, 2, 3, 4), SchemList.fromPrimitiveValues(42, 23, 42, 23))).equals(false);
         });
     });
 

@@ -38,7 +38,6 @@ export interface Metadatable {
     // getMetadata(): SchemMap {}
 }
 
-// note: string and number are here for historical reasons - this might change in the future
 export enum SchemTypes {
     SchemList,
     SchemVector,
@@ -64,8 +63,10 @@ export interface TaggedType {
 // types
 
 // TODO: figure out how LazyVectors schould be handled
-export type AnySchemType = number | string | SchemList | SchemVector | SchemMap | SchemSymbol | SchemKeyword | SchemNil |
-    SchemRegExp | SchemFunction | SchemBoolean | SchemAtom | SchemContextSymbol |
+
+// note: string and number are here for historical reasons - this might change in the future
+export type AnySchemType = boolean | number | string | SchemList | SchemVector | SchemMap | SchemSymbol | SchemKeyword | SchemNil |
+    SchemRegExp | SchemFunction | SchemAtom | SchemContextSymbol |
     SchemContextDefinition | SchemContextInstance | SchemJSReference;
 export type RegularSchemCollection = SchemList | SchemVector | SchemMap;
 export type SchemMapKey = number | string | SchemSymbol | SchemKeyword ;
@@ -385,20 +386,6 @@ export class SchemNil implements TaggedType {
     public typeTag: SchemTypes.SchemNil = SchemTypes.SchemNil;
     static instance = new SchemNil();
     private constructor() { }
-}
-
-export class SchemBoolean extends Boolean implements TaggedType {
-    public typeTag: SchemTypes.SchemBoolean = SchemTypes.SchemBoolean;
-    static false = new SchemBoolean(false);
-    static true = new SchemBoolean(true);
-
-    static fromBoolean(v: boolean) {
-        return v ? SchemBoolean.true : SchemBoolean.false;
-    }
-
-    private constructor(v: boolean) {
-        super(v);
-    }
 }
 
 export class SchemRegExp extends RegExp implements TaggedType {

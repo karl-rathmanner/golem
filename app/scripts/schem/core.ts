@@ -5,7 +5,7 @@ import { VirtualFileSystem } from '../virtualFilesystem';
 import { prettyPrint, pr_str, prettyLog } from './printer';
 import { readStr } from './reader';
 import { isSchemAtom, isSchemFunction, isSchemJSReference, isSchemKeyword, isSchemLazyVector, isSchemList, isSchemMap, isNumber, isString, isSchemSymbol, isSchemType, isSchemVector, isSequential, isValidKeyType } from './typeGuards';
-import { AnySchemType, RegularSchemCollection, SchemAtom, SchemBoolean, SchemFunction, SchemJSReference, SchemKeyword, SchemLazyVector, SchemList, SchemMap, SchemMapKey, SchemNil, SchemRegExp, SchemSymbol, SchemVector, getTypeTag } from './types';
+import { AnySchemType, RegularSchemCollection, SchemAtom, SchemFunction, SchemJSReference, SchemKeyword, SchemLazyVector, SchemList, SchemMap, SchemMapKey, SchemNil, SchemRegExp, SchemSymbol, SchemVector, getTypeTag } from './types';
 
 export const coreFunctions: { [symbol: string]: any } = {
     'indentity': {
@@ -73,7 +73,7 @@ export const coreFunctions: { [symbol: string]: any } = {
         f: (...args: any[]) => {
             throwErrorIfArityIsInvalid(args.length, 1);
             // If passed a single value (= x) the result is always true.
-            if (args.length === 1) return SchemBoolean.true;
+            if (args.length === 1) return true;
 
             const lessStrictEquality = (a: any, b: any) => {
                 if (!isSchemType(a) || !isSchemType(b)) {
@@ -96,14 +96,14 @@ export const coreFunctions: { [symbol: string]: any } = {
 
                     // Compare contents
                     for (let j = 0; j < a.length; j++) {
-                        if (!lessStrictEquality(a[j], b[j])) return SchemBoolean.false;
+                        if (!lessStrictEquality(a[j], b[j])) return false;
                     }
 
                 } else { // a & b are non-collection types
-                    if (!lessStrictEquality(a, b)) return SchemBoolean.false;
+                    if (!lessStrictEquality(a, b)) return false;
                 }
             }
-            return SchemBoolean.true; // none of the checks above failed, so all arguments must be equal
+            return true; // none of the checks above failed, so all arguments must be equal
         },
     },
     '>': {
@@ -181,91 +181,91 @@ export const coreFunctions: { [symbol: string]: any } = {
         paramstring: 'value',
         docstring: `Returns true if the argument is empty. (When its count or length is zero.)`,
         f: (arg: any) => {
-            return SchemBoolean.fromBoolean('length' in arg && arg.length === 0);
+            return 'length' in arg && arg.length === 0;
         },
     },
     'number?': {
         paramstring: 'value',
         docstring: `Returns true if the argument is a number.`,
         f: (arg: AnySchemType) => {
-            return SchemBoolean.fromBoolean(isNumber(arg));
+            return isNumber(arg);
         },
     },
     'string?': {
         paramstring: 'value',
         docstring: `Returns true if the argument is a string.`,
         f: (arg: AnySchemType) => {
-            return SchemBoolean.fromBoolean(isString(arg) || typeof arg === 'string');
+            return isString(arg) || typeof arg === 'string';
         },
     },
     'symbol?': {
         paramstring: 'value',
         docstring: `Returns true if the argument is a symbol.`,
         f: (arg: AnySchemType) => {
-            return SchemBoolean.fromBoolean(isSchemSymbol(arg));
+            return isSchemSymbol(arg);
         },
     },
     'keyword?': {
         paramstring: 'value',
         docstring: `Returns true if the argument is a keyword.`,
         f: (arg: AnySchemType) => {
-            return SchemBoolean.fromBoolean(isSchemKeyword(arg));
+            return isSchemKeyword(arg);
         },
     },
     'schem-function?': {
         paramstring: 'value',
         docstring: `Returns true if the argument is a SchemFunction. Will return fale for native js functions..`,
         f: (arg: AnySchemType) => {
-            return SchemBoolean.fromBoolean(isSchemFunction(arg));
+            return isSchemFunction(arg);
         },
     },
     'js-function?': {
         paramstring: 'value',
         docstring: `Returns true if the argument is a native javascript function. Will return false for Schem`,
         f: (arg: AnySchemType) => {
-            return SchemBoolean.fromBoolean(typeof arg === 'function' && !isSchemFunction(arg));
+            return typeof arg === 'function' && !isSchemFunction(arg);
         },
     },
     'atom?': {
         paramstring: 'value',
         docstring: `Returns true if the argument is an atom.`,
         f: (arg: AnySchemType) => {
-            return SchemBoolean.fromBoolean(isSchemAtom(arg));
+            return isSchemAtom(arg);
         },
     },
     'list?': {
         paramstring: 'value',
         docstring: `Returns true if the argument is a list.`,
-        f: (arg: AnySchemType): SchemBoolean => {
-            return SchemBoolean.fromBoolean(isSchemList(arg));
+        f: (arg: AnySchemType) => {
+            return isSchemList(arg);
         },
     },
     'vecor?': {
         paramstring: 'value',
         docstring: `Returns true if the argument is a vector.`,
-        f: (arg: AnySchemType): SchemBoolean => {
-            return SchemBoolean.fromBoolean(isSchemVector(arg));
+        f: (arg: AnySchemType) => {
+            return isSchemVector(arg);
         },
     },
     'map?': {
         paramstring: 'value',
         docstring: `Returns true if the argument is a map.`,
-        f: (arg: AnySchemType): SchemBoolean => {
-            return SchemBoolean.fromBoolean(isSchemMap(arg));
+        f: (arg: AnySchemType) => {
+            return isSchemMap(arg);
         },
     },
     'array?': {
         paramstring: 'value',
         docstring: `Returns true if the argument is a js Array of some kind.`,
-        f: (arg: AnySchemType): SchemBoolean => {
-            return SchemBoolean.fromBoolean(isArray(arg));
+        f: (arg: AnySchemType) => {
+            return isArray(arg);
         },
     },
     'schem-type?': {
         paramstring: 'value',
         docstring: `Returns true if the argument is any Schem type.`,
         f: (arg: AnySchemType) => {
-            return SchemBoolean.fromBoolean(isSchemType(arg));
+            return isSchemType(arg);
         },
     },
     'count': {
@@ -568,7 +568,7 @@ export const coreFunctions: { [symbol: string]: any } = {
         docstring: `Returns a new list, containing all elements of the original list for which the predicate function returns true. Checks run kind of cuncurrently.`,
         f: async (pred: SchemFunction, seq: SchemVector | SchemList) => {
             const elementValidity = await Promise.all(seq.map((value) => {
-                return pred.f(value).then((result: any) => (result === SchemBoolean.true));
+                return pred.f(value).then((result: any) => (result === true));
             }));
 
             const newList = new SchemList();
@@ -836,7 +836,7 @@ export const coreFunctions: { [symbol: string]: any } = {
         docstring: `Returns true if a file by that name exists in the virtual file system.`,
         f: async (qualifiedObjectName: string) => {
             let exists = await VirtualFileSystem.existsOject(qualifiedObjectName.valueOf());
-            return SchemBoolean.fromBoolean(exists);
+            return exists;
         },
     },
     'storage-clear-all': {
@@ -895,10 +895,10 @@ function doNumericComparisonForEachConsecutivePairInArray(predicate: (a: number,
         }
         if (!predicate(args[i], args[i + 1])) {
             // return on the first failed test
-            return SchemBoolean.false;
+            return false;
         }
     }
-    return SchemBoolean.true;
+    return true;
 }
 
 function throwErrorIfArityIsInvalid(argsLength: number, min: number = 1, max: number = Infinity, even: boolean = false) {

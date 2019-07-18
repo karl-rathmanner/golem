@@ -1,8 +1,8 @@
-import { isSchemAtom, isSchemBoolean, isSchemLazyVector, isSchemMap, isNumber, isString, isSchemSymbol, isSchemList, isSchemVector, isSchemKeyword, isSchemRegExp, isSchemContextSymbol, isSchemNil, isSchemJSReference, isSchemCollection, isSchemType } from './typeGuards';
+import { isSchemAtom, isBoolean, isSchemLazyVector, isSchemMap, isNumber, isString, isSchemSymbol, isSchemList, isSchemVector, isSchemKeyword, isSchemRegExp, isSchemContextSymbol, isSchemNil, isSchemJSReference, isSchemCollection, isSchemType } from './typeGuards';
 import { SchemContextInstance, SchemFunction, SchemList, AnySchemType, SchemVector, SchemNil } from './types';
 
 export async function pr_str(ast: any, escapeStrings: boolean = true): Promise<string> {
-    if (isSchemBoolean(ast)) {
+    if (isBoolean(ast)) {
         return (ast.valueOf()) ? 'true' : 'false';
     } else if (isNumber(ast)) {
         return ast.toString();

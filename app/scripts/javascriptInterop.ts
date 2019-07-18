@@ -1,5 +1,5 @@
 import { isString, isSchemMap, isSchemKeyword, isSequable, isSchemCollection, isSchemType, isSchemNil, isNumber, isSchemSymbol, isSchemFunction } from './schem/typeGuards';
-import { AnySchemType, SchemJSReference, SchemMap, SchemSymbol, toSchemMapKey, SchemNil, SchemKeyword, SchemList, SchemVector, SchemBoolean } from './schem/types';
+import { AnySchemType, SchemJSReference, SchemMap, SchemSymbol, toSchemMapKey, SchemNil, SchemKeyword, SchemList, SchemVector } from './schem/types';
 const browser = chrome;
 
 export const interopFunctions: { [symbol: string]: any } = {
@@ -223,7 +223,7 @@ export function primitiveValueToSchemType(value: any, defaultValue?: AnySchemTyp
     switch (typeof value) {
         case 'string': return value;
         case 'number': return value;
-        case 'boolean': return SchemBoolean.fromBoolean(value);
+        case 'boolean': return value;
         case 'undefined': return SchemNil.instance;
         default:
             if (defaultValue != null) {

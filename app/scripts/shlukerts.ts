@@ -1,4 +1,4 @@
-import { AnySchemType, SchemVector, SchemNil, SchemBoolean, SchemMap, SchemKeyword, SchemFunction, SchemAtom } from './schem/types';
+import { AnySchemType, SchemVector, SchemNil, SchemMap, SchemKeyword, SchemFunction, SchemAtom } from './schem/types';
 import { isSchemNil, isSchemVector, isSchemKeyword, isSchemMap, isString, isSchemList, isSchemAtom, isSchemFunction } from './schem/typeGuards';
 import { randomString } from './utils/utilities';
 import { EnvSetupMap } from './schem/env';

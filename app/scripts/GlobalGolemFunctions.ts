@@ -3,7 +3,7 @@ import { EventPageMessage } from './eventPageMessaging';
 import { GlobalGolemState } from './GlobalGolemState';
 import { schemToJs } from './javascriptInterop';
 import { isSchemList, isSchemSymbol } from './schem/typeGuards';
-import { SchemBoolean, SchemContextDefinition, SchemList, SchemContextInstance } from './schem/types';
+import { SchemContextDefinition, SchemList, SchemContextInstance } from './schem/types';
 import { addParensAsNecessary, escapeXml, objectPatternMatch } from './utils/utilities';
 import { GolemContextMessage } from './contentScriptMessaging';
 
@@ -124,15 +124,15 @@ export class GlobalGolemFunctions {
             // TODO: replace objectPatternMatch with better equality check
             if (currentAICs.find((element) => objectPatternMatch(element, contextDefinition)) === undefined) {
                 this.globalState.addAutoinstantiateContext(contextDefinition);
-                return SchemBoolean.true;
+                return true;
             } else {
-                return SchemBoolean.false;
+                return false;
             }
         },
         'clear-autoinstantiate-context': async () => {
             // const bgp = await browser.runtime.getBackgroundPage();
             this.globalState.clearAutoinstantiateContexts();
-            return SchemBoolean.true;
+            return true;
         },
         'list-autoinstantiate-context-definitions': async () => {
             const aic = await this.globalState.getAutoinstantiateContexts();

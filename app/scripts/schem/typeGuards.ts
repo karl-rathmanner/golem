@@ -1,4 +1,4 @@
-import { AnySchemType, SchemVector, SchemList, SchemMap, SchemContextSymbol, SchemNil, SchemRegExp, SchemFunction, SchemBoolean, SchemAtom, SchemLazyVector, SchemSymbol, SchemKeyword, Callable, SchemMapKey, Sequable, SchemTypes, RegularSchemCollection, SchemJSReference, Indexable } from './types';
+import { AnySchemType, SchemVector, SchemList, SchemMap, SchemContextSymbol, SchemNil, SchemRegExp, SchemFunction, SchemAtom, SchemLazyVector, SchemSymbol, SchemKeyword, Callable, SchemMapKey, Sequable, SchemTypes, RegularSchemCollection, SchemJSReference, Indexable } from './types';
 //
 export function isSequential(object: AnySchemType): object is SchemList | SchemVector {
     return (object instanceof SchemList || isSchemVector(object));
@@ -16,7 +16,7 @@ export function isSchemType(o: any): o is AnySchemType {
         isString(o) ||
         isSchemRegExp(o) ||
         isSchemFunction(o) ||
-        isSchemBoolean(o) ||
+        isBoolean(o) ||
         isSchemLazyVector(o) ||
         isSchemAtom(o)) ||
         isSchemJSReference(o);
@@ -72,8 +72,8 @@ export function isSchemRegExp(o: any): o is SchemRegExp {
     return (o != null && typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemRegExp);
 }
 
-export function isSchemBoolean(o: any): o is SchemBoolean {
-    return (o != null && typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemBoolean);
+export function isBoolean(o: any): o is boolean {
+    return typeof o === 'boolean';
 }
 
 export function isSchemNil(o: any): o is SchemNil {

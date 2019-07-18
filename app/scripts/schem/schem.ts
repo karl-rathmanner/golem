@@ -5,8 +5,8 @@ import { coreFunctions } from './core';
 import { Env, EnvSetupMap } from './env';
 import { pr_str } from './printer';
 import { readStr } from './reader';
-import { isCallableSchemType, isSchemBoolean, isSchemContextSymbol, isSchemFunction, isSchemJSReference, isSchemLazyVector, isSchemList, isSchemMap, isSchemNil, isString, isSchemSymbol, isSchemVector, isSequential, isValidKeyType, isSchemType } from './typeGuards';
-import { AnySchemType, SchemAtom, SchemBoolean, SchemContextDefinition, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemSymbol, SchemVector, SchemJSReference} from './types';
+import { isCallableSchemType, isBoolean, isSchemContextSymbol, isSchemFunction, isSchemJSReference, isSchemLazyVector, isSchemList, isSchemMap, isSchemNil, isString, isSchemSymbol, isSchemVector, isSequential, isValidKeyType, isSchemType } from './typeGuards';
+import { AnySchemType, SchemAtom, SchemContextDefinition, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemSymbol, SchemVector, SchemJSReference} from './types';
 import { isSymbol } from 'util';
 import { GlobalGolemState } from '../GlobalGolemState';
 
@@ -215,7 +215,7 @@ export class Schem {
                                     env.set(contextSymbol, SchemContextDefinition.fromSchemMap(contextDefinitionMap, this));
                                 }
 
-                                return SchemBoolean.true;
+                                return true;
                             }
                             /** (let (symbol1 value1 symbol2 value2 ...) & expressions) or (let [symbol1 value1 symbol2 value2 ...] & expressions)
                             * Creates a new child environment and binds a list of symbols and values, then the 'expressions' are evaluated in that environment.
@@ -273,7 +273,7 @@ export class Schem {
                                     throw `if must be followed by at least two arguments`;
                                 }
                                 const condition = await this.evalSchem(ast[1], env);
-                                if ((isSchemBoolean(condition) && condition === SchemBoolean.false) || isSchemNil(condition)) {
+                                if ((isBoolean(condition) && condition === false) || isSchemNil(condition)) {
                                     ast = (typeof ast[3] === 'undefined') ? SchemNil.instance : ast[3];
                                     continue;
                                 } else {
@@ -349,7 +349,7 @@ export class Schem {
                                 if (!(isSchemMap(options))) throw `(set-interpreter-options options) options must be a map`;
 
                                 options.forEach((key, value) => {
-                                    if (isString(key) && isSchemBoolean(value) && key.valueOf() in this.debug) {
+                                    if (isString(key) && isBoolean(value) && key.valueOf() in this.debug) {
                                         (this.debug as any)[key.valueOf()] = value.valueOf();  // typecast is necessary, because the debug options literal lacks a string indexer – but we allready checked if the object has that key, so it's all good
                                     }
                                     return void 0;
