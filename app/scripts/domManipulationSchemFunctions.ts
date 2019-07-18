@@ -1,11 +1,11 @@
 import { readStr } from './schem/reader';
-import { SchemList, SchemNil, SchemString, AnySchemType } from './schem/types';
+import { SchemList, SchemNil, AnySchemType } from './schem/types';
 
 import { isSchemFunction } from './schem/typeGuards';
 import { jsObjectToSchemType } from './javascriptInterop';
 
 export const domManipulationSchemFunctions = {
-    'set-css-text': async (selector: SchemString, cssText: SchemString) => {
+    'set-css-text': async (selector: string, cssText: string) => {
         const element = document.querySelector<HTMLElement>(selector.valueOf());
         if (element != null) {
             element.style.cssText = cssText.valueOf();
@@ -14,7 +14,7 @@ export const domManipulationSchemFunctions = {
             throw new Error(`No object found with selector ${selector.valueOf()}`);
         }
     },
-    'add-listener': async (eventName: SchemString, selector: SchemString, astOrCode: AnySchemType | string) => {
+    'add-listener': async (eventName: string, selector: string, astOrCode: AnySchemType | string) => {
         let ast: AnySchemType;
         if (typeof astOrCode === 'string') {
             ast = readStr((astOrCode.valueOf()) as string);

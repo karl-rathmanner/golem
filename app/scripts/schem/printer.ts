@@ -1,4 +1,4 @@
-import { isSchemAtom, isSchemBoolean, isSchemLazyVector, isSchemMap, isNumber, isSchemString, isSchemSymbol, isSchemList, isSchemVector, isSchemKeyword, isSchemRegExp, isSchemContextSymbol, isSchemNil, isSchemJSReference, isSchemCollection, isSchemType } from './typeGuards';
+import { isSchemAtom, isSchemBoolean, isSchemLazyVector, isSchemMap, isNumber, isString, isSchemSymbol, isSchemList, isSchemVector, isSchemKeyword, isSchemRegExp, isSchemContextSymbol, isSchemNil, isSchemJSReference, isSchemCollection, isSchemType } from './typeGuards';
 import { SchemContextInstance, SchemFunction, SchemList, AnySchemType, SchemVector, SchemNil } from './types';
 
 export async function pr_str(ast: any, escapeStrings: boolean = true): Promise<string> {
@@ -22,7 +22,7 @@ export async function pr_str(ast: any, escapeStrings: boolean = true): Promise<s
         const kvpairs = ast.flatten();
         const stringifiedPairs = await kvpairs.amap(e => pr_str(e, escapeStrings));
         return `{${stringifiedPairs.join(' ')}}`;
-    } else if (isSchemString(ast)) {
+    } else if (isString(ast)) {
         if (escapeStrings) {
             return `"${ast.replace(/\\/g, '\\\\')
                 .replace(/\n/g, '\\n')

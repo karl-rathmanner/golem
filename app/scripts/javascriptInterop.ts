@@ -1,5 +1,5 @@
-import { isSchemString, isSchemMap, isSchemKeyword, isSequable, isSchemCollection, isSchemType, isSchemNil, isNumber, isSchemSymbol, isSchemFunction } from './schem/typeGuards';
-import { AnySchemType, SchemJSReference, SchemMap, SchemString, SchemSymbol, toSchemMapKey, SchemNil, SchemKeyword, SchemList, SchemVector, SchemBoolean } from './schem/types';
+import { isString, isSchemMap, isSchemKeyword, isSequable, isSchemCollection, isSchemType, isSchemNil, isNumber, isSchemSymbol, isSchemFunction } from './schem/typeGuards';
+import { AnySchemType, SchemJSReference, SchemMap, SchemSymbol, toSchemMapKey, SchemNil, SchemKeyword, SchemList, SchemVector, SchemBoolean } from './schem/types';
 const browser = chrome;
 
 export const interopFunctions: { [symbol: string]: any } = {
@@ -15,10 +15,10 @@ export const interopFunctions: { [symbol: string]: any } = {
     },
     'js-ref': (...args: any[]): SchemJSReference => {
         if (args.length === 1) {
-            if (isSchemString(args[0])) {
+            if (isString(args[0])) {
                 return new SchemJSReference(window, args[0].valueOf());
             } else {
-                throw new Error('js-ref expects a SchemString, when called with a single argument.');
+                throw new Error('js-ref expects a string, when called with a single argument.');
             }
         } else if (args.length === 2) {
             const [parentObject, propertyName] = args;
@@ -27,7 +27,7 @@ export const interopFunctions: { [symbol: string]: any } = {
             throw new Error('js-ref expects one or two arguments');
         }
     },
-    '.': (o: any, propertyChain: SchemString | SchemSymbol) => {
+    '.': (o: any, propertyChain: string | SchemSymbol) => {
         return resolveJSPropertyChain(o, propertyChain.valueOf());
     },
     'js-deref': (jsref: SchemJSReference) => {
@@ -221,7 +221,7 @@ export function jsObjectToSchemType(o: any, options: { arraysToVectors?: boolean
 /** Converts a primitive js value to a Schem object */
 export function primitiveValueToSchemType(value: any, defaultValue?: AnySchemType): AnySchemType {
     switch (typeof value) {
-        case 'string': return new SchemString(value);
+        case 'string': return value;
         case 'number': return value;
         case 'boolean': return SchemBoolean.fromBoolean(value);
         case 'undefined': return SchemNil.instance;

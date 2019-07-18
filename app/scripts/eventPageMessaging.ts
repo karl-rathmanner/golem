@@ -1,5 +1,5 @@
 import { browser, Tabs } from 'webextension-polyfill-ts';
-import { SchemContextDefinition, SchemMap, SchemList, SchemSymbol, AnySchemType, SchemString } from './schem/types';
+import { SchemContextDefinition, SchemMap, SchemList, SchemSymbol, AnySchemType } from './schem/types';
 import { schemToJs } from './javascriptInterop';
 import { GolemContextMessage } from './contentScriptMessaging';
 
@@ -95,7 +95,7 @@ export const eventPageMessagingSchemFunctions = {
             action: 'inject-interpreter'
         }));
     },
-    'arep-in-contexts': async (contexts: SchemList, code: SchemString, options?: AnySchemType) => {
+    'arep-in-contexts': async (contexts: SchemList, code: string, options?: AnySchemType) => {
         return new SchemList(...await requestContextAction({
             contextIds: schemToJs(contexts),
             action: 'arep-in-contexts',

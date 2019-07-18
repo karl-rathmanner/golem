@@ -1,6 +1,5 @@
 import { domManipulationSchemFunctions } from './domManipulationSchemFunctions';
 import { Schem } from './schem/schem';
-import { SchemString } from './schem/types';
 import { SchemEditor } from './SchemEditor';
 import { shlukerts } from './shlukerts';
 import { VirtualFileSystem } from './virtualFilesystem';
@@ -22,7 +21,7 @@ window.onload = async () => {
     // bind searchParams from the url in the Repl's root environment
     const url = new URL(window.location.href);
     url.searchParams.forEach((value, key) => {
-        interpreter.replEnv.set(key, new SchemString(value));
+        interpreter.replEnv.set(key, value);
     });
 
     const qualifiedFileName = window.location.hash;

@@ -5,8 +5,8 @@ import { coreFunctions } from './core';
 import { Env, EnvSetupMap } from './env';
 import { pr_str } from './printer';
 import { readStr } from './reader';
-import { isCallableSchemType, isSchemBoolean, isSchemContextSymbol, isSchemFunction, isSchemJSReference, isSchemLazyVector, isSchemList, isSchemMap, isSchemNil, isSchemString, isSchemSymbol, isSchemVector, isSequential, isValidKeyType, isSchemType } from './typeGuards';
-import { AnySchemType, SchemAtom, SchemBoolean, SchemContextDefinition, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemString, SchemSymbol, SchemVector, SchemJSReference} from './types';
+import { isCallableSchemType, isSchemBoolean, isSchemContextSymbol, isSchemFunction, isSchemJSReference, isSchemLazyVector, isSchemList, isSchemMap, isSchemNil, isString, isSchemSymbol, isSchemVector, isSequential, isValidKeyType, isSchemType } from './typeGuards';
+import { AnySchemType, SchemAtom, SchemBoolean, SchemContextDefinition, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemSymbol, SchemVector, SchemJSReference} from './types';
 import { isSymbol } from 'util';
 import { GlobalGolemState } from '../GlobalGolemState';
 
@@ -349,7 +349,7 @@ export class Schem {
                                 if (!(isSchemMap(options))) throw `(set-interpreter-options options) options must be a map`;
 
                                 options.forEach((key, value) => {
-                                    if (isSchemString(key) && isSchemBoolean(value) && key.valueOf() in this.debug) {
+                                    if (isString(key) && isSchemBoolean(value) && key.valueOf() in this.debug) {
                                         (this.debug as any)[key.valueOf()] = value.valueOf();  // typecast is necessary, because the debug options literal lacks a string indexer – but we allready checked if the object has that key, so it's all good
                                     }
                                     return void 0;
@@ -437,7 +437,7 @@ export class Schem {
                                         return readStr(resultOrError.result);
                                     } else {
                                         const m = new SchemMap();
-                                        m.set(SchemKeyword.from('error'), new SchemString(resultOrError.error));
+                                        m.set(SchemKeyword.from('error'), resultOrError.error);
                                         return m;
                                     }
                                 }));
@@ -512,19 +512,17 @@ export class Schem {
 
         // Both the name and docstring parameters are optional
         if (isSchemSymbol(ast[1])) {
-            if (isSchemString(ast[2])) {
+            if (isString(ast[2])) {
                 // case: (fn name docstring [params] (expr1) (expr2) ...)
                 [, name, docstring, params, ...fnBody] = ast;
-                docstring = (docstring as SchemString).valueOf();
             } else {
                 // case: (fn name [params] (expr1) (expr2) ...)
                 [, name, params, ...fnBody] = ast;
             }
             name = (name as SchemSymbol).name;
-        } else if (isSchemString(ast[1])) {
+        } else if (isString(ast[1])) {
             // case: (fn docstring [params] (expr1) (expr2) ...)
             [, docstring, params, ...fnBody] = ast;
-            docstring = (docstring as SchemString).valueOf();
         } else {
             // case: (fn [params] (expr1) (expr2) ...)
             [, params, ...fnBody] = ast;

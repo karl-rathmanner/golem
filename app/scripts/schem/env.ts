@@ -42,11 +42,11 @@ export class Env {
         if (targetStructure.count() === 0) return true;
 
         // This inner function is used to recursively destructure the sourceStructure's values into the targetStructure
-        const desctructure = async (targetStructure: SchemVector | SchemList | SchemMap, sourceStructure: AnySchemType) => {
+        const desctructure = async (targetStructure: SchemVector | SchemList | SchemMap, sourceStructure: SchemVector | SchemList) => {
 
             // Evaluate 'right side' of a binding
             if (isSchemList(sourceStructure) && interpreter != null) {
-                sourceStructure = await interpreter.evalSchem(sourceStructure, this);
+                sourceStructure = (await interpreter.evalSchem(sourceStructure, this) as SchemVector | SchemList);
             }
 
             if (isSchemVector(targetStructure) || isSchemList(targetStructure)) {
@@ -106,7 +106,7 @@ export class Env {
 
                     } else if (isSchemVector(targetElement) || isSchemList(targetElement) || isSchemMap(targetElement)) {
                         // target structure is nested, we must go deeper
-                        await desctructure(targetElement, sourceElement);
+                        await desctructure(targetElement, (sourceElement as SchemVector | SchemList));
                     } else {
                         throw new Error(`A binds sequence contained something illegal: ${targetElement}`);
                     }

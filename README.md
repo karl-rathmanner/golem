@@ -39,7 +39,7 @@ Run `gulp --watch --vendor=YourBrowserNameHere`, if you want to build golem for 
 
 ### Editing Schem programs in your IDE
 
-Files matching `/app/scripts/schemScripts/*.schem` can be edited in your IDE and will be instantly available at runtime if `gulp --watch` is active. Use slurp to load local file contents and return them as a SchemString. e.g.:
+Files matching `/app/scripts/schemScripts/*.schem` can be edited in your IDE and will be instantly available at runtime if `gulp --watch` is active. Use slurp to load local file contents and return them as a tring. e.g.:
 
 ```clojure
 (slurp "/myScript.schem")

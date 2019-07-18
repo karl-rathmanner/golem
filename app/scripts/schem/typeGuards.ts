@@ -1,4 +1,4 @@
-import { AnySchemType, SchemVector, SchemList, SchemMap, SchemContextSymbol, SchemNil, SchemString, SchemRegExp, SchemFunction, SchemBoolean, SchemAtom, SchemLazyVector, SchemSymbol, SchemKeyword, Callable, SchemMapKey, Sequable, SchemTypes, RegularSchemCollection, SchemJSReference, Indexable } from './types';
+import { AnySchemType, SchemVector, SchemList, SchemMap, SchemContextSymbol, SchemNil, SchemRegExp, SchemFunction, SchemBoolean, SchemAtom, SchemLazyVector, SchemSymbol, SchemKeyword, Callable, SchemMapKey, Sequable, SchemTypes, RegularSchemCollection, SchemJSReference, Indexable } from './types';
 //
 export function isSequential(object: AnySchemType): object is SchemList | SchemVector {
     return (object instanceof SchemList || isSchemVector(object));
@@ -13,7 +13,7 @@ export function isSchemType(o: any): o is AnySchemType {
         isSchemContextSymbol(o) ||
         isSchemKeyword(o) ||
         isSchemNil(o) ||
-        isSchemString(o) ||
+        isString(o) ||
         isSchemRegExp(o) ||
         isSchemFunction(o) ||
         isSchemBoolean(o) ||
@@ -64,8 +64,8 @@ export function isNumber(o: any): o is number {
     return (typeof o === 'number');
 }
 
-export function isSchemString(o: any): o is SchemString {
-    return (o != null && typeof o === 'object' && 'typeTag' in o && o.typeTag === SchemTypes.SchemString);
+export function isString(o: any): o is string {
+    return typeof o === 'string';
 }
 
 export function isSchemRegExp(o: any): o is SchemRegExp {
@@ -99,7 +99,7 @@ export function isCallableSchemType(o: any): o is Callable {
 export function isValidKeyType(o: any): o is SchemMapKey {
     return (isSchemKeyword(o) ||
         isNumber(o) ||
-        isSchemString(o));
+        isString(o));
 }
 
 export function isSequable(o: any): o is Sequable {

@@ -1,5 +1,5 @@
-import { AnySchemType, SchemVector, SchemNil, SchemBoolean, SchemMap, SchemKeyword, SchemFunction, SchemAtom, SchemString } from './schem/types';
-import { isSchemNil, isSchemVector, isSchemKeyword, isSchemMap, isSchemString, isSchemList, isSchemAtom, isSchemFunction } from './schem/typeGuards';
+import { AnySchemType, SchemVector, SchemNil, SchemBoolean, SchemMap, SchemKeyword, SchemFunction, SchemAtom } from './schem/types';
+import { isSchemNil, isSchemVector, isSchemKeyword, isSchemMap, isString, isSchemList, isSchemAtom, isSchemFunction } from './schem/typeGuards';
 import { randomString } from './utils/utilities';
 import { EnvSetupMap } from './schem/env';
 
@@ -36,7 +36,7 @@ export const shlukerts: EnvSetupMap = {
         paramstring: `document-or-element`
     },
     'html->shluk' :  {
-        f: (str: SchemString) => {
+        f: (str: string) => {
             const dp = new DOMParser();
             return createShlukertsVector(dp.parseFromString(str.toString(), 'text/html'));
         },
@@ -44,7 +44,7 @@ export const shlukerts: EnvSetupMap = {
         paramstring: `html-string`
     },
     'xml->shluk' :  {
-        f: (str: SchemString) => {
+        f: (str: string) => {
             const dp = new DOMParser();
             return createShlukertsVector(dp.parseFromString(str.toString(), 'text/xml'));
         },
@@ -52,7 +52,7 @@ export const shlukerts: EnvSetupMap = {
         paramstring: `xml-string`
     },
     'parse-xml' : {
-        f: (str: SchemString) => {
+        f: (str: string) => {
             const dp = new DOMParser();
             return dp.parseFromString(str.toString(), 'text/xml');
         },
@@ -60,7 +60,7 @@ export const shlukerts: EnvSetupMap = {
         paramstring: `xml-string`
     },
     'parse-html' : {
-        f: (str: SchemString) => {
+        f: (str: string) => {
             const dp = new DOMParser();
             return dp.parseFromString(str.toString(), 'text/html');
         },
@@ -98,7 +98,7 @@ async function createDocumentFragment(shlukertsVector: SchemVector | SchemNil): 
                     throw new Error(`A data-bound atom's value was changed, but the dom node it was bound to seems to have been deleted.`);
                 }
 
-                if (isSchemString(newValue)) {
+                if (isString(newValue)) {
                     atomElement.textContent = newValue.valueOf();
                 } else if (newValue instanceof HTMLElement) {
                     newValue.setAttribute('golem-atom', watchName);
@@ -129,11 +129,11 @@ async function createDocumentFragment(shlukertsVector: SchemVector | SchemNil): 
             const node = document.createElement(tagName);
 
             if (id != null) {
-                attributes.set(SchemKeyword.from('id'), new SchemString(id.slice(1)));
+                attributes.set(SchemKeyword.from('id'), id.slice(1));
             }
 
             if (classNames != null) {
-                attributes.set(SchemKeyword.from('class'), new SchemString(classNames.slice(1).replace('.', ' ')));
+                attributes.set(SchemKeyword.from('class'), classNames.slice(1).replace('.', ' '));
             }
 
             // expand lists into the body, turning [:ul (list [:li "ah"] [:li "oh"])] into [:ul [:li "ah"] [:li "oh"]]
@@ -152,12 +152,12 @@ async function createDocumentFragment(shlukertsVector: SchemVector | SchemNil): 
                 node.setAttribute(attributeName, value.toString());
             });
             body.forEach(async element => {
-                if (isSchemString(element)) {
+                if (isString(element)) {
                     node.appendChild(document.createTextNode(element.valueOf()));
                 } else if (isSchemAtom(element)) {
 
                     let atomValue = element.getValue();
-                    if (isSchemString(atomValue)) {
+                    if (isString(atomValue)) {
                         const newSpan = bindAtomToElement(document.createElement('span'), element);
                         newSpan.textContent = atomValue.valueOf();
                         node.appendChild(newSpan);
@@ -204,7 +204,7 @@ function createShlukertsVector(nodeOrDocument: Element | Document): SchemVector 
             for (let i = 0; i < nodeOrDocument.attributes.length; i++) {
                 attrMap.set(
                     SchemKeyword.from(nodeOrDocument.attributes[i].name),
-                    new SchemString(nodeOrDocument.attributes[i].value));
+                    nodeOrDocument.attributes[i].value);
             }
             vector.push(attrMap);
         }
@@ -216,7 +216,7 @@ function createShlukertsVector(nodeOrDocument: Element | Document): SchemVector 
 
     if (childNodes != null) for (const element of nodeOrDocument.childNodes) {
         if (element instanceof Text) {
-            vector.push(new SchemString(element.textContent));
+            vector.push(element.textContent);
         } else if (element instanceof Element) {
             vector.push(createShlukertsVector(element));
         } else {

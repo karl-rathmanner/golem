@@ -94,7 +94,7 @@ describe('blackbox tests', function () {
 
     expectSchem('(eval (list * 7 1 (list + 2 4))))', '42', `(eval) should be able to execute an abstract syntax tree`);
 
-    // Here, the first expression returns a SchemNumber, the second returns a SchemString.
+    // Here, the first expression returns a number, the second returns a string.
     // Notice, that the typescript string itself has to be escaped. Schem actually "sees" (read-string "\"42\"") in example nr. 2
     expectSchem(['(read-string "42")', '(read-string "\\"42\\"")'], ['42', '"42"'], `read-string should be able to handle escaped strings`);
 

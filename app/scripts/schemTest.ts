@@ -3,8 +3,8 @@ import { EnvSetupMap } from './schem/env';
 import { pr_str } from './schem/printer';
 import { tokenize } from './schem/reader';
 import { Schem } from './schem/schem';
-import { isSchemKeyword, isSchemString, isSchemSymbol } from './schem/typeGuards';
-import { AnySchemType, SchemList, SchemNil, SchemString } from './schem/types';
+import { isSchemKeyword, isString, isSchemSymbol } from './schem/typeGuards';
+import { AnySchemType, SchemList, SchemNil } from './schem/types';
 import { Settings } from './Settings';
 import { CommandHistory } from './utils/commandHistory';
 import { Key } from './utils/Key.enum';
@@ -48,8 +48,8 @@ document.addEventListener("DOMContentLoaded", () =>  {
         'clear-repl': () => {
             document.getElementById('output')!.textContent = '';
         },
-        'set-repl-separator': (char: SchemString) => {
-            if (isSchemString(char) && char.length > 0) {
+        'set-repl-separator': (char: string) => {
+            if (isString(char) && char.length > 0) {
                 if (typeof separatorPresets[char.valueOf()] !== 'undefined') {
                     currentSeparator = separatorPresets[char.valueOf()];
                 } else {
@@ -58,7 +58,7 @@ document.addEventListener("DOMContentLoaded", () =>  {
             } else {
                 currentSeparator = '\n';
             }
-            return new SchemString('sure...');
+            return 'sure...';
         }
     };
 
@@ -87,7 +87,7 @@ document.addEventListener("DOMContentLoaded", () =>  {
                 acSuggestionElement.textContent = '';
                 autocompleteSuggestions = [];
                 suggestions.map((s, i) => {
-                    if (isSchemSymbol(s) || isSchemString(s) || isSchemKeyword(s)) {
+                    if (isSchemSymbol(s) || isString(s) || isSchemKeyword(s)) {
                         autocompleteSuggestions.push(s.toString());
 
                         acSuggestionElement.insertAdjacentHTML('beforeend', `<span class="${(i === selectedSuggestion) ? 'highlightedSuggestion' : 'acSuggestion'}">${s.toString()}</span>`);

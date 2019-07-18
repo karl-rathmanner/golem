@@ -2,7 +2,7 @@ import { Env } from './env';
 import { Schem } from './schem';
 import { Tabs } from 'webextension-polyfill-ts';
 import { AvailableSchemContextFeatures } from '../contextManager';
-import { isSchemKeyword, isSchemSymbol, isValidKeyType, isSchemString, isNumber, isSchemMap, isSchemType, isSchemList } from './typeGuards';
+import { isSchemKeyword, isSchemSymbol, isValidKeyType, isString, isNumber, isSchemMap, isSchemType, isSchemList } from './typeGuards';
 import { resolveJSPropertyChain, jsObjectToSchemType, schemToJs, invokeJsProcedure, coerceToSchem, coerceToJs } from '../javascriptInterop';
 
 // interfaces
@@ -38,15 +38,14 @@ export interface Metadatable {
     // getMetadata(): SchemMap {}
 }
 
+// note: string and number are here for historical reasons - this might change in the future
 export enum SchemTypes {
-    number,
     SchemList,
     SchemVector,
     SchemMap,
     SchemSymbol,
     SchemKeyword,
     SchemNil,
-    SchemString,
     SchemRegExp,
     SchemFunction,
     SchemBoolean,
@@ -65,11 +64,11 @@ export interface TaggedType {
 // types
 
 // TODO: figure out how LazyVectors schould be handled
-export type AnySchemType = number | SchemList | SchemVector | SchemMap | SchemSymbol | SchemKeyword | SchemNil |
-    SchemString | SchemRegExp | SchemFunction | SchemBoolean | SchemAtom | SchemContextSymbol |
+export type AnySchemType = number | string | SchemList | SchemVector | SchemMap | SchemSymbol | SchemKeyword | SchemNil |
+    SchemRegExp | SchemFunction | SchemBoolean | SchemAtom | SchemContextSymbol |
     SchemContextDefinition | SchemContextInstance | SchemJSReference;
 export type RegularSchemCollection = SchemList | SchemVector | SchemMap;
-export type SchemMapKey = number | SchemSymbol | SchemKeyword | SchemString ;
+export type SchemMapKey = number | string | SchemSymbol | SchemKeyword ;
 
 
 export type SchemMetadata = {
@@ -256,7 +255,7 @@ export class SchemMap implements Callable, Reducible, Countable, Metadatable, Ta
 
     private turnIntoKeyString(key: SchemMapKey): string {
         let keyString: string;
-        if (isSchemString(key)) {
+        if (typeof key === 'string') {
             keyString = 's' + key.valueOf();
         } else if (isNumber(key)) {
             keyString = 'n' + key.valueOf();
@@ -402,41 +401,6 @@ export class SchemBoolean extends Boolean implements TaggedType {
     }
 }
 
-// export class SchemNumber extends Number implements Callable, TaggedType {
-//     public typeTag: SchemTypes.SchemNumber = SchemTypes.SchemNumber;
-
-//     // TODO: make methods static?
-//     invoke(...args: AnySchemType[]) {
-//         const i = this.valueOf();
-//         const sequential = args[0];
-//         if (sequential instanceof SchemList || sequential instanceof SchemVector) {
-//             if (i < 0 || i >= sequential.length) {
-//                 throw `index ${i} out of bounds!`;
-//             }
-//             return sequential[this.valueOf()];
-//         } else {
-//             throw `integers can only be invoked with lists or vectors as parameters`;
-//         }
-//     }
-
-//     getStringRepresentation(): string {
-//         return this.valueOf().toString();
-//     }
-// }
-
-export class SchemString extends String implements TaggedType, Indexable {
-    public typeTag: SchemTypes.SchemString = SchemTypes.SchemString;
-
-    // can't hide toString()
-    toString(): string {
-        return this.valueOf();
-    }
-
-    nth(index: number) {
-        return Promise.resolve(new SchemString(this.valueOf()[index]));
-    }
-}
-
 export class SchemRegExp extends RegExp implements TaggedType {
     public typeTag: SchemTypes.SchemRegExp = SchemTypes.SchemRegExp;
     toString() {
@@ -497,8 +461,8 @@ class SymbolicType {
     protected constructor(public name: string) {
     }
 
-    static from(name: string | SchemString) {
-        if (isSchemString(name)) {
+    static from(name: string) {
+        if (isString(name)) {
             name = name.valueOf();
         }
 
@@ -532,8 +496,8 @@ export class SchemSymbol extends SymbolicType implements Metadatable, TaggedType
         super(name);
     }
 
-    static from(name: string | SchemString) {
-        if (isSchemString(name)) {
+    static from(name: string) {
+        if (isString(name)) {
             name = name.valueOf();
         }
 
@@ -554,8 +518,8 @@ export class SchemKeyword extends SymbolicType implements Callable, TaggedType {
     public typeTag: SchemTypes.SchemKeyword = SchemTypes.SchemKeyword;
     static registeredSymbols: Map<symbol, SchemKeyword> = new Map<symbol, SchemKeyword>();
 
-    static from(name: string | SchemString): SchemKeyword {
-        if (isSchemString(name)) {
+    static from(name: string): SchemKeyword {
+        if (isString(name)) {
             name = name.valueOf();
         }
 
@@ -590,8 +554,8 @@ export class SchemKeyword extends SymbolicType implements Callable, TaggedType {
 
 export class SchemContextSymbol extends SymbolicType implements TaggedType {
     public typeTag: SchemTypes.SchemContextSymbol = SchemTypes.SchemContextSymbol;
-    static from(name: string | SchemString): SchemContextSymbol {
-        if (isSchemString(name)) {
+    static from(name: string): SchemContextSymbol {
+        if (isString(name)) {
             name = name.valueOf();
         }
 
@@ -746,7 +710,7 @@ export class SchemAtom implements TaggedType {
 
 // type conversion
 export function toSchemMapKey(key: SchemMapKey): string {
-    if (isSchemString(key)) {
+    if (isString(key)) {
         return 's' + key.valueOf();
     } else if (isNumber(key)) {
         return 'n' + key.valueOf();
@@ -762,7 +726,7 @@ export function toSchemMapKey(key: SchemMapKey): string {
 export function fromSchemMapKey(key: string): SchemMapKey {
     const stringifiedValue = key.slice(1);
     switch (key[0]) {
-        case 's': return new SchemString(stringifiedValue);
+        case 's': return stringifiedValue;
         case 'n': return parseFloat(stringifiedValue);
         case 'k': return SchemKeyword.from(stringifiedValue);
         case 'y': return SchemSymbol.from(stringifiedValue);

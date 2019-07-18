@@ -1,5 +1,5 @@
-import { AnySchemType, SchemList, SchemSymbol, SchemNil, SchemString, SchemBoolean, SchemVector, SchemMap, SchemKeyword, SchemMapKey, SchemContextSymbol, RegularSchemCollection, Indexable } from './types';
-import { isSchemSymbol, isSchemKeyword, isSchemMap, isSchemString, isNumber } from './typeGuards';
+import { AnySchemType, SchemList, SchemSymbol, SchemNil, SchemBoolean, SchemVector, SchemMap, SchemKeyword, SchemMapKey, SchemContextSymbol, RegularSchemCollection, Indexable } from './types';
+import { isSchemSymbol, isSchemKeyword, isSchemMap, isString, isNumber } from './typeGuards';
 
 type token = {
     value: string,
@@ -139,7 +139,7 @@ function readParen(reader: Reader, openParen: string): AnySchemType {
             const possibleKey = readForm(reader);
             const value = readForm(reader);
 
-            if (isSchemSymbol(possibleKey) || isSchemKeyword(possibleKey) || isSchemString(possibleKey) || isNumber(possibleKey)) {
+            if (isSchemSymbol(possibleKey) || isSchemKeyword(possibleKey) || isString(possibleKey) || isNumber(possibleKey)) {
                 collection.set(possibleKey, value);
             } else {
                 throw `Map keys must be of type Symbol, String or Number`;
@@ -169,7 +169,7 @@ function readAtom(reader: Reader) {
         return parseFloat(token.value);
         // strings starts with double quotes
     } else if (token.value[0] === '"') {
-        return new SchemString(unescape(token.value));
+        return unescape(token.value);
         // keywords start with a colon
     } else if (token.value[0] === ':') {
         return SchemKeyword.from(token.value.slice(1));

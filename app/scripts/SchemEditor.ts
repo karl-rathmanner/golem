@@ -5,7 +5,7 @@ import * as parinfer from './monaco/parinfer';
 import { AddSchemSupportToEditor, SetInterpreterForCompletion } from './monaco/schemLanguage';
 import { readStr, unescape as schemUnescape } from './schem/reader';
 import { filterRecursively, Schem } from './schem/schem';
-import { AnySchemType, SchemBoolean, SchemList, SchemNil, SchemString } from './schem/types';
+import { AnySchemType, SchemBoolean, SchemList, SchemNil } from './schem/types';
 import { Settings } from './Settings';
 import { extractErrorMessage } from './utils/utilities';
 import { VirtualFileSystem } from './virtualFilesystem';
@@ -104,19 +104,19 @@ export class SchemEditor {
     }
 
     public editorManipulationSchemFunctions = {
-        'editor-load-script': async (qualifiedFileName: SchemString) => {
+        'editor-load-script': async (qualifiedFileName: string) => {
             this.loadLocalFile(qualifiedFileName.valueOf());
             return SchemBoolean.true;
         },
-        'editor-save-script': async (qualifiedFileName: SchemString) => {
+        'editor-save-script': async (qualifiedFileName: string) => {
             this.saveScriptLocally(qualifiedFileName.valueOf());
-            return new SchemString(`Successfully saved ${qualifiedFileName}.`);
+            return `Successfully saved ${qualifiedFileName}.`;
         },
         'editor-update-layout': () => {
             this.updateEditorLayout();
             return SchemNil.instance;
         },
-        'editor-load-feature': (featureName: SchemString) => {
+        'editor-load-feature': (featureName: string) => {
             if (featureName.toString() === 'shlukerts') {
                 this.interpreter.replEnv.addMap(shlukerts);
             } else {

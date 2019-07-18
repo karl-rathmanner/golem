@@ -3,7 +3,7 @@ import { EventPageMessage } from './eventPageMessaging';
 import { GlobalGolemState } from './GlobalGolemState';
 import { schemToJs } from './javascriptInterop';
 import { isSchemList, isSchemSymbol } from './schem/typeGuards';
-import { SchemBoolean, SchemContextDefinition, SchemList, SchemString, SchemContextInstance } from './schem/types';
+import { SchemBoolean, SchemContextDefinition, SchemList, SchemContextInstance } from './schem/types';
 import { addParensAsNecessary, escapeXml, objectPatternMatch } from './utils/utilities';
 import { GolemContextMessage } from './contentScriptMessaging';
 
@@ -138,7 +138,7 @@ export class GlobalGolemFunctions {
             const aic = await this.globalState.getAutoinstantiateContexts();
             return new SchemList(...aic);
         },
-        'notify': (msg: SchemString) => {
+        'notify': (msg: string) => {
             this.notify(msg.valueOf());
         }
     };

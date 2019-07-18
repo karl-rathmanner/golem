@@ -4,8 +4,8 @@ import { atomicSchemObjectToJS, jsObjectToSchemType, resolveJSPropertyChain, sch
 import { VirtualFileSystem } from '../virtualFilesystem';
 import { prettyPrint, pr_str, prettyLog } from './printer';
 import { readStr } from './reader';
-import { isSchemAtom, isSchemFunction, isSchemJSReference, isSchemKeyword, isSchemLazyVector, isSchemList, isSchemMap, isNumber, isSchemString, isSchemSymbol, isSchemType, isSchemVector, isSequential, isValidKeyType } from './typeGuards';
-import { AnySchemType, RegularSchemCollection, SchemAtom, SchemBoolean, SchemFunction, SchemJSReference, SchemKeyword, SchemLazyVector, SchemList, SchemMap, SchemMapKey, SchemNil, SchemRegExp, SchemString, SchemSymbol, SchemVector, getTypeTag } from './types';
+import { isSchemAtom, isSchemFunction, isSchemJSReference, isSchemKeyword, isSchemLazyVector, isSchemList, isSchemMap, isNumber, isString, isSchemSymbol, isSchemType, isSchemVector, isSequential, isValidKeyType } from './typeGuards';
+import { AnySchemType, RegularSchemCollection, SchemAtom, SchemBoolean, SchemFunction, SchemJSReference, SchemKeyword, SchemLazyVector, SchemList, SchemMap, SchemMapKey, SchemNil, SchemRegExp, SchemSymbol, SchemVector, getTypeTag } from './types';
 
 export const coreFunctions: { [symbol: string]: any } = {
     'indentity': {
@@ -195,7 +195,7 @@ export const coreFunctions: { [symbol: string]: any } = {
         paramstring: 'value',
         docstring: `Returns true if the argument is a string.`,
         f: (arg: AnySchemType) => {
-            return SchemBoolean.fromBoolean(isSchemString(arg) || typeof arg === 'string');
+            return SchemBoolean.fromBoolean(isString(arg) || typeof arg === 'string');
         },
     },
     'symbol?': {
@@ -274,7 +274,7 @@ export const coreFunctions: { [symbol: string]: any } = {
         f: (arg: any) => {
             if ('count' in arg) {
                 return arg.count();
-            } else if (isSchemString(arg)) {
+            } else if (isString(arg)) {
                 return arg.length;
             } else if (arg === SchemNil.instance) {
                 return 0;
@@ -343,7 +343,7 @@ export const coreFunctions: { [symbol: string]: any } = {
         paramstring: '& args',
         docstring:  `Calls pr_str (escaped) on each argument, joins the results, seperated by ' '.`,
         f: async (...args: AnySchemType[]) => {
-            return new SchemString((await asyncStringifyAll(args, true)).join(' '));
+            return (await asyncStringifyAll(args, true)).join(' ');
         },
     },
     /** */
@@ -351,7 +351,7 @@ export const coreFunctions: { [symbol: string]: any } = {
         paramstring: '& args',
         docstring:  `Calls pr_str (unescaped) on each argument, concatenates the results.`,
         f: async (...args: AnySchemType[]) => {
-            return new SchemString((await asyncStringifyAll(args, false)).join(''));
+            return (await asyncStringifyAll(args, false)).join('');
         },
     },
     'prn': {
@@ -374,66 +374,64 @@ export const coreFunctions: { [symbol: string]: any } = {
     'read-string': {
         paramstring: 'string',
         docstring:  `Reads a string and turns it into an abstract syntax tree.`,
-        f: (str: SchemString) => {
+        f: (str: string) => {
             return readStr(str.valueOf());
         },
     },
     'xhr-get': {
         paramstring: 'url',
         docstring:  `Makes an asynchronous http GET request and returns a promise. In most cases, you can treat this like a synchronous operation that just takes a lot of time. ;)`,
-        f: async (url: SchemString) => {
+        f: async (url: string) => {
             return xhrPromise('GET', url.valueOf());
         },
     },
     'xhr-post': {
         paramstring: 'url',
         docstring:  `Makes an asynchronous http PUT request and returns a promise. In most cases, you can treat this like a synchronous operation that just takes a lot of time. ;)`,
-        f: async (url: SchemString, body: any) => {
+        f: async (url: string, body: any) => {
             return xhrPromise('POST', url.valueOf(), body);
         },
     },
     'xhr-put': {
         paramstring: 'url body',
         docstring:  `Makes an asynchronous http PUT request and returns a promise. In most cases, you can treat this like a synchronous operation that just takes a lot of time. ;)`,
-        f: async (url: SchemString, body: any) => {
+        f: async (url: string, body: any) => {
             return xhrPromise('PUT', url.valueOf(), body);
         },
     },
     'xhr-delete': {
         paramstring: 'url',
         docstring:  `Makes an asynchronous http DELETE request and returns a promise. In most cases, you can treat this like a synchronous operation that just takes a lot of time. ;)`,
-        f: async (url: SchemString) => {
+        f: async (url: string) => {
             return xhrPromise('DELETE', url.valueOf());
         },
     },
     'slurp': {
         paramstring: 'path-or-url options',
         docstring:  `Reads the contents of a file from the local file system when the arguments starts with '/', otherwise it returns the response of GETing the resource from the supplied url.`,
-        f: async (pathOrUrl: SchemString | string, opts?: SchemMap) => {
+        f: async (pathOrUrl: string | string, opts?: SchemMap) => {
             pathOrUrl = pathOrUrl.valueOf();
             // get full URL for files packaged with the browser extension, when url begins with a slash
             if (pathOrUrl[0].startsWith('/extension-resources/')) {
-                return new SchemString(await xhrPromise('GET', browser.extension.getURL(pathOrUrl)));
+                return await xhrPromise('GET', browser.extension.getURL(pathOrUrl));
             }
 
             let url: URL;
             try {
                 url = new URL(pathOrUrl);
             } catch {
-                return new SchemString(await VirtualFileSystem.readObject(pathOrUrl));
+                return await VirtualFileSystem.readObject(pathOrUrl);
             }
-            return new SchemString(await xhrPromise('GET', url.href));
+            return await xhrPromise('GET', url.href);
         },
     },
     'xml->map': {
         paramstring: 'string-or-xml-document options',
         docstring: `Turns an xml string or XMLDocument object into a Schem map.`,
-        f: (xml: XMLDocument | string | SchemString, options?: SchemMap) => {
+        f: (xml: XMLDocument | string | string, options?: SchemMap) => {
             let xmlDoc: XMLDocument;
             if (typeof xml === 'string') {
                 xmlDoc = new DOMParser().parseFromString(xml, 'text/xml');
-            } else if (isSchemString(xml)) {
-                xmlDoc = new DOMParser().parseFromString(xml.valueOf(), 'text/xml');
             } else {
                 xmlDoc = xml;
             }
@@ -636,19 +634,19 @@ export const coreFunctions: { [symbol: string]: any } = {
     'score-string-similarity': {
         paramstring: 'string-a string-b',
         docstring: `Returns a score for the similarity between string-a and string-b. The algorithm I made up was used to sort autocompletion suggestions so this is probably unfit for most other applications.`,
-        f: (needle: SchemString, haystack: SchemString) => {
+        f: (needle: string, haystack: string) => {
             return computeSimpleStringSimilarityScore(needle.toString(), haystack.toString());
         },
     },
     'sort-and-filter-by-string-similarity': {
         paramstring: 'needle haystack score-threshold',
         docstring: `Can be used to filter and rank suggestions for auto-completions based on some incomplete user input.`,
-        f: (needle: SchemString, haystack: SchemList | SchemVector, scoreThreshold: number = 1) => {
+        f: (needle: string, haystack: SchemList | SchemVector, scoreThreshold: number = 1) => {
 
-            const rankedHaystack: Array<[number, SchemString | SchemSymbol | SchemKeyword]> = haystack.map((hay) => {
+            const rankedHaystack: Array<[number, string | SchemSymbol | SchemKeyword]> = haystack.map((hay) => {
                 // create an aray of tuples [score, haystackElement]
-                if (isSchemString(hay)) {
-                    return <[number, SchemString]>[computeSimpleStringSimilarityScore(needle.valueOf(), hay.valueOf()), hay];
+                if (isString(hay)) {
+                    return <[number, string]>[computeSimpleStringSimilarityScore(needle.valueOf(), hay.valueOf()), hay];
                 } else if (isSchemSymbol(hay) || isSchemKeyword(hay)) {
                     return <[number, SchemSymbol | SchemKeyword]>[computeSimpleStringSimilarityScore(needle.valueOf(), hay.name), hay];
                 } else {
@@ -678,15 +676,15 @@ export const coreFunctions: { [symbol: string]: any } = {
         paramstring: 'map indentation-size?',
         docstring: `Tries to print the contents of a map in a more readable way.`,
         f: async (m: SchemMap, indent: number = 2) => {
-            return new SchemString(await prettyPrint(m, true, { indentSize: indent.valueOf() }));
+            return await prettyPrint(m, true, { indentSize: indent.valueOf() });
         },
     },
     'prompt': {
         paramstring: 'message default-value',
         docstring: `Currently just an alias for window.prompt.`,
-        f: (message: SchemString = new SchemString(''), defaultValue: SchemString = new SchemString('')) => {
+        f: (message: string = '', defaultValue: string = '') => {
             let input = window.prompt(message.toString(), defaultValue.toString());
-            return new SchemString(input);
+            return input;
 
         },
     },
@@ -716,7 +714,7 @@ export const coreFunctions: { [symbol: string]: any } = {
     're-pattern': {
         paramstring: 'string',
         docstring: `Creates a Schem regular expression from a string.`,
-        f: async (pattern: SchemString) => {
+        f: async (pattern: string) => {
             const matches = /(?:\(\?(.*)?\))?(.+)/.exec(pattern.toString());
             if (matches === null) {
                 throw `invalid regular expression: ${pattern.toString()}`;
@@ -731,10 +729,10 @@ export const coreFunctions: { [symbol: string]: any } = {
     're-find': {
         paramstring: 'regular-expression string',
         docstring: `Returns a list of matches for regular-expression in string.`,
-        f: async (rex: SchemRegExp, str: SchemString) => {
+        f: async (rex: SchemRegExp, str: string) => {
             const matches = rex.exec(str.toString());
             if (matches !== null) {
-                return new SchemList(...matches.map(m => new SchemString(m)));
+                return new SchemList(...matches);
             } else {
                 return SchemNil.instance;
             }
@@ -799,28 +797,28 @@ export const coreFunctions: { [symbol: string]: any } = {
     'storage-create': {
         paramstring: 'path-and-filename value',
         docstring: `Saves a value to a new file in the virtual file system. Won't override existing files.`,
-        f: async (qualifiedObjectName: SchemString, value: AnySchemType) => {
+        f: async (qualifiedObjectName: string, value: AnySchemType) => {
             return await VirtualFileSystem.writeObject(qualifiedObjectName.valueOf(), schemToJs(value));
         },
     },
     'storage-create-or-update': {
         paramstring: 'path-and-filename value',
         docstring: `Saves a value to a new file in the virtual file system or updates an existing file.`,
-        f: async (qualifiedObjectName: SchemString, value: AnySchemType) => {
+        f: async (qualifiedObjectName: string, value: AnySchemType) => {
             return await VirtualFileSystem.writeObject(qualifiedObjectName.valueOf(), schemToJs(value), true);
         },
     },
     'storage-read': {
         paramstring: 'path-and-filename',
         docstring: `Reads a file from the virtual file system.`,
-        f: async (qualifiedObjectName: SchemString) => {
+        f: async (qualifiedObjectName: string) => {
             return await VirtualFileSystem.readObject(qualifiedObjectName.valueOf());
         },
     },
     'storage-update': {
         paramstring: 'path-and-filename value',
         docstring: `Overwrites the value of an existing file in the virtual file system. Won't create new files.`,
-        f: async (qualifiedObjectName: SchemString, value: AnySchemType) => {
+        f: async (qualifiedObjectName: string, value: AnySchemType) => {
             await VirtualFileSystem.updateObject(qualifiedObjectName.valueOf(), schemToJs(value));
             return value;
         },
@@ -828,7 +826,7 @@ export const coreFunctions: { [symbol: string]: any } = {
     'storage-delete': {
         paramstring: 'path-and-filename',
         docstring: `Deletes a file from the virtual file system.`,
-        f: async (qualifiedObjectName: SchemString) => {
+        f: async (qualifiedObjectName: string) => {
             await VirtualFileSystem.removeObject(qualifiedObjectName.valueOf());
             return SchemNil.instance;
         },
@@ -836,7 +834,7 @@ export const coreFunctions: { [symbol: string]: any } = {
     'storage-exists': {
         paramstring: 'path-and-filename',
         docstring: `Returns true if a file by that name exists in the virtual file system.`,
-        f: async (qualifiedObjectName: SchemString) => {
+        f: async (qualifiedObjectName: string) => {
             let exists = await VirtualFileSystem.existsOject(qualifiedObjectName.valueOf());
             return SchemBoolean.fromBoolean(exists);
         },
@@ -847,22 +845,22 @@ export const coreFunctions: { [symbol: string]: any } = {
         f: async () => {
             if (window.confirm('Do you really want to clear the local storage? This would delete all objects and then they are gone forever.')) {
                 VirtualFileSystem.clearStorage();
-                return new SchemString('Local storage was cleared.');
+                return 'Local storage was cleared.';
             }
-            return new SchemString('Clearing the storage was canceled.');
+            return 'Clearing the storage was canceled.';
         },
     },
     // TODO: fix it!
     'storage-ls': {
         paramstring: 'path',
         docstring: `Kurrently kaputt.`,
-        f: async (path: SchemString) => {
+        f: async (path: string) => {
             const folderInfo = await VirtualFileSystem.listFolderContents(path.valueOf());
             return jsObjectToSchemType(folderInfo, { depth: 9001 });
         },
     },
     'resolve-js-property-chain': {
-        f: (jsObject: any, ...propertyNames: Array<SchemString | SchemKeyword>) => {
+        f: (jsObject: any, ...propertyNames: Array<string | SchemKeyword>) => {
             const pNames: string[] = propertyNames.map(e => isSchemKeyword(e) ? e.name : e.valueOf());
             return resolveJSPropertyChain(jsObject, ...pNames);
         },
@@ -936,25 +934,25 @@ function createSchemMapFromXMLDocument(xmlDoc: XMLDocument, options: { 'key-type
         if (options['key-type'] === 'keyword') {
             return SchemKeyword.from(v);
         } else {
-            return new SchemString(v);
+            return v;
         }
     }
 
     const recursivelyTraverseDocument = (node: Element) => {
         const map = new SchemMap();
-        map.set(createKey('tag'), new SchemString(node.tagName));
+        map.set(createKey('tag'), node.tagName);
 
         if (node.attributes.length > 0) {
             let attrs = new SchemMap();
             for (let i = 0; i < node.attributes.length; i++) {
-                attrs.set(createKey(node.attributes.item(i)!.name), new SchemString(node.attributes.item(i)!.value));
+                attrs.set(createKey(node.attributes.item(i)!.name), node.attributes.item(i)!.value);
             }
             map.set(createKey('attrs'), attrs);
         }
 
         if (node.childElementCount === 0) {
             if (node.textContent && node.textContent.length > 0) {
-                map.set(createKey('content'), new SchemString(node.textContent));
+                map.set(createKey('content'), node.textContent);
             }
         } else {
             if (node.childElementCount === 1) {
