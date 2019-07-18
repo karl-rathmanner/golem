@@ -4,8 +4,8 @@ import { atomicSchemObjectToJS, jsObjectToSchemType, resolveJSPropertyChain, sch
 import { VirtualFileSystem } from '../virtualFilesystem';
 import { prettyPrint, pr_str, prettyLog } from './printer';
 import { readStr } from './reader';
-import { isSchemAtom, isSchemFunction, isSchemJSReference, isSchemKeyword, isSchemLazyVector, isSchemList, isSchemMap, isSchemNumber, isSchemString, isSchemSymbol, isSchemType, isSchemVector, isSequential, isValidKeyType } from './typeGuards';
-import { AnySchemType, RegularSchemCollection, SchemAtom, SchemBoolean, SchemFunction, SchemJSReference, SchemKeyword, SchemLazyVector, SchemList, SchemMap, SchemMapKey, SchemNil, SchemNumber, SchemRegExp, SchemString, SchemSymbol, SchemVector } from './types';
+import { isSchemAtom, isSchemFunction, isSchemJSReference, isSchemKeyword, isSchemLazyVector, isSchemList, isSchemMap, isNumber, isSchemString, isSchemSymbol, isSchemType, isSchemVector, isSequential, isValidKeyType } from './typeGuards';
+import { AnySchemType, RegularSchemCollection, SchemAtom, SchemBoolean, SchemFunction, SchemJSReference, SchemKeyword, SchemLazyVector, SchemList, SchemMap, SchemMapKey, SchemNil, SchemRegExp, SchemString, SchemSymbol, SchemVector, getTypeTag } from './types';
 
 export const coreFunctions: { [symbol: string]: any } = {
     'indentity': {
@@ -16,56 +16,56 @@ export const coreFunctions: { [symbol: string]: any } = {
     '+': {
         paramstring: 'number & numbers',
         docstring: 'Adds up all arguments.',
-        f: (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue: SchemNumber, currentIndex: number) => {
+        f: (...args: number[]) => args.reduce((accumulator: number, currentValue: number, currentIndex: number) => {
             if (currentIndex === 0) return currentValue.valueOf();
             else return accumulator + currentValue.valueOf();
-        }, 0)),
+        }, 0),
     },
     '-': {
         paramstring: 'number & numbers',
         docstring: 'Subtracts all numbers, left to right.',
-        f: (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue: SchemNumber, currentIndex: number) => {
+        f: (...args: number[]) => args.reduce((accumulator: number, currentValue: number, currentIndex: number) => {
             if (args.length === 1) return -currentValue.valueOf();
             if (currentIndex === 0) return currentValue.valueOf();
             else return accumulator - currentValue.valueOf();
-        }, 0)),
+        }, 0),
     },
     '*': {
         paramstring: 'number & numbers',
         docstring: 'Multiplies all numbers.',
-        f: (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue: SchemNumber, currentIndex: number) => {
+        f: (...args: number[]) => args.reduce((accumulator: number, currentValue: number, currentIndex: number) => {
             return accumulator * currentValue.valueOf();
-        }, 1)),
+        }, 1),
     },
     '/': {
         paramstring: 'number & numbers',
         docstring: 'Divides all numbers, left to right. Meaning (/ 1 2 3) is ((1 / 2) / 3) in standard notation.',
-        f: (...args: SchemNumber[]) => new SchemNumber(args.reduce((accumulator: number, currentValue: SchemNumber, currentIndex: number) => {
+        f: (...args: number[]) => args.reduce((accumulator: number, currentValue: number, currentIndex: number) => {
             if (args.length === 1) return 1 / currentValue.valueOf();
             if (currentIndex === 0) return currentValue.valueOf();
             else return accumulator / currentValue.valueOf();
-        }, 0)),
+        }, 0),
     },
     'rem': {
         paramstring: 'dividend divisor',
         docstring: `Returns the remainder of dividend divided by divisor. (Hint: It's modulo.)`,
-        f: (dividend: SchemNumber, divisor: SchemNumber) => {
-            return new SchemNumber(dividend.valueOf() % divisor.valueOf());
+        f: (dividend: number, divisor: number) => {
+            return dividend.valueOf() % divisor.valueOf();
         },
     },
     'quot': {
         paramstring: 'dividend divisor',
         docstring: `Returns quotient, rounded towards zero.`,
-        f: (dividend: SchemNumber, divisor: SchemNumber) => {
+        f: (dividend: number, divisor: number) => {
             const quotient = dividend.valueOf() / divisor.valueOf();
             // round towards zero
-            return new SchemNumber((quotient > 0) ? Math.floor(quotient) : Math.ceil(quotient));
+            return (quotient > 0) ? Math.floor(quotient) : Math.ceil(quotient);
         },
     },
     'sqr': {
         paramstring: 'number',
         docstring: `Squares number.`,
-        f: (d: SchemNumber) => new SchemNumber(d.valueOf() * d.valueOf()),
+        f: (d: number) => d.valueOf() * d.valueOf(),
     },
     '=': {
         paramstring: 'x & more',
@@ -82,7 +82,7 @@ export const coreFunctions: { [symbol: string]: any } = {
                     const valB = (isSchemType(b) ? atomicSchemObjectToJS(b) : b);
                     return (valA === valB);
                 } else {
-                    return hasSameSchemTypeAndValue(a, b);
+                    return hasSameTypeAndValue(a, b);
                 }
             };
             // Compare every consecutive pair of arguments
@@ -109,28 +109,28 @@ export const coreFunctions: { [symbol: string]: any } = {
     '>': {
         paramstring: 'x & more',
         docstring: `Returns true if each successive argument (from left to right) is bigger than the previous one.`,
-        f: (...args: SchemNumber[]) => {
+        f: (...args: number[]) => {
             return doNumericComparisonForEachConsecutivePairInArray((a, b) => { return a > b; }, args);
         },
     },
     '<': {
         paramstring: 'x & more',
         docstring: `Returns true if each successive argument (from left to right) is smaller than the previous one.`,
-        f: (...args: SchemNumber[]) => {
+        f: (...args: number[]) => {
             return doNumericComparisonForEachConsecutivePairInArray((a, b) => { return a < b; }, args);
         },
     },
     '>=': {
         paramstring: 'x & more',
         docstring: `Returns true if each successive argument (from left to right) is bigger than or equal to the previous one.`,
-        f: (...args: SchemNumber[]) => {
+        f: (...args: number[]) => {
             return doNumericComparisonForEachConsecutivePairInArray((a, b) => { return a >= b; }, args);
         },
     },
     '<=': {
         paramstring: 'x & more',
         docstring: `Returns true if each successive argument (from left to right) is smaller than or equal to the previous one.`,
-        f: (...args: SchemNumber[]) => {
+        f: (...args: number[]) => {
             return doNumericComparisonForEachConsecutivePairInArray((a, b) => { return a <= b; }, args);
         },
     },
@@ -180,7 +180,7 @@ export const coreFunctions: { [symbol: string]: any } = {
     'empty?': {
         paramstring: 'value',
         docstring: `Returns true if the argument is empty. (When its count or length is zero.)`,
-        f: (arg: AnySchemType) => {
+        f: (arg: any) => {
             return SchemBoolean.fromBoolean('length' in arg && arg.length === 0);
         },
     },
@@ -188,7 +188,7 @@ export const coreFunctions: { [symbol: string]: any } = {
         paramstring: 'value',
         docstring: `Returns true if the argument is a number.`,
         f: (arg: AnySchemType) => {
-            return SchemBoolean.fromBoolean(isSchemNumber(arg) || typeof arg === 'number');
+            return SchemBoolean.fromBoolean(isNumber(arg));
         },
     },
     'string?': {
@@ -273,13 +273,13 @@ export const coreFunctions: { [symbol: string]: any } = {
         docstring: `Returns argument's length or count of its items. (For maps, each key value pair counts as one item.)`,
         f: (arg: any) => {
             if ('count' in arg) {
-                return new SchemNumber(arg.count());
+                return arg.count();
             } else if (isSchemString(arg)) {
-                return new SchemNumber(arg.length);
+                return arg.length;
             } else if (arg === SchemNil.instance) {
-                return new SchemNumber(0);
+                return 0;
             } else if ('length' in arg) {
-                return new SchemNumber(arg.length);
+                return arg.length;
             } else {
                 throw new Error(`tried to count soemthing other than a collection, string or nil. It also doesn't have a length.`);
             }
@@ -324,7 +324,7 @@ export const coreFunctions: { [symbol: string]: any } = {
     'nth': {
         paramstring: 'value',
         docstring: `Returns the nth item of any collection that can be accesed by an index.`,
-        f: (sequential: SchemList | SchemVector | Array<any>, index: SchemNumber) => {
+        f: (sequential: SchemList | SchemVector | Array<any>, index: number) => {
             throwErrorForNonSequentialArguments(sequential);
             const i = index.valueOf();
             if (i < 0) throw `index value must be positive`;
@@ -637,13 +637,13 @@ export const coreFunctions: { [symbol: string]: any } = {
         paramstring: 'string-a string-b',
         docstring: `Returns a score for the similarity between string-a and string-b. The algorithm I made up was used to sort autocompletion suggestions so this is probably unfit for most other applications.`,
         f: (needle: SchemString, haystack: SchemString) => {
-            return new SchemNumber(computeSimpleStringSimilarityScore(needle.toString(), haystack.toString()));
+            return computeSimpleStringSimilarityScore(needle.toString(), haystack.toString());
         },
     },
     'sort-and-filter-by-string-similarity': {
         paramstring: 'needle haystack score-threshold',
         docstring: `Can be used to filter and rank suggestions for auto-completions based on some incomplete user input.`,
-        f: (needle: SchemString, haystack: SchemList | SchemVector, scoreThreshold: SchemNumber = new SchemNumber(1)) => {
+        f: (needle: SchemString, haystack: SchemList | SchemVector, scoreThreshold: number = 1) => {
 
             const rankedHaystack: Array<[number, SchemString | SchemSymbol | SchemKeyword]> = haystack.map((hay) => {
                 // create an aray of tuples [score, haystackElement]
@@ -660,7 +660,7 @@ export const coreFunctions: { [symbol: string]: any } = {
             }).sort((a, b) => {
                 // sort the remaining entries by score, then alphabetically
                 if (a[0] === b[0]) {
-                    return a[1].getStringRepresentation().localeCompare(b[1].getStringRepresentation());
+                    return a[1].toString().localeCompare(b[1].toString());
                 } else {
                     return b[0] - a[0];
                 }
@@ -677,7 +677,7 @@ export const coreFunctions: { [symbol: string]: any } = {
     'pretty-print': {
         paramstring: 'map indentation-size?',
         docstring: `Tries to print the contents of a map in a more readable way.`,
-        f: async (m: SchemMap, indent: SchemNumber = new SchemNumber(2)) => {
+        f: async (m: SchemMap, indent: number = 2) => {
             return new SchemString(await prettyPrint(m, true, { indentSize: indent.valueOf() }));
         },
     },
@@ -685,7 +685,7 @@ export const coreFunctions: { [symbol: string]: any } = {
         paramstring: 'message default-value',
         docstring: `Currently just an alias for window.prompt.`,
         f: (message: SchemString = new SchemString(''), defaultValue: SchemString = new SchemString('')) => {
-            let input = window.prompt(message.toString(), defaultValue.getStringRepresentation());
+            let input = window.prompt(message.toString(), defaultValue.toString());
             return new SchemString(input);
 
         },
@@ -717,9 +717,9 @@ export const coreFunctions: { [symbol: string]: any } = {
         paramstring: 'string',
         docstring: `Creates a Schem regular expression from a string.`,
         f: async (pattern: SchemString) => {
-            const matches = /(?:\(\?(.*)?\))?(.+)/.exec(pattern.getStringRepresentation());
+            const matches = /(?:\(\?(.*)?\))?(.+)/.exec(pattern.toString());
             if (matches === null) {
-                throw `invalid regular expression: ${pattern.getStringRepresentation()}`;
+                throw `invalid regular expression: ${pattern.toString()}`;
             }
             const [, flags, rest] = matches;
             if (typeof flags !== 'undefined') {
@@ -732,7 +732,7 @@ export const coreFunctions: { [symbol: string]: any } = {
         paramstring: 'regular-expression string',
         docstring: `Returns a list of matches for regular-expression in string.`,
         f: async (rex: SchemRegExp, str: SchemString) => {
-            const matches = rex.exec(str.getStringRepresentation());
+            const matches = rex.exec(str.toString());
             if (matches !== null) {
                 return new SchemList(...matches.map(m => new SchemString(m)));
             } else {
@@ -743,14 +743,14 @@ export const coreFunctions: { [symbol: string]: any } = {
     'lazy-vector': {
         paramstring: 'producer-fn count?',
         docstring: `Creates a lazy vector. Please see the example file for examples.`,
-        f: (producer: SchemFunction, count?: SchemNumber) => {
+        f: (producer: SchemFunction, count?: number) => {
             return new SchemLazyVector(producer, (count) ? count.valueOf() : Infinity);
         },
     },
     'subvec': {
         paramstring: 'vector-ish-thing atart? end?',
         docstring: `Returns a slice of a vector, array or LazyVector. (Realizing a LazyVector in the process.)`,
-        f: async (source: SchemVector | Array<any> | SchemLazyVector, start?: SchemNumber, end?: SchemNumber) => {
+        f: async (source: SchemVector | Array<any> | SchemLazyVector, start?: number, end?: number) => {
             if (isSchemVector(source) || isArray(source)) {
                 return source.slice((start) ? start.valueOf() : 0, (end) ? end.valueOf() : undefined);
             } else {
@@ -870,7 +870,7 @@ export const coreFunctions: { [symbol: string]: any } = {
     'sleep': {
         paramstring: 'milliseconds',
         docstring: `Does nothing for n ms, then returns nothing. How very zen!`,
-        f: async (ms: SchemNumber) => {
+        f: async (ms: number) => {
             await new Promise(resolve => setTimeout(resolve, ms.valueOf()));
             return SchemNil.instance;
         },
@@ -890,12 +890,12 @@ export const coreFunctions: { [symbol: string]: any } = {
 
 /// supporting functions
 
-function doNumericComparisonForEachConsecutivePairInArray(predicate: (a: number, b: number) => boolean, args: SchemNumber[]) {
+function doNumericComparisonForEachConsecutivePairInArray(predicate: (a: number, b: number) => boolean, args: number[]) {
     for (let i = 0; i < args.length - 1; i++) {
-        if (!(isSchemNumber(args[i])) || !(args[i + 1] instanceof SchemNumber)) {
+        if (!(isNumber(args[i])) || !isNumber(args[i + 1])) {
             throw `trying to do numeric comparison on non numeric types (or less than two arguments)`;
         }
-        if (!predicate(args[i].valueOf(), args[i + 1].valueOf())) {
+        if (!predicate(args[i], args[i + 1])) {
             // return on the first failed test
             return SchemBoolean.false;
         }
@@ -921,8 +921,8 @@ function throwErrorForNonSequentialArguments(...args: any[]) {
     });
 }
 
-function hasSameSchemTypeAndValue(a: AnySchemType, b: AnySchemType): boolean {
-    return (isSchemType(a) && isSchemType(b) && a.typeTag === b.typeTag && a.valueOf() === b.valueOf());
+function hasSameTypeAndValue(a: any, b: any): boolean {
+    return typeof a === typeof b && getTypeTag(a) === getTypeTag(b) && a.valueOf() === b.valueOf();
 }
 
 async function asyncStringifyAll(schemObjects: AnySchemType[], escapeStrings: boolean = true): Promise<string[]> {

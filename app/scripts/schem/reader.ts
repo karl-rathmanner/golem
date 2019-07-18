@@ -1,5 +1,5 @@
-import { AnySchemType, SchemList, SchemNumber, SchemSymbol, SchemNil, SchemString, SchemBoolean, SchemVector, SchemMap, SchemKeyword, SchemMapKey, SchemContextSymbol, RegularSchemCollection, Indexable } from './types';
-import { isSchemSymbol, isSchemKeyword, isSchemMap, isSchemString, isSchemNumber } from './typeGuards';
+import { AnySchemType, SchemList, SchemSymbol, SchemNil, SchemString, SchemBoolean, SchemVector, SchemMap, SchemKeyword, SchemMapKey, SchemContextSymbol, RegularSchemCollection, Indexable } from './types';
+import { isSchemSymbol, isSchemKeyword, isSchemMap, isSchemString, isNumber } from './typeGuards';
 
 type token = {
     value: string,
@@ -139,7 +139,7 @@ function readParen(reader: Reader, openParen: string): AnySchemType {
             const possibleKey = readForm(reader);
             const value = readForm(reader);
 
-            if (isSchemSymbol(possibleKey) || isSchemKeyword(possibleKey) || isSchemString(possibleKey) || isSchemNumber(possibleKey)) {
+            if (isSchemSymbol(possibleKey) || isSchemKeyword(possibleKey) || isSchemString(possibleKey) || isNumber(possibleKey)) {
                 collection.set(possibleKey, value);
             } else {
                 throw `Map keys must be of type Symbol, String or Number`;
@@ -163,10 +163,10 @@ function readAtom(reader: Reader) {
 
     // integers consist only of numbers but they might start with a minus sign
     if (/^-?\d+$/.test(token.value)) {
-        return new SchemNumber(parseInt(token.value));
+        return parseInt(token.value);
         // floats work like integers but they contain a decimal point (note that you can ommit the fractional part if you explicitly want to create a float with an integer value)
     } else if (/^-?\d*\.\d+$/.test(token.value) || /^-?\d+\.\d*$/.test(token.value)) {
-        return new SchemNumber(parseFloat(token.value));
+        return parseFloat(token.value);
         // strings starts with double quotes
     } else if (token.value[0] === '"') {
         return new SchemString(unescape(token.value));

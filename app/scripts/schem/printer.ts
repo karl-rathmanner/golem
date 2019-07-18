@@ -1,15 +1,15 @@
-import { isSchemAtom, isSchemBoolean, isSchemLazyVector, isSchemMap, isSchemNumber, isSchemString, isSchemSymbol, isSchemList, isSchemVector, isSchemKeyword, isSchemRegExp, isSchemContextSymbol, isSchemNil, isSchemJSReference, isSchemCollection, isSchemType } from './typeGuards';
+import { isSchemAtom, isSchemBoolean, isSchemLazyVector, isSchemMap, isNumber, isSchemString, isSchemSymbol, isSchemList, isSchemVector, isSchemKeyword, isSchemRegExp, isSchemContextSymbol, isSchemNil, isSchemJSReference, isSchemCollection, isSchemType } from './typeGuards';
 import { SchemContextInstance, SchemFunction, SchemList, AnySchemType, SchemVector, SchemNil } from './types';
 
 export async function pr_str(ast: any, escapeStrings: boolean = true): Promise<string> {
     if (isSchemBoolean(ast)) {
         return (ast.valueOf()) ? 'true' : 'false';
-    } else if (isSchemNumber(ast)) {
+    } else if (isNumber(ast)) {
         return ast.toString();
     } else if (ast instanceof SchemNil) { // wat? -> isSchemNil(ast)) {
         return 'nil';
     } else if (isSchemSymbol(ast) || isSchemKeyword(ast) || isSchemRegExp(ast) || isSchemContextSymbol(ast)) {
-        return ast.getStringRepresentation();
+        return ast.toString();
     } else if (isSchemList(ast)) {
         return '(' + (await ast.amap(e => pr_str(e, escapeStrings))).join(' ') + ')';
     } else if (isSchemVector(ast)) {

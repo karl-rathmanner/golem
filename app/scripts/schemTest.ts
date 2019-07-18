@@ -88,9 +88,9 @@ document.addEventListener("DOMContentLoaded", () =>  {
                 autocompleteSuggestions = [];
                 suggestions.map((s, i) => {
                     if (isSchemSymbol(s) || isSchemString(s) || isSchemKeyword(s)) {
-                        autocompleteSuggestions.push(s.getStringRepresentation());
+                        autocompleteSuggestions.push(s.toString());
 
-                        acSuggestionElement.insertAdjacentHTML('beforeend', `<span class="${(i === selectedSuggestion) ? 'highlightedSuggestion' : 'acSuggestion'}">${s.getStringRepresentation()}</span>`);
+                        acSuggestionElement.insertAdjacentHTML('beforeend', `<span class="${(i === selectedSuggestion) ? 'highlightedSuggestion' : 'acSuggestion'}">${s.toString()}</span>`);
                         if (i < suggestions.length - 1) {
                             acSuggestionElement.insertAdjacentHTML('beforeend', '<span class="acDivider">|</span>');
                         }

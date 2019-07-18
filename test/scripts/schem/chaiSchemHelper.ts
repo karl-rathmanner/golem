@@ -8,7 +8,7 @@ declare global {
     }
 }
 
-import { SchemNumber, SchemBoolean, SchemString } from '../../../app/scripts/schem/types';
+import { SchemBoolean, SchemString } from '../../../app/scripts/schem/types';
 
 export default function (chai: any, utils: any): void {
     const Assertion: Chai.Assertion = chai.Assertion;
@@ -19,7 +19,7 @@ export default function (chai: any, utils: any): void {
 
         // New Assertions throw AssertionErrors if they fail. To allow obj to be either a SchemNumber or a SchemString, the first assertion may fail.
         try {
-            new chai.Assertion(obj).to.be.instanceof(SchemNumber);
+            new chai.Assertion(obj).to.be.a('number');
         } catch {
             new chai.Assertion(obj).to.be.instanceof(SchemString);
         }

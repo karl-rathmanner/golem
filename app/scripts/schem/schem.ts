@@ -6,7 +6,7 @@ import { Env, EnvSetupMap } from './env';
 import { pr_str } from './printer';
 import { readStr } from './reader';
 import { isCallableSchemType, isSchemBoolean, isSchemContextSymbol, isSchemFunction, isSchemJSReference, isSchemLazyVector, isSchemList, isSchemMap, isSchemNil, isSchemString, isSchemSymbol, isSchemVector, isSequential, isValidKeyType, isSchemType } from './typeGuards';
-import { AnySchemType, SchemAtom, SchemBoolean, SchemContextDefinition, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemString, SchemSymbol, SchemVector, SchemJSReference, SchemNumber } from './types';
+import { AnySchemType, SchemAtom, SchemBoolean, SchemContextDefinition, SchemFunction, SchemKeyword, SchemList, SchemMap, SchemMapKey, SchemMetadata, SchemNil, SchemString, SchemSymbol, SchemVector, SchemJSReference} from './types';
 import { isSymbol } from 'util';
 import { GlobalGolemState } from '../GlobalGolemState';
 
@@ -21,8 +21,6 @@ export class Schem {
         logEnvironmentInfo: false,
         pauseEvaluation: false
     };
-
-    private priviledgedContextIsReady = false;
 
     private async getContextManager(): Promise<SchemContextManager> {
         const ggsInstance = await GlobalGolemState.getInstance();
@@ -43,11 +41,11 @@ export class Schem {
                 f: async () => {
                     const cm = await this.getContextManager();
                     const contextIds = await cm.getAllActiveContextIds();
-                    return new SchemList(...contextIds.map(e => new SchemNumber(e)));
+                    return new SchemList(...contextIds);
                 }
             },
             'cm-get-context-instance' : {
-                f: async (id: SchemNumber) => {
+                f: async (id: number) => {
                     const cm = await this.getContextManager();
                     return await cm.getContextInstance(id.valueOf());
                 }
@@ -56,7 +54,7 @@ export class Schem {
                 f: async (contextDefinition: SchemContextDefinition) => {
                     const cm = await this.getContextManager();
                     const id = cm.idOfContextInstanceMatchingPattern(contextDefinition);
-                    return (id != null) ? new SchemNumber(id) : SchemNil.instance;
+                    return (id != null) ? id : SchemNil.instance;
                 }
             }
         });
@@ -411,21 +409,17 @@ export class Schem {
                             continue fromTheTop;
                         }
                     } else if (isSchemContextSymbol(first)) {
+                        /** (context-symbol: & forms) or (context-symbol: symbol-that-refers-to-a-form)
+                         * execute forms in any context matching the definition bound to contextSymbol:
+                         * The forms are wrapped in an implicit 'do', so only the last one's value will be finally retured
+                         * If you provide a symbol that refers to a form instead, then that symbol is resolved in the local context.
+                         * This is special form currently only supported if the interpreter instance exists in a privileged context
+                         */
+                        
                         const contextManager = await this.getContextManager();
-
                         if (contextManager != null) {
                             const contextDef = env.getContextSymbol(first);
                             const contextIds = await contextManager.prepareContexts(contextDef);
-
-                            /** (context-symbol: & forms) or (context-symbol: symbol-that-refers-to-a-form)
-                            * execute forms in any context matching the definition bound to contextSymbol:
-                            * The forms are wrapped in an implicit 'do', so only the last one's value will be finally retured
-                            * If you provide a symbol that refers to a form instead, then that symbol is resolved in the local context.
-                            * This is special form currently only supported if the interpreter instance exists in a privileged context
-                            */
-                            if (!this.priviledgedContextIsReady) {
-                                throw new Error(`Tried to use foreign context execution from an interpreter instance that has no access to privileged functions. (Or maybe they weren't initialized yet.)`);
-                            }
 
                             if (isSchemList(ast[1]) || isSchemSymbol(ast[1])) {
                                 let form: SchemList;

@@ -2,7 +2,7 @@ import { Env } from './env';
 import { Schem } from './schem';
 import { Tabs } from 'webextension-polyfill-ts';
 import { AvailableSchemContextFeatures } from '../contextManager';
-import { isSchemKeyword, isSchemSymbol, isValidKeyType, isSchemString, isSchemNumber, isSchemMap, isSchemType, isSchemList } from './typeGuards';
+import { isSchemKeyword, isSchemSymbol, isValidKeyType, isSchemString, isNumber, isSchemMap, isSchemType, isSchemList } from './typeGuards';
 import { resolveJSPropertyChain, jsObjectToSchemType, schemToJs, invokeJsProcedure, coerceToSchem, coerceToJs } from '../javascriptInterop';
 
 // interfaces
@@ -39,10 +39,10 @@ export interface Metadatable {
 }
 
 export enum SchemTypes {
+    number,
     SchemList,
     SchemVector,
     SchemMap,
-    SchemNumber,
     SchemSymbol,
     SchemKeyword,
     SchemNil,
@@ -65,11 +65,11 @@ export interface TaggedType {
 // types
 
 // TODO: figure out how LazyVectors schould be handled
-export type AnySchemType = SchemList | SchemVector | SchemMap | SchemNumber | SchemSymbol | SchemKeyword | SchemNil |
+export type AnySchemType = number | SchemList | SchemVector | SchemMap | SchemSymbol | SchemKeyword | SchemNil |
     SchemString | SchemRegExp | SchemFunction | SchemBoolean | SchemAtom | SchemContextSymbol |
     SchemContextDefinition | SchemContextInstance | SchemJSReference;
 export type RegularSchemCollection = SchemList | SchemVector | SchemMap;
-export type SchemMapKey = SchemSymbol | SchemKeyword | SchemString | SchemNumber;
+export type SchemMapKey = number | SchemSymbol | SchemKeyword | SchemString ;
 
 
 export type SchemMetadata = {
@@ -120,6 +120,15 @@ export class SchemList extends Array<any> implements Reducible, Countable, Index
     public typeTag: SchemTypes.SchemList = SchemTypes.SchemList;
     metadata: SchemMetadata;
 
+    constructor(...args: any[]) {
+        // "new Array(...args)" wounldn't work for creating a list with a single number value, so we copy args explicitly.
+        // (e.g. new Array(3) would create an empty Array of length three instead of an Array containing the value three.)
+        super(args.length);
+        for (let i = 0; i < args.length; i++) {
+            this[i] = args[i];
+        }
+    }
+
     /** Makes sure that all elements of the list are SchemSymbols and returns them in an array.*/
     public asArrayOfSymbols(): SchemSymbol[] {
         return this.map((e) => {
@@ -168,6 +177,15 @@ export class SchemVector extends Array<any> implements Callable, Indexable, Coun
     static isCollection = true;
     metadata: SchemMetadata;
 
+    constructor(...args: any[]) {
+        // As with the SchemList constructor, "new Array(...args)" wounldn't work for creating a list with a single number value, so we copy args explicitly.
+        // (e.g. new Array(3) would create an empty Array of length three instead of an Array containing the value three.)
+        super(args.length);
+        for (let i = 0; i < args.length; i++) {
+            this[i] = args[i];
+        }
+    }
+
     static fromPrimitiveValues(...values: any[]): SchemVector {
         return new SchemVector(...values.map(v => jsObjectToSchemType(v)));
     }
@@ -192,7 +210,8 @@ export class SchemVector extends Array<any> implements Callable, Indexable, Coun
     }
 
     invoke(...args: AnySchemType[]) {
-        const index = (isSchemNumber(args[0])) ? (args[0] as SchemNumber).valueOf() : NaN;
+        const firstElement = args[0];
+        const index = (isNumber(firstElement)) ? firstElement : NaN;
         if (Number.isInteger(index) && index >= 0 && index < this.length) {
             return this[index];
         }
@@ -239,7 +258,7 @@ export class SchemMap implements Callable, Reducible, Countable, Metadatable, Ta
         let keyString: string;
         if (isSchemString(key)) {
             keyString = 's' + key.valueOf();
-        } else if (isSchemNumber(key)) {
+        } else if (isNumber(key)) {
             keyString = 'n' + key.valueOf();
         } else if (isSchemKeyword(key)) {
             keyString = 'k' + key.name;
@@ -325,7 +344,7 @@ export class SchemLazyVector implements Countable, Indexable, TaggedType {
     async nth(index: number): Promise<AnySchemType> {
         if (!this.cachedValues.has(index)) {
             this.cachedValues.set(index,
-                await this.producer.invoke(new SchemNumber(index))
+                await this.producer.invoke(index)
             );
         }
         return this.cachedValues.get(index)!;
@@ -383,33 +402,33 @@ export class SchemBoolean extends Boolean implements TaggedType {
     }
 }
 
-export class SchemNumber extends Number implements Callable, TaggedType {
-    public typeTag: SchemTypes.SchemNumber = SchemTypes.SchemNumber;
+// export class SchemNumber extends Number implements Callable, TaggedType {
+//     public typeTag: SchemTypes.SchemNumber = SchemTypes.SchemNumber;
 
-    // TODO: make methods static?
-    invoke(...args: AnySchemType[]) {
-        const i = this.valueOf();
-        const sequential = args[0];
-        if (sequential instanceof SchemList || sequential instanceof SchemVector) {
-            if (i < 0 || i >= sequential.length) {
-                throw `index ${i} out of bounds!`;
-            }
-            return sequential[this.valueOf()];
-        } else {
-            throw `integers can only be invoked with lists or vectors as parameters`;
-        }
-    }
+//     // TODO: make methods static?
+//     invoke(...args: AnySchemType[]) {
+//         const i = this.valueOf();
+//         const sequential = args[0];
+//         if (sequential instanceof SchemList || sequential instanceof SchemVector) {
+//             if (i < 0 || i >= sequential.length) {
+//                 throw `index ${i} out of bounds!`;
+//             }
+//             return sequential[this.valueOf()];
+//         } else {
+//             throw `integers can only be invoked with lists or vectors as parameters`;
+//         }
+//     }
 
-    getStringRepresentation(): string {
-        return this.valueOf().toString();
-    }
-}
+//     getStringRepresentation(): string {
+//         return this.valueOf().toString();
+//     }
+// }
 
 export class SchemString extends String implements TaggedType, Indexable {
     public typeTag: SchemTypes.SchemString = SchemTypes.SchemString;
 
     // can't hide toString()
-    getStringRepresentation(): string {
+    toString(): string {
         return this.valueOf();
     }
 
@@ -420,7 +439,7 @@ export class SchemString extends String implements TaggedType, Indexable {
 
 export class SchemRegExp extends RegExp implements TaggedType {
     public typeTag: SchemTypes.SchemRegExp = SchemTypes.SchemRegExp;
-    getStringRepresentation() {
+    toString() {
         if (this.flags.length > 0) {
             return `#"(?${this.flags})${this.source}"`;
         }
@@ -493,7 +512,7 @@ class SymbolicType {
     }
 
     /** Might return something other than just the name in derived classes (such as ":name" for keywords) */
-    getStringRepresentation() {
+    toString() {
         return this.name;
     }
 }
@@ -552,7 +571,7 @@ export class SchemKeyword extends SymbolicType implements Callable, TaggedType {
     }
 
     /** Returns the name of the keyword prefixed with ":" */
-    getStringRepresentation() {
+    toString() {
         return ':' + this.name;
     }
 
@@ -584,7 +603,7 @@ export class SchemContextSymbol extends SymbolicType implements TaggedType {
     }
 
     /** Returns the name of the context suffixed with ":" */
-    getStringRepresentation() {
+    toString() {
         return this.name + ':';
     }
 }
@@ -729,7 +748,7 @@ export class SchemAtom implements TaggedType {
 export function toSchemMapKey(key: SchemMapKey): string {
     if (isSchemString(key)) {
         return 's' + key.valueOf();
-    } else if (isSchemNumber(key)) {
+    } else if (isNumber(key)) {
         return 'n' + key.valueOf();
     } else if (isSchemKeyword(key)) {
         return 'k' + key.name;
@@ -741,11 +760,28 @@ export function toSchemMapKey(key: SchemMapKey): string {
 }
 
 export function fromSchemMapKey(key: string): SchemMapKey {
+    const stringifiedValue = key.slice(1);
     switch (key[0]) {
-        case 's': return new SchemString(key.slice(1));
-        case 'n': return new SchemNumber(parseFloat(key.slice(1)));
-        case 'k': return SchemKeyword.from(key.slice(1));
-        case 'y': return SchemSymbol.from(key.slice(1));
+        case 's': return new SchemString(stringifiedValue);
+        case 'n': return parseFloat(stringifiedValue);
+        case 'k': return SchemKeyword.from(stringifiedValue);
+        case 'y': return SchemSymbol.from(stringifiedValue);
     }
     throw `key "${key}" starts with unknown type prefix`;
+}
+
+export function getMetadata(o: any) {
+    if (isSchemType(o) && Object.prototype.hasOwnProperty.call(o, 'metadata')) {
+        return (o as any).metadata;
+    } else {
+        return undefined;
+    }
+}
+
+export function getTypeTag(o: any) {
+    if (isSchemType(o) && Object.prototype.hasOwnProperty.call(o, 'typeTag')) {
+        return (o as any).typeTag;
+    } else {
+        return undefined;
+    }
 }

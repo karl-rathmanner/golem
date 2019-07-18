@@ -1,5 +1,5 @@
 import { browser, Tabs } from 'webextension-polyfill-ts';
-import { SchemContextDefinition, SchemMap, SchemNumber, SchemList, SchemSymbol, AnySchemType, SchemString } from './schem/types';
+import { SchemContextDefinition, SchemMap, SchemList, SchemSymbol, AnySchemType, SchemString } from './schem/types';
 import { schemToJs } from './javascriptInterop';
 import { GolemContextMessage } from './contentScriptMessaging';
 
@@ -45,7 +45,7 @@ async function requestContextAction(message: EventPageMessage) {
 /// ...AND ALL OF THESE ARE BROKEN IN THIS COMMIT!
 /// TODO: fix later.
 export const eventPageMessagingSchemFunctions = {
-    'create-contexts': async (queryInfo: SchemMap, frameId?: SchemNumber) => {
+    'create-contexts': async (queryInfo: SchemMap, frameId?: number) => {
         return requestContextCreation(schemToJs(queryInfo, { keySerialization: 'noPrefix' }), frameId ? frameId.valueOf() : 0).then(contextsOrError => {
             return new SchemList(...contextsOrError);
         });

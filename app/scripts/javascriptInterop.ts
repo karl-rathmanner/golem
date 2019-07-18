@@ -1,5 +1,5 @@
-import { isSchemString, isSchemMap, isSchemKeyword, isSequable, isSchemCollection, isSchemType, isSchemNil, isSchemNumber, isSchemSymbol, isSchemFunction } from './schem/typeGuards';
-import { AnySchemType, SchemJSReference, SchemMap, SchemString, SchemSymbol, toSchemMapKey, SchemNil, SchemKeyword, SchemList, SchemVector, SchemNumber, SchemBoolean } from './schem/types';
+import { isSchemString, isSchemMap, isSchemKeyword, isSequable, isSchemCollection, isSchemType, isSchemNil, isNumber, isSchemSymbol, isSchemFunction } from './schem/typeGuards';
+import { AnySchemType, SchemJSReference, SchemMap, SchemString, SchemSymbol, toSchemMapKey, SchemNil, SchemKeyword, SchemList, SchemVector, SchemBoolean } from './schem/types';
 const browser = chrome;
 
 export const interopFunctions: { [symbol: string]: any } = {
@@ -47,7 +47,7 @@ export const interopFunctions: { [symbol: string]: any } = {
 export function atomicSchemObjectToJS(schemObject?: AnySchemType): any {
     if (typeof schemObject === 'undefined') return undefined;
     if (schemObject instanceof SchemNil) return null;
-    if (isSchemNumber(schemObject)) return schemObject.valueOf();
+    if (isNumber(schemObject)) return schemObject;
     if (isSchemFunction(schemObject)) {
         return (...args: any[]) => {
             const newForm = new SchemList(schemObject, ...args.map(coerceToSchem));
@@ -55,7 +55,7 @@ export function atomicSchemObjectToJS(schemObject?: AnySchemType): any {
         };
     }
     // getStringRepresentation is preferable to valueOf because it returns values that look like their Schem representation (e.g. ":keyword" instead of "keyword")
-    return ('getStringRepresentation' in schemObject) ? schemObject.getStringRepresentation() : schemObject.valueOf();
+    return schemObject.toString();
 }
 
 /** Returns a stringifiable javascript object based on the schem value/collection.
@@ -93,7 +93,7 @@ export function schemToJs(schemObject?: AnySchemType | null, options: { keySeria
                 if (isSchemKeyword(key)) {
                     jsKey = key.name;
                 } else {
-                    jsKey = key.getStringRepresentation();
+                    jsKey = key.toString();
                 }
 
                 if (options.keySerialization === 'toPropertyIdentifier') {
@@ -163,7 +163,7 @@ export function coerceToJs(obj: any) {
 export function coerceToSchem(obj: AnySchemType) {
 
     const t = typeof obj;
-    if (t === 'string' || t === 'number' || t === 'boolean' || t === 'undefined') {
+    if (t === 'string' || t === 'boolean' || t === 'undefined') {
         return primitiveValueToSchemType(obj);
     } else {
         return obj;
@@ -222,7 +222,7 @@ export function jsObjectToSchemType(o: any, options: { arraysToVectors?: boolean
 export function primitiveValueToSchemType(value: any, defaultValue?: AnySchemType): AnySchemType {
     switch (typeof value) {
         case 'string': return new SchemString(value);
-        case 'number': return new SchemNumber(value);
+        case 'number': return value;
         case 'boolean': return SchemBoolean.fromBoolean(value);
         case 'undefined': return SchemNil.instance;
         default:

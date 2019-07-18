@@ -70,7 +70,7 @@ export class Env {
                     let targetElement = targetStructure[i];
 
                     if (isSchemSymbol(targetElement)) {
-                        if (targetElement.getStringRepresentation() === '&') {
+                        if (targetElement.toString() === '&') {
                             // special case: encountered a clojure style variadic binding -> put the remaining source elements into a list and bind that to the symbol next to '&'
                             targetElement = targetStructure[i + 1];
 

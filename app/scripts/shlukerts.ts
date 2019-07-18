@@ -148,7 +148,7 @@ async function createDocumentFragment(shlukertsVector: SchemVector | SchemNil): 
 
 
             if (attributes != null) attributes.forEach((key, value) => {
-                const attributeName = isSchemKeyword(key) ? key.name : key.getStringRepresentation();
+                const attributeName = isSchemKeyword(key) ? key.name : key.toString();
                 node.setAttribute(attributeName, value.toString());
             });
             body.forEach(async element => {

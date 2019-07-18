@@ -2,7 +2,7 @@ import * as monaco from 'monaco-editor';
 import { getAllProperties, resolveJSPropertyChain } from '../javascriptInterop';
 import { Schem } from '../schem/schem';
 import { isSchemCollection, isSchemFunction, isSchemList, isSchemSymbol, isSchemType } from '../schem/typeGuards';
-import { AnySchemType, SchemContextSymbol, SchemSymbol, SchemTypes } from '../schem/types';
+import { AnySchemType, SchemContextSymbol, SchemSymbol, SchemTypes, getTypeTag as getSchemTypeTag, getTypeTag } from '../schem/types';
 import ILanguage = monaco.languages.IMonarchLanguage;
 
 export function AddSchemSupportToEditor(interpreter: Schem) {
@@ -262,9 +262,7 @@ async function createSchemCompletionItems(range: monaco.IRange): Promise<monaco.
         const pickKind = (v: any) => {
             // Not caring about the semantics here, just trying to pick ones with a fitting icon
             // TODO: see if CompletionItemKind can be extended or customized
-            if (!isSchemType(v)) {
-                return monaco.languages.CompletionItemKind.Value;
-            } else switch (v.typeTag) {
+            switch (getTypeTag(v)) {
                 case SchemTypes.SchemFunction: return monaco.languages.CompletionItemKind.Function;
                 case SchemTypes.SchemSymbol: return monaco.languages.CompletionItemKind.Variable;
                 case SchemTypes.SchemContextSymbol:
@@ -287,7 +285,7 @@ async function createSchemCompletionItems(range: monaco.IRange): Promise<monaco.
             }
         };
 
-        const pickDetail = (value: AnySchemType | any) => {
+        const pickDetail = (value: any) => {
             if (!isSchemType(value)) {
                 if (value === null) return `null`;
                 if (value === undefined) return `undefined`;
@@ -304,7 +302,12 @@ async function createSchemCompletionItems(range: monaco.IRange): Promise<monaco.
                 return `${SchemTypes[value.typeTag]} with ${value.count()} items`; // printing a collection would be asynchronous and might have side effects, so I won't do that for now
             } else {
                 // TODO: handle keywords, atoms etc.
-                return `${SchemTypes[value.typeTag]}: ${value.toString()}`;
+                const typeTag = getSchemTypeTag(value);
+                if (typeTag != null) {
+                    return `${SchemTypes[typeTag]}: ${value.toString()}`;
+                } else {
+                    throw `YOU PROBADIDN'T HANDLE NUMBERS HERE!!!`
+                }
             }
         };
 

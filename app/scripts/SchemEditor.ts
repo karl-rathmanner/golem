@@ -374,8 +374,8 @@ export class SchemEditor {
             const cursorIndex = textModel.getOffsetAt(cursorPosition) + 4;
 
             // I'm sorry...
-            const collectionsAroundCursor = filterRecursively(this.ast, (element) => {
-                if (element != null && 'metadata' in element && element.metadata !== undefined &&
+            const collectionsAroundCursor = filterRecursively(this.ast, (element: any) => {
+                if (element != null && element.metadata !== undefined &&
                     'sourceIndexStart' in element.metadata && typeof element.metadata.sourceIndexStart === 'number' &&
                     'sourceIndexEnd' in element.metadata && typeof element.metadata.sourceIndexEnd === 'number') {
                     return (element.metadata.sourceIndexStart < cursorIndex + 1 && element.metadata.sourceIndexEnd > cursorIndex - 1);
