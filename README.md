@@ -141,7 +141,7 @@ Increments version number of `manifest.json` and `package.json`,
 commits the change to git and adds a git tag.
 
 
-    $ gulp patch      // => 0.0.X
+    $ gulp patch      // => 0.0.X   
 
 or
 
