@@ -7,7 +7,7 @@ import { GolemContextMessage } from './contentScriptMessaging';
 
 export type EventPageActionName =
     'create-contexts' | 'forward-context-action' | 'invoke-context-procedure' | 'invoke-js-procedure' | 'set-js-property' |
-    'inject-interpreter' | 'arep-in-contexts' | 'notify' | 'execute-run-commands' | 'reload-golem';
+    'inject-interpreter' | 'arep-in-contexts' | 'notify' | 'execute-run-commands' | 'reload-golem' | 'arep-in-bgc';
 
 export type EventPageMessage = {
     action: EventPageActionName,

@@ -52,6 +52,19 @@ export class GlobalGolemFunctions {
                 break;
             }
 
+            case 'arep-in-bgc': {
+                if (message.args == null) {
+                    throw new Error(`'args' parameter is missing in 'arep-in-bgc' message`);
+                }
+                let code = message.args.code;
+
+                if (typeof code !== 'string' || code.length === 0) {
+                    throw new Error(`No code supplied with 'arep-in-bgc' message`);
+                }
+
+                return await this.globalState.eventPageInterpreter.arep(code);
+            }
+
             case 'reload-golem': {
                 chrome.runtime.reload();
                 break;
@@ -111,7 +124,6 @@ export class GlobalGolemFunctions {
                     }
                 }
             }
-
         }
     }
 

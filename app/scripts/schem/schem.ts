@@ -34,8 +34,6 @@ export class Schem {
     constructor() {
         this.replEnv.addMap(coreFunctions);
         this.replEnv.addMap(interopFunctions);
-        
-
         this.replEnv.addMap({
             'cm-get-active-context-ids': {
                 f: async () => {
@@ -415,7 +413,7 @@ export class Schem {
                          * If you provide a symbol that refers to a form instead, then that symbol is resolved in the local context.
                          * This is special form currently only supported if the interpreter instance exists in a privileged context
                          */
-                        
+
                         const contextManager = await this.getContextManager();
                         if (contextManager != null) {
                             const contextDef = env.getContextSymbol(first);
@@ -446,6 +444,7 @@ export class Schem {
                             }
 
                         } else {
+                            /// send message: await pr_str(ast[1])
                             throw new Error(`defcontext can only be called by an interpreter instance that is running in a privileged javascript context (such as the event page)`);
                         }
                     }

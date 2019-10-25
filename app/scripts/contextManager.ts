@@ -5,7 +5,7 @@ import { isSchemNil } from './schem/typeGuards';
 import { SchemContextDefinition, SchemContextInstance } from './schem/types';
 import { objectPatternMatch } from './utils/utilities';
 
-export type AvailableSchemContextFeatures = 'schem-interpreter' | 'lightweight-js-interop' | 'demo-functions' | 'dom-manipulation' | 'tiny-repl' | 'shlukerts';
+export type AvailableSchemContextFeatures = 'schem-interpreter' | 'lightweight-js-interop' | 'demo-functions' | 'dom-manipulation' | 'tiny-repl' | 'shlukerts' | 'background-context-requests' | 'background-context-requests';
 
 /** Responsible for the creating, initializing and keeping track of contexts and their features. */
 export class SchemContextManager {
@@ -18,7 +18,8 @@ export class SchemContextManager {
         ['lightweight-js-interop', 'scripts/lightweightJavascriptInterop.js'],
         ['dom-manipulation', 'scripts/domManipulationCS.js'],
         ['tiny-repl', 'scripts/tinyReplCS.js'],
-        ['shlukerts', 'scripts/shlukertsCS.js']
+        ['shlukerts', 'scripts/shlukertsCS.js'],
+        ['background-context-requests', 'scripts/backgroundContextRequestsCS.js']
     ]);
 
     constructor() {
@@ -232,9 +233,14 @@ export class SchemContextManager {
     /** Adds some functionality to a Schem context by injecting a content script into the appropriate tab. */
     async injectFeature(context: SchemContextInstance, feature: AvailableSchemContextFeatures) {
         const contentScriptURL = SchemContextManager.featureNameToContentScriptPath.get(feature);
-        return browser.tabs.executeScript(context.tabId, { file: contentScriptURL }).then(() => {
+
+        try {
+            await browser.tabs.executeScript(context.tabId, { file: contentScriptURL });
             return true;
-        }).catch(e => e);
+        } catch (e) {
+            console.error(`injection of feature ${feature} failed: ${e.message}`);
+            return false;
+        }
     }
 
     /** Adds some functionality to a Schem context only if it is currently missing the feature. */
