@@ -5,7 +5,7 @@ import { isSchemNil } from './schem/typeGuards';
 import { SchemContextDefinition, SchemContextInstance } from './schem/types';
 import { objectPatternMatch } from './utils/utilities';
 
-export type AvailableSchemContextFeatures = 'schem-interpreter' | 'lightweight-js-interop' | 'demo-functions' | 'dom-manipulation' | 'tiny-repl' | 'shlukerts' | 'background-context-requests' | 'background-context-requests';
+export type AvailableSchemContextFeatures = 'schem-interpreter' | 'lightweight-js-interop' | 'demo-functions' | 'dom-manipulation' | 'tiny-repl' | 'shlukerts' | 'background-context-requests' | 'background-context-requests' | 'schem-editor';
 
 /** Responsible for the creating, initializing and keeping track of contexts and their features. */
 export class SchemContextManager {
@@ -19,7 +19,8 @@ export class SchemContextManager {
         ['dom-manipulation', 'scripts/domManipulationCS.js'],
         ['tiny-repl', 'scripts/tinyReplCS.js'],
         ['shlukerts', 'scripts/shlukertsCS.js'],
-        ['background-context-requests', 'scripts/backgroundContextRequestsCS.js']
+        ['background-context-requests', 'scripts/backgroundContextRequestsCS.js'],
+        ['schem-editor', 'scripts/schemEditorCS.js']
     ]);
 
     constructor() {

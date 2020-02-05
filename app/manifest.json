@@ -69,5 +69,6 @@
         "storage",
         "<all_urls>",
         "webRequest"
-    ]
+    ],
+    "web_accessible_resources": ["styles/editor.css", "scripts/editorIframe.js", "scripts/monaco/editor.worker.js"]
 }
