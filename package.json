@@ -83,7 +83,7 @@
   },
   "dependencies": {
     "@babel/core": "^7.4.4",
-    "acorn": "^6.1.1",
+    "acorn": "^6.4.1",
     "ajv": "^6.10.0",
     "dexie": "^2.0.4",
     "monaco-editor": "^0.17.0",
