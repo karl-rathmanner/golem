@@ -84,7 +84,7 @@
   "dependencies": {
     "@babel/core": "^7.4.4",
     "acorn": "^6.1.1",
-    "ajv": "^6.10.0",
+    "ajv": "^6.12.3",
     "dexie": "^2.0.4",
     "monaco-editor": "^0.17.0",
     "monaco-editor-webpack-plugin": "^1.7.0",
